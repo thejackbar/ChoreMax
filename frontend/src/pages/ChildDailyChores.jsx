@@ -6,6 +6,7 @@ import { formatMoney } from '../data/currencies'
 import ConfettiAnimation from '../components/ConfettiAnimation'
 import ProgressBar from '../components/ProgressBar'
 import EmptyState from '../components/EmptyState'
+import PinModal from '../components/PinModal'
 
 export default function ChildDailyChores() {
   const { childId } = useParams()
@@ -16,6 +17,8 @@ export default function ChildDailyChores() {
   const [filter, setFilter] = useState('all')
   const [confettiTrigger, setConfettiTrigger] = useState(0)
   const [completing, setCompleting] = useState(null)
+  const [undoChore, setUndoChore] = useState(null)
+  const [pinError, setPinError] = useState(null)
 
   const fetchChores = useCallback(async () => {
     try {
@@ -31,18 +34,33 @@ export default function ChildDailyChores() {
   useEffect(() => { fetchChores() }, [fetchChores])
 
   const handleComplete = async (chore) => {
-    if (chore.completed || completing) return
+    if (completing) return
+    if (chore.completed) {
+      setUndoChore(chore)
+      setPinError(null)
+      return
+    }
     setCompleting(chore.id)
     try {
       await api.completions.complete({ chore_id: chore.id, child_id: childId })
       setConfettiTrigger(t => t + 1)
       await fetchChores()
-      // Navigate home after a brief delay so the kid sees the confetti
       setTimeout(() => navigate('/'), 1500)
     } catch (e) {
       alert(e.message)
     } finally {
       setCompleting(null)
+    }
+  }
+
+  const handleUndo = async (pin) => {
+    try {
+      await api.completions.undo(undoChore.completion_id, pin)
+      setUndoChore(null)
+      setPinError(null)
+      await fetchChores()
+    } catch (e) {
+      setPinError(e.message)
     }
   }
 
@@ -100,7 +118,7 @@ export default function ChildDailyChores() {
               key={chore.id}
               className={`chore-card ${chore.completed ? 'chore-card--done' : ''}`}
               onClick={() => handleComplete(chore)}
-              disabled={chore.completed || completing === chore.id}
+              disabled={completing === chore.id}
             >
               <span className="chore-emoji">{chore.emoji}</span>
               <span className="chore-title">{chore.title}</span>
@@ -112,6 +130,15 @@ export default function ChildDailyChores() {
             </button>
           ))}
         </div>
+      )}
+
+      {undoChore && (
+        <PinModal
+          title={`Undo "${undoChore.title}"?`}
+          error={pinError}
+          onSubmit={handleUndo}
+          onCancel={() => { setUndoChore(null); setPinError(null) }}
+        />
       )}
     </div>
   )
