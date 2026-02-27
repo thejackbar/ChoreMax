@@ -10,7 +10,7 @@ from schemas import ChildCreate, ChildReorderRequest, ChildResponse, ChildUpdate
 router = APIRouter(prefix="/api/children", tags=["children"])
 
 
-@router.get("/")
+@router.get("")
 async def list_children(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -24,7 +24,7 @@ async def list_children(
     return [ChildResponse.model_validate(c) for c in children]
 
 
-@router.post("/", status_code=201)
+@router.post("", status_code=201)
 async def create_child(
     data: ChildCreate,
     current_user: User = Depends(require_pin),
@@ -45,6 +45,7 @@ async def create_child(
         avatar_type=data.avatar_type,
         avatar_value=data.avatar_value,
         display_order=max_order + 1,
+        birthday=data.birthday,
     )
     db.add(child)
     await db.flush()

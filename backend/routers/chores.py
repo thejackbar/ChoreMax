@@ -32,7 +32,7 @@ def _chore_response(chore: Chore, assignments: list[ChoreAssignment] | None = No
     }
 
 
-@router.get("/")
+@router.get("")
 async def list_chores(
     child_id: str | None = Query(default=None),
     frequency: str | None = Query(default=None),
@@ -61,7 +61,7 @@ async def get_templates():
     return _get()
 
 
-@router.post("/", status_code=201)
+@router.post("", status_code=201)
 async def create_chore(
     data: ChoreCreate,
     current_user: User = Depends(require_pin),

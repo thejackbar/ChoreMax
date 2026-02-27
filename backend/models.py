@@ -42,6 +42,7 @@ class Child(Base):
     avatar_type: Mapped[str] = mapped_column(Text, nullable=False, server_default="builtin")
     avatar_value: Mapped[str] = mapped_column(Text, nullable=False, server_default="bear")
     display_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    birthday: Mapped[datetime | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

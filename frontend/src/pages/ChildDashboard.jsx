@@ -4,6 +4,7 @@ import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { formatMoney } from '../data/currencies'
 import ProgressBar from '../components/ProgressBar'
+import ChoreCalendar from '../components/ChoreCalendar'
 
 export default function ChildDashboard() {
   const { childId } = useParams()
@@ -73,6 +74,7 @@ export default function ChildDashboard() {
           target={data.daily_total}
           label="Today's Progress"
           emoji="&#x2600;&#xFE0F;"
+          green
         />
       )}
       {data.weekly_total > 0 && (
@@ -83,6 +85,12 @@ export default function ChildDashboard() {
           emoji="&#x1F4C5;"
         />
       )}
+
+      {/* Calendar */}
+      <div className="mt-lg">
+        <h3 className="mb-md">Chore Calendar</h3>
+        <ChoreCalendar childId={childId} />
+      </div>
     </div>
   )
 }

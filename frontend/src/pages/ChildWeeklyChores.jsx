@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { formatMoney } from '../data/currencies'
 import ConfettiAnimation from '../components/ConfettiAnimation'
+import ProgressBar from '../components/ProgressBar'
 import EmptyState from '../components/EmptyState'
 
 export default function ChildWeeklyChores() {
   const { childId } = useParams()
+  const navigate = useNavigate()
   const { user } = useAuth()
   const [chores, setChores] = useState([])
   const [loading, setLoading] = useState(true)
@@ -35,6 +37,7 @@ export default function ChildWeeklyChores() {
       await api.completions.complete({ chore_id: chore.id, child_id: childId })
       setConfettiTrigger(t => t + 1)
       await fetchChores()
+      setTimeout(() => navigate('/'), 1500)
     } catch (e) {
       alert(e.message)
     } finally {
@@ -56,11 +59,18 @@ export default function ChildWeeklyChores() {
     <div>
       <ConfettiAnimation trigger={confettiTrigger} />
 
-      <div className="flex-between mb-md">
-        <h2>Weekly Chores</h2>
-        <span className="text-muted text-sm font-heading">
-          {completedCount}/{chores.length} done
-        </span>
+      <div className="chore-progress-header">
+        <div className="chore-progress-top">
+          <h2>Weekly Chores</h2>
+          <span className="text-muted font-heading" style={{ fontSize: '1.1rem' }}>
+            {completedCount}/{chores.length} done
+          </span>
+        </div>
+        <ProgressBar
+          current={completedCount}
+          target={chores.length}
+          showLabel={false}
+        />
       </div>
 
       <div className="filter-bar">

@@ -80,6 +80,7 @@ export const api = {
     child: (childId) => request('GET', `/dashboard/child/${childId}`),
     parent: (pin) => withPin('GET', '/dashboard/parent', null, pin),
     stats: (params, pin) => withPin('GET', '/dashboard/stats' + (params ? '?' + new URLSearchParams(params) : ''), null, pin),
+    calendar: (childId, month) => request('GET', `/dashboard/child/${childId}/calendar?month=${month}`),
   },
   settings: {
     setPin: (data) => request('POST', '/settings/pin/set', data),

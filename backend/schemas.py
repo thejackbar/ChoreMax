@@ -47,6 +47,7 @@ class ChildCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     avatar_type: str = "builtin"
     avatar_value: str = "bear"
+    birthday: date | None = None
 
 
 class ChildUpdate(BaseModel):
@@ -54,6 +55,7 @@ class ChildUpdate(BaseModel):
     avatar_type: str | None = None
     avatar_value: str | None = None
     display_order: int | None = None
+    birthday: date | None = None
 
 
 class ChildResponse(OrmBase):
@@ -62,6 +64,7 @@ class ChildResponse(OrmBase):
     avatar_type: str
     avatar_value: str
     display_order: int
+    birthday: date | None = None
     created_at: datetime
 
 

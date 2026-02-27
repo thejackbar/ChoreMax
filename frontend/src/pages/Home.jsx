@@ -1,18 +1,32 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useChild } from '../context/ChildContext'
 import { useAuth } from '../context/AuthContext'
+import { api } from '../api/client'
 import { getAvatarEmoji } from '../data/avatars'
+import { formatMoney } from '../data/currencies'
 import EmptyState from '../components/EmptyState'
 
 export default function Home() {
   const { children, fetchChildren, loadingChildren, setActiveChild } = useChild()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [summaries, setSummaries] = useState({})
 
   useEffect(() => {
     fetchChildren()
   }, [fetchChildren])
+
+  // Fetch dashboard summary for each child
+  useEffect(() => {
+    if (children.length === 0) return
+    children.forEach(async (child) => {
+      try {
+        const data = await api.dashboard.child(child.id)
+        setSummaries(prev => ({ ...prev, [child.id]: data }))
+      } catch {}
+    })
+  }, [children])
 
   const handleChildClick = (child) => {
     setActiveChild(child)
@@ -23,11 +37,13 @@ export default function Home() {
     return <div className="text-center mt-lg"><h2>Loading...</h2></div>
   }
 
+  const currency = user?.currency || 'AUD'
+
   return (
     <div>
-      <div className="text-center mb-lg">
+      <div className="text-center mb-lg" style={{ marginTop: '2rem' }}>
         <h1>Who are you?</h1>
-        <p className="text-muted">Tap your picture to start!</p>
+        <p className="text-muted" style={{ fontSize: '1.1rem', marginTop: '0.5rem' }}>Tap your picture to start!</p>
       </div>
 
       {children.length === 0 ? (
@@ -43,16 +59,35 @@ export default function Home() {
         />
       ) : (
         <div className="avatar-grid">
-          {children.map(child => (
-            <button
-              key={child.id}
-              className="avatar-btn"
-              onClick={() => handleChildClick(child)}
-            >
-              <span className="avatar-emoji">{getAvatarEmoji(child.avatar_value)}</span>
-              <span className="avatar-name">{child.name}</span>
-            </button>
-          ))}
+          {children.map(child => {
+            const s = summaries[child.id]
+            return (
+              <button
+                key={child.id}
+                className="avatar-btn"
+                onClick={() => handleChildClick(child)}
+              >
+                <span className="avatar-emoji">{getAvatarEmoji(child.avatar_value)}</span>
+                <span className="avatar-name">{child.name}</span>
+                {s && (
+                  <div className="child-summary">
+                    <div className="child-summary-item">
+                      <span className="summary-value">{s.daily_completed}/{s.daily_total}</span>
+                      <span>Daily</span>
+                    </div>
+                    <div className="child-summary-item">
+                      <span className="summary-value">{s.weekly_completed}/{s.weekly_total}</span>
+                      <span>Weekly</span>
+                    </div>
+                    <div className="child-summary-item">
+                      <span className="summary-value money">{formatMoney(s.piggy_bank_balance, currency)}</span>
+                      <span>Balance</span>
+                    </div>
+                  </div>
+                )}
+              </button>
+            )
+          })}
         </div>
       )}
     </div>

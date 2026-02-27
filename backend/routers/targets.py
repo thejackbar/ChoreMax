@@ -63,7 +63,7 @@ async def get_active_target(
     return _target_response(target, balance)
 
 
-@router.post("/", status_code=201)
+@router.post("", status_code=201)
 async def create_target(
     data: TargetCreate,
     current_user: User = Depends(require_pin),

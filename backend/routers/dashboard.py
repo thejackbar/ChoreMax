@@ -298,3 +298,68 @@ async def detailed_stats(
         total_earnings=total_earnings,
         completion_pct=round(completion_pct, 1),
     )
+
+
+@router.get("/child/{child_id}/calendar")
+async def child_calendar(
+    child_id: str,
+    month: str = Query(..., pattern=r"^\d{4}-\d{2}$"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Child).where(Child.id == child_id, Child.user_id == current_user.id)
+    )
+    child = result.scalar_one_or_none()
+    if not child:
+        raise HTTPException(status_code=404, detail="Child not found")
+
+    year, mo = int(month[:4]), int(month[5:7])
+    start = date(year, mo, 1)
+    if mo == 12:
+        end = date(year + 1, 1, 1) - timedelta(days=1)
+    else:
+        end = date(year, mo + 1, 1) - timedelta(days=1)
+
+    # Get total assigned chores for this child (daily)
+    result = await db.execute(
+        select(func.count())
+        .select_from(ChoreAssignment)
+        .join(Chore, ChoreAssignment.chore_id == Chore.id)
+        .where(
+            ChoreAssignment.child_id == child_id,
+            Chore.frequency == "daily",
+            Chore.is_active == True,
+        )
+    )
+    daily_total = result.scalar_one()
+
+    # Get completions in range
+    result = await db.execute(
+        select(
+            ChoreCompletion.period_date,
+            func.count().label("cnt"),
+        )
+        .join(Chore, ChoreCompletion.chore_id == Chore.id)
+        .where(
+            ChoreCompletion.child_id == child_id,
+            ChoreCompletion.period_date >= start,
+            ChoreCompletion.period_date <= end,
+            Chore.frequency == "daily",
+        )
+        .group_by(ChoreCompletion.period_date)
+    )
+    completion_map = {row.period_date: row.cnt for row in result}
+
+    days = []
+    d = start
+    while d <= end:
+        completed = completion_map.get(d, 0)
+        days.append({
+            "date": d.isoformat(),
+            "completed": completed,
+            "total": daily_total,
+        })
+        d += timedelta(days=1)
+
+    return {"month": month, "child_id": child_id, "daily_total": daily_total, "days": days}

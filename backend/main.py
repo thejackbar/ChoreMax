@@ -22,6 +22,7 @@ app = FastAPI(
     title="ChoreMax API",
     version="1.0.0",
     lifespan=lifespan,
+    redirect_slashes=False,
     docs_url=None if settings.is_production else "/docs",
     redoc_url=None if settings.is_production else "/redoc",
 )

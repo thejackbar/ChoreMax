@@ -11,7 +11,7 @@ from utils import get_period_date
 router = APIRouter(prefix="/api/completions", tags=["completions"])
 
 
-@router.post("/", status_code=201)
+@router.post("", status_code=201)
 async def complete_chore(
     data: CompleteChoreRequest,
     current_user: User = Depends(get_current_user),

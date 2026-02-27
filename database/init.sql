@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS children (
     avatar_type     TEXT NOT NULL DEFAULT 'builtin',
     avatar_value    TEXT NOT NULL DEFAULT 'bear',
     display_order   INTEGER NOT NULL DEFAULT 0,
+    birthday        DATE,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
