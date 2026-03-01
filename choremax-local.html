@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="ChoreMax">
+  <meta name="theme-color" content="#7C73E6">
+  <title>ChoreMax</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --purple: #7C73E6;
+      --purple-light: #EEEDff;
+      --purple-dark: #5A52C8;
+      --coral: #FF6B6B;
+      --coral-light: #FFE8E8;
+      --teal: #4ECDC4;
+      --teal-light: #E0F7F6;
+      --yellow: #FFD166;
+      --yellow-light: #FFF6DC;
+      --green: #06D6A0;
+      --green-light: #E0FAF4;
+      --bg: #F5F4FF;
+      --card: #FFFFFF;
+      --text: #2D2D44;
+      --text-muted: #8888AA;
+      --border: #E8E7FF;
+      --radius: 18px;
+      --radius-sm: 10px;
+      --shadow: 0 4px 20px rgba(124,115,230,0.12);
+      --shadow-sm: 0 2px 8px rgba(124,115,230,0.08);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    #app {
+      max-width: 430px;
+      margin: 0 auto;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: var(--card);
+      padding: calc(var(--safe-top) + 14px) 20px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-title {
+      font-family: 'Fredoka One', cursive;
+      font-size: 22px;
+      color: var(--purple);
+      flex: 1;
+    }
+    .header-subtitle { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+    .back-btn {
+      background: var(--purple-light);
+      border: none;
+      border-radius: 10px;
+      width: 36px; height: 36px;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ── Scrollable content ── */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 20px 16px;
+      padding-bottom: calc(var(--safe-bottom) + 100px);
+    }
+    .content.no-pad-bottom { padding-bottom: 20px; }
+
+    /* ── Bottom nav ── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 430px;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      display: flex;
+      padding: 8px 0 calc(var(--safe-bottom) + 8px);
+      z-index: 200;
+    }
+    .nav-btn {
+      flex: 1;
+      border: none;
+      background: none;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      padding: 6px 4px;
+      cursor: pointer;
+      font-family: inherit;
+      color: var(--text-muted);
+      font-size: 11px; font-weight: 700;
+      transition: color 0.15s;
+    }
+    .nav-btn.active { color: var(--purple); }
+    .nav-icon { font-size: 22px; line-height: 1; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 12px;
+    }
+    .card-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      border: none; border-radius: 14px;
+      padding: 14px 20px;
+      font-family: inherit; font-weight: 800; font-size: 15px;
+      cursor: pointer; transition: transform 0.1s, opacity 0.1s;
+      width: 100%;
+    }
+    .btn:active { transform: scale(0.97); opacity: 0.9; }
+    .btn-primary { background: var(--purple); color: #fff; }
+    .btn-secondary { background: var(--purple-light); color: var(--purple); }
+    .btn-danger { background: var(--coral-light); color: var(--coral); }
+    .btn-green { background: var(--green-light); color: #039970; }
+    .btn-sm {
+      padding: 8px 14px;
+      font-size: 13px;
+      border-radius: 10px;
+      width: auto;
+    }
+
+    /* ── Child chips ── */
+    .child-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
+      display: flex; align-items: center; gap: 14px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.15s, transform 0.1s;
+      margin-bottom: 12px;
+    }
+    .child-card:active { transform: scale(0.98); }
+    .child-card.selected { border-color: var(--purple); }
+    .avatar { font-size: 40px; line-height: 1; flex-shrink: 0; }
+    .avatar-sm { font-size: 26px; }
+    .child-name { font-weight: 800; font-size: 18px; }
+    .child-meta { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+
+    /* ── Chore items ── */
+    .chore-item {
+      background: var(--card);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 8px;
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: transform 0.1s;
+      border: 2px solid transparent;
+    }
+    .chore-item:active { transform: scale(0.98); }
+    .chore-item.done { opacity: 0.55; background: #F9F9FF; border-color: var(--green); }
+    .chore-emoji { font-size: 28px; flex-shrink: 0; }
+    .chore-info { flex: 1; }
+    .chore-name { font-weight: 700; font-size: 15px; }
+    .chore-value { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+    .chore-check {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 2.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 14px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .chore-item.done .chore-check { background: var(--green); border-color: var(--green); }
+
+    /* ── Forms ── */
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-weight: 700; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .form-input {
+      width: 100%; border: 2px solid var(--border);
+      border-radius: 12px; padding: 12px 14px;
+      font-family: inherit; font-size: 16px; font-weight: 600;
+      background: #fff; color: var(--text);
+      outline: none; transition: border-color 0.15s;
+    }
+    .form-input:focus { border-color: var(--purple); }
+    select.form-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238888AA' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+    /* ── Emoji picker ── */
+    .emoji-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .emoji-opt {
+      aspect-ratio: 1;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 22px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      background: #fff;
+    }
+    .emoji-opt.selected { border-color: var(--purple); background: var(--purple-light); }
+
+    /* ── Stats strip ── */
+    .stats-row { display: flex; gap: 10px; margin-bottom: 16px; }
+    .stat-box {
+      flex: 1; background: var(--card);
+      border-radius: var(--radius-sm);
+      padding: 14px 12px;
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+    }
+    .stat-num { font-family: 'Fredoka One', cursive; font-size: 26px; color: var(--purple); }
+    .stat-label { font-size: 11px; color: var(--text-muted); font-weight: 700; margin-top: 2px; }
+
+    /* ── PIN pad ── */
+    .pin-display {
+      display: flex; gap: 12px; justify-content: center; margin: 24px 0;
+    }
+    .pin-dot {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 2.5px solid var(--purple);
+      transition: background 0.15s;
+    }
+    .pin-dot.filled { background: var(--purple); }
+    .pin-pad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      max-width: 280px;
+      margin: 0 auto;
+    }
+    .pin-key {
+      aspect-ratio: 1;
+      border: none;
+      border-radius: 50%;
+      background: var(--card);
+      font-family: 'Fredoka One', cursive;
+      font-size: 24px;
+      color: var(--text);
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: background 0.1s, transform 0.1s;
+    }
+    .pin-key:active { background: var(--purple-light); transform: scale(0.93); }
+    .pin-key.del { font-size: 18px; color: var(--coral); }
+
+    /* ── Piggy bank ── */
+    .balance-hero {
+      background: linear-gradient(135deg, var(--purple), var(--purple-dark));
+      border-radius: var(--radius);
+      padding: 28px 20px;
+      text-align: center;
+      color: #fff;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+    .balance-label { font-size: 13px; font-weight: 700; opacity: 0.8; margin-bottom: 4px; }
+    .balance-amount { font-family: 'Fredoka One', cursive; font-size: 48px; }
+
+    .tx-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .tx-item:last-child { border-bottom: none; }
+    .tx-icon { font-size: 22px; flex-shrink: 0; }
+    .tx-info { flex: 1; }
+    .tx-note { font-weight: 700; font-size: 14px; }
+    .tx-date { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+    .tx-amount { font-weight: 800; font-size: 15px; }
+    .tx-pos { color: var(--green); }
+    .tx-neg { color: var(--coral); }
+
+    /* ── Confetti ── */
+    .confetti-wrap {
+      position: fixed; inset: 0; pointer-events: none; z-index: 999; overflow: hidden;
+    }
+    .confetti-piece {
+      position: absolute;
+      width: 10px; height: 10px;
+      border-radius: 2px;
+      animation: fall linear forwards;
+    }
+    @keyframes fall {
+      0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* ── Section header ── */
+    .section-hdr {
+      font-family: 'Fredoka One', cursive;
+      font-size: 18px;
+      color: var(--text);
+      margin: 20px 0 10px;
+    }
+    .section-hdr:first-child { margin-top: 0; }
+
+    /* ── Empty state ── */
+    .empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-msg { font-weight: 700; font-size: 15px; }
+
+    /* ── Setup screen ── */
+    .setup-hero {
+      text-align: center;
+      padding: 40px 20px 30px;
+    }
+    .setup-logo { font-size: 64px; }
+    .setup-title { font-family: 'Fredoka One', cursive; font-size: 36px; color: var(--purple); margin: 12px 0 6px; }
+    .setup-sub { color: var(--text-muted); font-weight: 600; }
+
+    /* ── Tab bar ── */
+    .tab-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tab {
+      flex: 1; padding: 10px; border: none; border-radius: 10px;
+      font-family: inherit; font-weight: 700; font-size: 13px;
+      cursor: pointer; transition: background 0.15s, color 0.15s;
+      background: var(--card); color: var(--text-muted);
+    }
+    .tab.active { background: var(--purple); color: #fff; }
+
+    /* ── Progress bar ── */
+    .progress-bar-wrap { background: var(--border); border-radius: 99px; height: 8px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; border-radius: 99px; background: var(--green); transition: width 0.4s; }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: var(--border); margin: 8px 0; }
+
+    /* ── Color chips for child colors ── */
+    .color-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+    .color-chip {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 3px solid transparent;
+      cursor: pointer; transition: border-color 0.15s;
+    }
+    .color-chip.selected { border-color: var(--text); }
+
+    .tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 99px;
+      font-size: 11px; font-weight: 800;
+      background: var(--purple-light); color: var(--purple);
+    }
+    .tag.daily { background: var(--teal-light); color: #2AA39D; }
+    .tag.weekly { background: var(--yellow-light); color: #B88A00; }
+
+    .fab {
+      position: fixed;
+      bottom: calc(var(--safe-bottom) + 84px);
+      right: max(16px, var(--safe-right));
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: var(--purple);
+      color: #fff;
+      font-size: 26px;
+      border: none;
+      box-shadow: 0 4px 16px rgba(124,115,230,0.4);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 150;
+      transition: transform 0.1s;
+    }
+    .fab:active { transform: scale(0.93); }
+
+    .chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .chip {
+      padding: 6px 12px; border-radius: 99px;
+      border: 2px solid var(--border);
+      font-family: inherit; font-size: 13px; font-weight: 700;
+      background: #fff; color: var(--text-muted);
+      cursor: pointer;
+    }
+    .chip.active { border-color: var(--purple); color: var(--purple); background: var(--purple-light); }
+
+    .alert {
+      background: var(--coral-light); color: var(--coral);
+      border-radius: 12px; padding: 12px 14px;
+      font-weight: 700; font-size: 13px;
+      margin-bottom: 12px;
+    }
+    .alert.success { background: var(--green-light); color: #039970; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ─────────────────────────────────────────────
+//  ChoreMax Local — Single-file iPhone App
+// ─────────────────────────────────────────────
+
+const AVATARS = ['🐱','🐶','🐼','🦊','🐸','🦁','🐨','🐯','🦄','🐻','🐙','🦋','🐧','🦉','🐬','🦕'];
+const CHORE_EMOJIS = ['🧹','🍽️','🛏️','🗑️','🌿','🐕','📚','🧺','🚿','🧽','🪣','🌟','🧴','🪟','🥗','🌸'];
+const COLORS = ['#FF6B6B','#4ECDC4','#FFD166','#06D6A0','#7C73E6','#F8A5C2','#F9844A','#4895EF','#43AA8B','#9B5DE5'];
+
+const CHORE_TEMPLATES = [
+  { name: 'Make Bed', emoji: '🛏️', value: 0.50, frequency: 'daily' },
+  { name: 'Do Dishes', emoji: '🍽️', value: 1.00, frequency: 'daily' },
+  { name: 'Vacuum', emoji: '🧹', value: 1.50, frequency: 'weekly' },
+  { name: 'Take Out Trash', emoji: '🗑️', value: 0.75, frequency: 'weekly' },
+  { name: 'Water Plants', emoji: '🌿', value: 0.50, frequency: 'weekly' },
+  { name: 'Feed Pet', emoji: '🐕', value: 0.50, frequency: 'daily' },
+  { name: 'Read 20 mins', emoji: '📚', value: 0.25, frequency: 'daily' },
+  { name: 'Laundry', emoji: '🧺', value: 1.00, frequency: 'weekly' },
+];
+
+// ── Persistence ──────────────────────────────
+const DB_KEY = 'choremax_v1';
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(DB_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return null;
+}
+
+function saveData(data) {
+  localStorage.setItem(DB_KEY, JSON.stringify(data));
+}
+
+function freshData(familyName, currency, pin) {
+  return { family: { name: familyName, currency, pin }, children: [], chores: [], completions: [], transactions: [] };
+}
+
+// ── Utilities ────────────────────────────────
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function today() {
+  return new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+}
+
+function weekKey() {
+  const d = new Date();
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  return `${d.getFullYear()}-W${Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7)}`;
+}
+
+function fmt(amount, currency) {
+  if (!currency) currency = '$';
+  return `${currency}${(+amount || 0).toFixed(2)}`;
+}
+
+function fmtDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function childBalance(data, childId) {
+  return (data.transactions || [])
+    .filter(t => t.childId === childId)
+    .reduce((s, t) => s + t.amount, 0);
+}
+
+function todayCompletions(data, childId) {
+  const t = today(), wk = weekKey();
+  return (data.completions || []).filter(c =>
+    c.childId === childId && (c.date === t || c.weekKey === wk)
+  );
+}
+
+function isChoreComplete(data, choreId, childId) {
+  const chore = data.chores.find(c => c.id === choreId);
+  if (!chore) return false;
+  if (chore.frequency === 'daily') {
+    return data.completions.some(c => c.choreId === choreId && c.childId === childId && c.date === today());
+  } else {
+    return data.completions.some(c => c.choreId === choreId && c.childId === childId && c.weekKey === weekKey());
+  }
+}
+
+function childChores(data, childId) {
+  return data.chores.filter(ch => ch.assignedTo && ch.assignedTo.includes(childId));
+}
+
+// ── Confetti ─────────────────────────────────
+function showConfetti() {
+  const wrap = document.createElement('div');
+  wrap.className = 'confetti-wrap';
+  document.body.appendChild(wrap);
+  const colors = ['#7C73E6','#FF6B6B','#4ECDC4','#FFD166','#06D6A0'];
+  for (let i = 0; i < 60; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-piece';
+    p.style.cssText = `
+      left: ${Math.random() * 100}%;
+      background: ${colors[Math.floor(Math.random() * colors.length)]};
+      width: ${6 + Math.random() * 8}px;
+      height: ${6 + Math.random() * 8}px;
+      border-radius: ${Math.random() > 0.5 ? '50%' : '2px'};
+      animation-duration: ${1.2 + Math.random() * 1.2}s;
+      animation-delay: ${Math.random() * 0.4}s;
+    `;
+    wrap.appendChild(p);
+  }
+  setTimeout(() => wrap.remove(), 2600);
+}
+
+// ── App State ────────────────────────────────
+const state = {
+  view: 'home',       // home | setup | chores | piggybank | parent-pin | parent-home | parent-children | parent-child-edit | parent-chores | parent-chore-edit | parent-bank
+  childId: null,
+  parentUnlocked: false,
+  editId: null,       // id of item being edited
+  choreTab: 'daily',  // daily | weekly
+  pinBuffer: '',
+  pinError: false,
+  alert: null,        // { msg, type }
+  data: null,
+  // temp form state
+  form: {},
+};
+
+// ── Router ───────────────────────────────────
+function go(view, opts = {}) {
+  state.view = view;
+  if (opts.childId !== undefined) state.childId = opts.childId;
+  if (opts.editId !== undefined) state.editId = opts.editId;
+  if (opts.choreTab !== undefined) state.choreTab = opts.choreTab;
+  state.pinBuffer = '';
+  state.pinError = false;
+  state.alert = null;
+  state.form = {};
+  render();
+}
+
+// ── Main render ──────────────────────────────
+function render() {
+  const app = document.getElementById('app');
+  const d = state.data;
+
+  if (!d) { app.innerHTML = renderSetup(); bindSetup(); return; }
+
+  switch (state.view) {
+    case 'home':            app.innerHTML = renderHome(); break;
+    case 'chores':          app.innerHTML = renderChores(); break;
+    case 'piggybank':       app.innerHTML = renderPiggyBank(); break;
+    case 'parent-pin':      app.innerHTML = renderParentPin(); break;
+    case 'parent-home':     app.innerHTML = renderParentHome(); break;
+    case 'parent-children': app.innerHTML = renderParentChildren(); break;
+    case 'parent-child-edit': app.innerHTML = renderChildEdit(); break;
+    case 'parent-chores':   app.innerHTML = renderParentChores(); break;
+    case 'parent-chore-edit': app.innerHTML = renderChoreEdit(); break;
+    case 'parent-bank':     app.innerHTML = renderParentBank(); break;
+    default:                app.innerHTML = renderHome();
+  }
+
+  bindEvents();
+}
+
+// ── Setup ────────────────────────────────────
+function renderSetup() {
+  return `
+    <div style="padding: 0 16px calc(var(--safe-bottom) + 20px);">
+      <div class="setup-hero">
+        <div class="setup-logo">✨</div>
+        <div class="setup-title">ChoreMax</div>
+        <div class="setup-sub">Chores made fun, rewards made real!</div>
+      </div>
+      <div class="card">
+        <div class="form-group">
+          <label class="form-label">Family Name</label>
+          <input class="form-input" id="s-family" placeholder="The Johnson Family" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Currency Symbol</label>
+          <div class="chip-row" id="s-currency-chips">
+            ${['$','£','€','¥'].map(c => `<button class="chip ${c==='$'?'active':''}" data-currency="${c}">${c}</button>`).join('')}
+          </div>
+          <input type="hidden" id="s-currency" value="$">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Parent PIN (4 digits)</label>
+          <input class="form-input" id="s-pin" type="number" placeholder="1234" maxlength="4" inputmode="numeric">
+        </div>
+        <button class="btn btn-primary" id="s-submit">Get Started 🚀</button>
+      </div>
+      <p style="text-align:center;color:var(--text-muted);font-size:12px;font-weight:600;margin-top:14px;">All data is stored only on this device.</p>
+    </div>`;
+}
+
+function bindSetup() {
+  document.getElementById('s-currency-chips').addEventListener('click', e => {
+    const btn = e.target.closest('[data-currency]');
+    if (!btn) return;
+    document.querySelectorAll('[data-currency]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('s-currency').value = btn.dataset.currency;
+  });
+  document.getElementById('s-submit').addEventListener('click', () => {
+    const name = document.getElementById('s-family').value.trim();
+    const pin = document.getElementById('s-pin').value.trim();
+    const currency = document.getElementById('s-currency').value;
+    if (!name) { alert('Please enter your family name.'); return; }
+    if (pin && (pin.length !== 4 || !/^\d{4}$/.test(pin))) { alert('PIN must be exactly 4 digits.'); return; }
+    state.data = freshData(name, currency, pin || '0000');
+    saveData(state.data);
+    go('home');
+  });
+}
+
+// ── Home ─────────────────────────────────────
+function renderHome() {
+  const d = state.data;
+  const children = d.children;
+  const hasChores = d.chores.length > 0;
+
+  const childCards = children.length === 0
+    ? `<div class="empty"><div class="empty-icon">👨‍👩‍👧</div><div class="empty-msg">No kids yet — add them in Parent Settings</div></div>`
+    : children.map(ch => {
+        const chores = childChores(d, ch.id);
+        const done = chores.filter(c => isChoreComplete(d, c.id, ch.id)).length;
+        const pct = chores.length ? Math.round(done / chores.length * 100) : 0;
+        const bal = childBalance(d, ch.id);
+        return `
+          <div class="child-card" data-action="go-chores" data-child="${ch.id}">
+            <div class="avatar">${ch.avatar}</div>
+            <div style="flex:1;">
+              <div class="child-name">${esc(ch.name)}</div>
+              <div class="child-meta">${done}/${chores.length} chores · ${fmt(bal, d.family.currency)}</div>
+              ${chores.length ? `<div class="progress-bar-wrap" style="margin-top:8px;"><div class="progress-bar-fill" style="width:${pct}%"></div></div>` : ''}
+            </div>
+            <span style="font-size:20px;color:var(--text-muted)">›</span>
+          </div>`;
+      }).join('');
+
+  return `
+    ${header(`✨ ${esc(d.family.name)}`, null, { right: `<button class="btn btn-sm btn-secondary" data-action="parent-enter" style="width:auto;">👩 Parent</button>` })}
+    <div class="content">
+      <div class="section-hdr">Who's doing chores today?</div>
+      ${childCards}
+    </div>`;
+}
+
+// ── Child Chores ─────────────────────────────
+function renderChores() {
+  const d = state.data;
+  const child = d.children.find(c => c.id === state.childId);
+  if (!child) { go('home'); return ''; }
+
+  const chores = childChores(d, child.id);
+  const tab = state.choreTab;
+  const filtered = chores.filter(c => c.frequency === tab);
+  const bal = childBalance(d, child.id);
+
+  const choreList = filtered.length === 0
+    ? `<div class="empty"><div class="empty-icon">🎉</div><div class="empty-msg">No ${tab} chores assigned yet!</div></div>`
+    : filtered.map(c => {
+        const done = isChoreComplete(d, c.id, child.id);
+        return `
+          <div class="chore-item ${done ? 'done' : ''}" data-action="toggle-chore" data-chore="${c.id}">
+            <div class="chore-emoji">${c.emoji || '⭐'}</div>
+            <div class="chore-info">
+              <div class="chore-name">${esc(c.name)}</div>
+              <div class="chore-value">${fmt(c.value, d.family.currency)} · ${c.frequency}</div>
+            </div>
+            <div class="chore-check">${done ? '✓' : ''}</div>
+          </div>`;
+      }).join('');
+
+  const todayDone = chores.filter(c => isChoreComplete(d, c.id, child.id)).length;
+  const todayEarned = chores
+    .filter(c => isChoreComplete(d, c.id, child.id))
+    .reduce((s, c) => s + (+c.value || 0), 0);
+
+  return `
+    ${header(child.avatar + ' ' + esc(child.name), 'home')}
+    <div class="content" style="padding-bottom: calc(var(--safe-bottom) + 100px);">
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-num">${todayDone}</div>
+          <div class="stat-label">Done Today</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">${fmt(todayEarned, d.family.currency)}</div>
+          <div class="stat-label">Today's Earnings</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num">${fmt(bal, d.family.currency)}</div>
+          <div class="stat-label">Total Balance</div>
+        </div>
+      </div>
+      <div class="tab-bar">
+        <button class="tab ${tab === 'daily' ? 'active' : ''}" data-action="tab" data-tab="daily">📅 Daily</button>
+        <button class="tab ${tab === 'weekly' ? 'active' : ''}" data-action="tab" data-tab="weekly">🗓 Weekly</button>
+      </div>
+      ${choreList}
+    </div>
+    ${childBottomNav('chores')}`;
+}
+
+// ── Piggy Bank ───────────────────────────────
+function renderPiggyBank() {
+  const d = state.data;
+  const child = d.children.find(c => c.id === state.childId);
+  if (!child) { go('home'); return ''; }
+  const bal = childBalance(d, child.id);
+  const txs = (d.transactions || []).filter(t => t.childId === child.id).slice().reverse().slice(0, 20);
+
+  const txList = txs.length === 0
+    ? `<div class="empty"><div class="empty-icon">🐖</div><div class="empty-msg">No transactions yet. Complete some chores!</div></div>`
+    : txs.map(t => `
+        <div class="tx-item">
+          <div class="tx-icon">${t.amount >= 0 ? '⬆️' : '⬇️'}</div>
+          <div class="tx-info">
+            <div class="tx-note">${esc(t.note)}</div>
+            <div class="tx-date">${fmtDate(t.date)}</div>
+          </div>
+          <div class="tx-amount ${t.amount >= 0 ? 'tx-pos' : 'tx-neg'}">${t.amount >= 0 ? '+' : ''}${fmt(t.amount, d.family.currency)}</div>
+        </div>`).join('');
+
+  return `
+    ${header('🐖 Piggy Bank', 'home')}
+    <div class="content" style="padding-bottom: calc(var(--safe-bottom) + 100px);">
+      <div class="balance-hero">
+        <div style="font-size:32px;margin-bottom:8px;">${child.avatar}</div>
+        <div class="balance-label">${esc(child.name)}'s Balance</div>
+        <div class="balance-amount">${fmt(bal, d.family.currency)}</div>
+      </div>
+      <div class="section-hdr">Recent Transactions</div>
+      <div class="card">${txList}</div>
+    </div>
+    ${childBottomNav('piggybank')}`;
+}
+
+// ── Parent PIN ───────────────────────────────
+function renderParentPin() {
+  const dots = Array(4).fill(0).map((_, i) =>
+    `<div class="pin-dot ${i < state.pinBuffer.length ? 'filled' : ''}"></div>`
+  ).join('');
+
+  const keys = [1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k => {
+    if (k === '') return `<div></div>`;
+    return `<button class="pin-key ${k === '⌫' ? 'del' : ''}" data-action="pin-key" data-key="${k}">${k}</button>`;
+  }).join('');
+
+  return `
+    ${header('🔒 Parent Area', 'home')}
+    <div class="content no-pad-bottom" style="text-align:center;">
+      ${state.pinError ? `<div class="alert">Incorrect PIN. Try again.</div>` : ''}
+      <p style="color:var(--text-muted);font-weight:700;font-size:14px;margin-bottom:4px;">Enter your PIN</p>
+      <div class="pin-display">${dots}</div>
+      <div class="pin-pad">${keys}</div>
+    </div>`;
+}
+
+// ── Parent Home ───────────────────────────────
+function renderParentHome() {
+  const d = state.data;
+  const totalEarned = (d.transactions || []).filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const totalChildren = d.children.length;
+  const totalChores = d.chores.length;
+
+  const childSummary = d.children.map(ch => {
+    const chores = childChores(d, ch.id);
+    const done = chores.filter(c => isChoreComplete(d, c.id, ch.id)).length;
+    const bal = childBalance(d, ch.id);
+    return `
+      <div class="card card-row">
+        <div class="avatar avatar-sm">${ch.avatar}</div>
+        <div style="flex:1;">
+          <div style="font-weight:800;">${esc(ch.name)}</div>
+          <div style="font-size:12px;color:var(--text-muted);font-weight:600;">${done}/${chores.length} chores done today</div>
+        </div>
+        <div style="font-weight:800;color:var(--purple);">${fmt(bal, d.family.currency)}</div>
+      </div>`;
+  }).join('') || `<div class="empty"><div class="empty-icon">👶</div><div class="empty-msg">No children added yet</div></div>`;
+
+  return `
+    ${header('👩 Parent Dashboard', 'home')}
+    <div class="content">
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-num">${totalChildren}</div><div class="stat-label">Children</div></div>
+        <div class="stat-box"><div class="stat-num">${totalChores}</div><div class="stat-label">Chores</div></div>
+        <div class="stat-box"><div class="stat-num">${fmt(totalEarned, d.family.currency)}</div><div class="stat-label">Total Paid</div></div>
+      </div>
+
+      <div class="section-hdr">Today's Progress</div>
+      ${childSummary}
+
+      <div class="section-hdr">Manage</div>
+      <button class="btn btn-secondary" style="margin-bottom:10px;" data-action="go-manage-children">👶 Manage Children</button>
+      <button class="btn btn-secondary" style="margin-bottom:10px;" data-action="go-manage-chores">📋 Manage Chores</button>
+      <button class="btn btn-secondary" style="margin-bottom:10px;" data-action="go-parent-bank">🐖 Piggy Bank Manager</button>
+      <button class="btn btn-danger" style="margin-bottom:10px;" data-action="parent-lock">🔒 Lock Parent Area</button>
+    </div>`;
+}
+
+// ── Parent: Children ──────────────────────────
+function renderParentChildren() {
+  const d = state.data;
+  const list = d.children.map(ch => `
+    <div class="card card-row">
+      <div class="avatar avatar-sm">${ch.avatar}</div>
+      <div style="flex:1;"><div style="font-weight:800;">${esc(ch.name)}</div></div>
+      <button class="btn btn-sm btn-secondary" data-action="edit-child" data-id="${ch.id}">Edit</button>
+      <button class="btn btn-sm btn-danger" data-action="delete-child" data-id="${ch.id}">✕</button>
+    </div>`).join('') || `<div class="empty"><div class="empty-icon">👶</div><div class="empty-msg">No children yet</div></div>`;
+
+  return `
+    ${header('👶 Children', 'parent-home')}
+    <div class="content">
+      ${list}
+      <button class="btn btn-primary" data-action="add-child" style="margin-top:8px;">+ Add Child</button>
+    </div>`;
+}
+
+// ── Parent: Child Edit ────────────────────────
+function renderChildEdit() {
+  const d = state.data;
+  const isNew = !state.editId;
+  const ch = isNew ? { name: '', avatar: AVATARS[0], color: COLORS[0] } : d.children.find(c => c.id === state.editId);
+  const form = Object.assign({}, ch, state.form);
+
+  const avatarPicker = AVATARS.map(a =>
+    `<div class="emoji-opt ${form.avatar === a ? 'selected' : ''}" data-action="pick-avatar" data-val="${a}">${a}</div>`
+  ).join('');
+
+  const colorPicker = COLORS.map(c =>
+    `<div class="color-chip ${form.color === c ? 'selected' : ''}" style="background:${c};" data-action="pick-color" data-val="${c}"></div>`
+  ).join('');
+
+  return `
+    ${header(isNew ? '+ Add Child' : 'Edit Child', 'parent-children')}
+    <div class="content no-pad-bottom">
+      ${state.alert ? `<div class="alert ${state.alert.type === 'success' ? 'success' : ''}">${state.alert.msg}</div>` : ''}
+      <div class="form-group">
+        <label class="form-label">Name</label>
+        <input class="form-input" id="f-name" value="${esc(form.name)}" placeholder="Child's name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Avatar</label>
+        <div class="emoji-grid">${avatarPicker}</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Color</label>
+        <div class="color-grid">${colorPicker}</div>
+      </div>
+      <button class="btn btn-primary" data-action="save-child" style="margin-top:8px;">${isNew ? 'Add Child ✓' : 'Save Changes ✓'}</button>
+      ${!isNew ? `<button class="btn btn-danger" data-action="delete-child" data-id="${ch.id}" style="margin-top:8px;">Delete Child</button>` : ''}
+    </div>`;
+}
+
+// ── Parent: Chores ────────────────────────────
+function renderParentChores() {
+  const d = state.data;
+  const list = d.chores.map(c => `
+    <div class="card card-row">
+      <div style="font-size:24px;">${c.emoji || '⭐'}</div>
+      <div style="flex:1;">
+        <div style="font-weight:800;">${esc(c.name)}</div>
+        <div style="display:flex;gap:6px;margin-top:4px;align-items:center;">
+          <span class="tag ${c.frequency}">${c.frequency}</span>
+          <span style="font-size:12px;color:var(--text-muted);font-weight:600;">${fmt(c.value, d.family.currency)}</span>
+        </div>
+      </div>
+      <button class="btn btn-sm btn-secondary" data-action="edit-chore" data-id="${c.id}">Edit</button>
+    </div>`).join('') || `<div class="empty"><div class="empty-icon">📋</div><div class="empty-msg">No chores yet</div></div>`;
+
+  return `
+    ${header('📋 Chores', 'parent-home')}
+    <div class="content">
+      ${list}
+      <button class="btn btn-primary" data-action="add-chore" style="margin-top:8px;">+ Add Chore</button>
+      ${d.chores.length === 0 ? `<div class="section-hdr" style="margin-top:20px;">Quick Start Templates</div>
+        ${CHORE_TEMPLATES.map(t => `
+          <div class="card card-row" style="cursor:pointer;" data-action="add-template" data-idx="${CHORE_TEMPLATES.indexOf(t)}">
+            <div style="font-size:22px;">${t.emoji}</div>
+            <div style="flex:1;font-weight:700;">${t.name} <span class="tag ${t.frequency}" style="margin-left:4px;">${t.frequency}</span></div>
+            <span style="color:var(--text-muted)">+ Add</span>
+          </div>`).join('')}` : ''}
+    </div>`;
+}
+
+// ── Parent: Chore Edit ────────────────────────
+function renderChoreEdit() {
+  const d = state.data;
+  const isNew = !state.editId;
+  const existing = isNew ? { name: '', emoji: CHORE_EMOJIS[0], value: '0.50', frequency: 'daily', assignedTo: [] } : d.chores.find(c => c.id === state.editId);
+  const form = Object.assign({}, existing, state.form);
+  if (!form.assignedTo) form.assignedTo = [];
+
+  const emojiPicker = CHORE_EMOJIS.map(e =>
+    `<div class="emoji-opt ${form.emoji === e ? 'selected' : ''}" data-action="pick-emoji" data-val="${e}">${e}</div>`
+  ).join('');
+
+  const assignPicker = d.children.map(ch => `
+    <div class="card card-row" style="cursor:pointer;padding:10px 14px;" data-action="toggle-assign" data-child="${ch.id}">
+      <div class="avatar avatar-sm">${ch.avatar}</div>
+      <div style="flex:1;font-weight:700;">${esc(ch.name)}</div>
+      <div class="chore-check" style="${form.assignedTo.includes(ch.id) ? 'background:var(--green);border-color:var(--green);' : ''}">${form.assignedTo.includes(ch.id) ? '✓' : ''}</div>
+    </div>`).join('') || `<p style="color:var(--text-muted);font-weight:600;font-size:13px;">Add children first, then assign chores.</p>`;
+
+  return `
+    ${header(isNew ? '+ Add Chore' : 'Edit Chore', 'parent-chores')}
+    <div class="content no-pad-bottom">
+      ${state.alert ? `<div class="alert ${state.alert.type === 'success' ? 'success' : ''}">${state.alert.msg}</div>` : ''}
+      <div class="form-group">
+        <label class="form-label">Chore Name</label>
+        <input class="form-input" id="f-name" value="${esc(form.name)}" placeholder="e.g. Make Bed">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Icon</label>
+        <div class="emoji-grid">${emojiPicker}</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reward (${d.family.currency})</label>
+        <input class="form-input" id="f-value" type="number" step="0.25" min="0" value="${form.value}" inputmode="decimal">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Frequency</label>
+        <select class="form-input" id="f-freq">
+          <option value="daily" ${form.frequency === 'daily' ? 'selected' : ''}>Daily</option>
+          <option value="weekly" ${form.frequency === 'weekly' ? 'selected' : ''}>Weekly</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Assigned To</label>
+        ${assignPicker}
+      </div>
+      <button class="btn btn-primary" data-action="save-chore" style="margin-top:4px;">${isNew ? 'Add Chore ✓' : 'Save Changes ✓'}</button>
+      ${!isNew ? `<button class="btn btn-danger" data-action="delete-chore" data-id="${existing.id}" style="margin-top:8px;">Delete Chore</button>` : ''}
+    </div>`;
+}
+
+// ── Parent: Bank Manager ──────────────────────
+function renderParentBank() {
+  const d = state.data;
+
+  const childList = d.children.map(ch => {
+    const bal = childBalance(d, ch.id);
+    return `
+      <div class="card" style="margin-bottom:10px;">
+        <div class="card-row" style="margin-bottom:10px;">
+          <div class="avatar avatar-sm">${ch.avatar}</div>
+          <div style="flex:1;font-weight:800;">${esc(ch.name)}</div>
+          <div style="font-family:'Fredoka One',cursive;font-size:20px;color:var(--purple);">${fmt(bal, d.family.currency)}</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-green btn-sm" data-action="bank-add" data-child="${ch.id}" style="flex:1;">+ Add</button>
+          <button class="btn btn-danger btn-sm" data-action="bank-subtract" data-child="${ch.id}" style="flex:1;">− Spend</button>
+        </div>
+      </div>`;
+  }).join('') || `<div class="empty"><div class="empty-icon">🐖</div><div class="empty-msg">No children yet</div></div>`;
+
+  return `
+    ${header('🐖 Bank Manager', 'parent-home')}
+    <div class="content no-pad-bottom">
+      ${state.alert ? `<div class="alert ${state.alert.type === 'success' ? 'success' : ''}">${state.alert.msg}</div>` : ''}
+      ${childList}
+    </div>`;
+}
+
+// ── Sub-components ────────────────────────────
+function header(title, backView, opts = {}) {
+  const backBtn = backView
+    ? `<button class="back-btn" data-action="back" data-view="${backView}">‹</button>`
+    : '';
+  const right = opts.right || '';
+  return `
+    <div class="header">
+      ${backBtn}
+      <div class="header-title">${title}</div>
+      ${right}
+    </div>`;
+}
+
+function childBottomNav(active) {
+  return `
+    <nav class="bottom-nav">
+      <button class="nav-btn ${active==='home'?'active':''}" data-action="bottom-nav" data-target="home">
+        <span class="nav-icon">🏠</span>Home
+      </button>
+      <button class="nav-btn ${active==='chores'?'active':''}" data-action="bottom-nav" data-target="chores">
+        <span class="nav-icon">✅</span>Chores
+      </button>
+      <button class="nav-btn ${active==='piggybank'?'active':''}" data-action="bottom-nav" data-target="piggybank">
+        <span class="nav-icon">🐖</span>My Bank
+      </button>
+    </nav>`;
+}
+
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Event Binding ─────────────────────────────
+function bindEvents() {
+  document.addEventListener('click', handleClick, { once: true });
+}
+
+function handleClick(e) {
+  const el = e.target.closest('[data-action]');
+  if (!el) { bindEvents(); return; }
+  const action = el.dataset.action;
+  handleAction(action, el.dataset, e);
+}
+
+function handleAction(action, dataset, e) {
+  const d = state.data;
+
+  switch (action) {
+    // ── Navigation ──
+    case 'back': go(dataset.view); break;
+    case 'go-chores': state.childId = dataset.child; state.choreTab = 'daily'; go('chores'); break;
+    case 'bottom-nav':
+      if (dataset.target === 'home') go('home');
+      else go(dataset.target, { childId: state.childId });
+      break;
+    case 'tab': state.choreTab = dataset.tab; go('chores'); break;
+    case 'parent-enter': go('parent-pin'); break;
+    case 'parent-lock': state.parentUnlocked = false; go('home'); break;
+    case 'go-manage-children': go('parent-children'); break;
+    case 'go-manage-chores': go('parent-chores'); break;
+    case 'go-parent-bank': go('parent-bank'); break;
+
+    // ── PIN ──
+    case 'pin-key': handlePin(dataset.key); break;
+
+    // ── Chore toggle ──
+    case 'toggle-chore': toggleChore(dataset.chore); break;
+
+    // ── Child CRUD ──
+    case 'add-child': state.editId = null; state.form = { avatar: AVATARS[0], color: COLORS[0] }; go('parent-child-edit'); break;
+    case 'edit-child': state.editId = dataset.id; state.form = {}; go('parent-child-edit'); break;
+    case 'delete-child': deleteChild(dataset.id); break;
+    case 'save-child': saveChild(); break;
+    case 'pick-avatar': state.form.avatar = dataset.val; rerender(); break;
+    case 'pick-color': state.form.color = dataset.val; rerender(); break;
+
+    // ── Chore CRUD ──
+    case 'add-chore': state.editId = null; state.form = { emoji: CHORE_EMOJIS[0], assignedTo: [] }; go('parent-chore-edit'); break;
+    case 'edit-chore': state.editId = dataset.id; state.form = {}; go('parent-chore-edit'); break;
+    case 'delete-chore': deleteChore(dataset.id); break;
+    case 'save-chore': saveChore(); break;
+    case 'pick-emoji': state.form.emoji = dataset.val; rerender(); break;
+    case 'toggle-assign': toggleAssign(dataset.child); break;
+    case 'add-template': addTemplate(parseInt(dataset.idx)); break;
+
+    // ── Bank ──
+    case 'bank-add': bankAdjust(dataset.child, 1); break;
+    case 'bank-subtract': bankAdjust(dataset.child, -1); break;
+  }
+
+  if (!['pin-key','toggle-chore','pick-avatar','pick-color','pick-emoji','toggle-assign'].includes(action)) {
+    // re-bind if action didn't already trigger a full re-render
+  }
+  bindEvents();
+}
+
+function rerender() {
+  const app = document.getElementById('app');
+  switch (state.view) {
+    case 'parent-child-edit': app.innerHTML = renderChildEdit(); break;
+    case 'parent-chore-edit': app.innerHTML = renderChoreEdit(); break;
+    default: render(); return;
+  }
+  bindEvents();
+}
+
+// ── PIN logic ─────────────────────────────────
+function handlePin(key) {
+  if (key === '⌫') {
+    state.pinBuffer = state.pinBuffer.slice(0, -1);
+  } else if (state.pinBuffer.length < 4) {
+    state.pinBuffer += key;
+  }
+  if (state.pinBuffer.length === 4) {
+    if (state.pinBuffer === state.data.family.pin) {
+      state.parentUnlocked = true;
+      state.pinBuffer = '';
+      state.pinError = false;
+      go('parent-home');
+      return;
+    } else {
+      state.pinError = true;
+      state.pinBuffer = '';
+    }
+  }
+  // just re-render the pin screen
+  const app = document.getElementById('app');
+  app.innerHTML = renderParentPin();
+  bindEvents();
+}
+
+// ── Chore toggle ──────────────────────────────
+function toggleChore(choreId) {
+  const d = state.data;
+  const chore = d.chores.find(c => c.id === choreId);
+  if (!chore) { render(); return; }
+  const done = isChoreComplete(d, choreId, state.childId);
+
+  if (done) {
+    // undo
+    if (chore.frequency === 'daily') {
+      d.completions = d.completions.filter(c => !(c.choreId === choreId && c.childId === state.childId && c.date === today()));
+    } else {
+      d.completions = d.completions.filter(c => !(c.choreId === choreId && c.childId === state.childId && c.weekKey === weekKey()));
+    }
+    // remove matching transaction
+    const txIdx = d.transactions.findIndex(t => t.choreRef === choreId && t.childId === state.childId && t.date === today());
+    if (txIdx !== -1) d.transactions.splice(txIdx, 1);
+  } else {
+    // complete
+    const comp = { id: uid(), choreId, childId: state.childId, value: chore.value };
+    if (chore.frequency === 'daily') comp.date = today();
+    else comp.weekKey = weekKey();
+    d.completions.push(comp);
+
+    if (chore.value > 0) {
+      d.transactions.push({
+        id: uid(), childId: state.childId,
+        amount: +chore.value, type: 'earned',
+        note: `Earned: ${chore.name}`, date: today(), choreRef: choreId
+      });
+    }
+    showConfetti();
+  }
+  saveData(d);
+  // partial re-render for speed
+  const app = document.getElementById('app');
+  app.innerHTML = renderChores();
+  bindEvents();
+}
+
+// ── Child CRUD ────────────────────────────────
+function saveChild() {
+  const d = state.data;
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { state.alert = { msg: 'Please enter a name.', type: 'error' }; rerender(); return; }
+
+  const form = state.form;
+  const isNew = !state.editId;
+  const ch = d.children.find(c => c.id === state.editId);
+
+  if (isNew) {
+    d.children.push({ id: uid(), name, avatar: form.avatar || AVATARS[0], color: form.color || COLORS[0] });
+  } else {
+    Object.assign(ch, { name, avatar: form.avatar || ch.avatar, color: form.color || ch.color });
+  }
+  saveData(d);
+  go('parent-children');
+}
+
+function deleteChild(id) {
+  if (!confirm('Delete this child? All their data will be removed.')) { bindEvents(); return; }
+  const d = state.data;
+  d.children = d.children.filter(c => c.id !== id);
+  d.completions = d.completions.filter(c => c.childId !== id);
+  d.transactions = d.transactions.filter(t => t.childId !== id);
+  d.chores.forEach(c => { c.assignedTo = (c.assignedTo || []).filter(cid => cid !== id); });
+  saveData(d);
+  go('parent-children');
+}
+
+// ── Chore CRUD ────────────────────────────────
+function saveChore() {
+  const d = state.data;
+  const name = document.getElementById('f-name').value.trim();
+  const value = parseFloat(document.getElementById('f-value').value) || 0;
+  const frequency = document.getElementById('f-freq').value;
+  if (!name) { state.alert = { msg: 'Please enter a chore name.', type: 'error' }; rerender(); return; }
+
+  const form = state.form;
+  const isNew = !state.editId;
+  const existing = d.chores.find(c => c.id === state.editId);
+  const assignedTo = form.assignedTo || (existing ? existing.assignedTo : []);
+
+  if (isNew) {
+    d.chores.push({ id: uid(), name, emoji: form.emoji || CHORE_EMOJIS[0], value, frequency, assignedTo });
+  } else {
+    Object.assign(existing, { name, emoji: form.emoji || existing.emoji, value, frequency, assignedTo });
+  }
+  saveData(d);
+  go('parent-chores');
+}
+
+function deleteChore(id) {
+  if (!confirm('Delete this chore?')) { bindEvents(); return; }
+  const d = state.data;
+  d.chores = d.chores.filter(c => c.id !== id);
+  d.completions = d.completions.filter(c => c.choreId !== id);
+  saveData(d);
+  go('parent-chores');
+}
+
+function addTemplate(idx) {
+  const t = CHORE_TEMPLATES[idx];
+  if (!t) { bindEvents(); return; }
+  const d = state.data;
+  d.chores.push({ id: uid(), name: t.name, emoji: t.emoji, value: t.value, frequency: t.frequency, assignedTo: [] });
+  saveData(d);
+  go('parent-chores');
+}
+
+function toggleAssign(childId) {
+  const d = state.data;
+  const existing = d.chores.find(c => c.id === state.editId);
+  const baseAssigned = state.form.assignedTo !== undefined
+    ? state.form.assignedTo
+    : (existing ? [...(existing.assignedTo || [])] : []);
+
+  if (baseAssigned.includes(childId)) {
+    state.form.assignedTo = baseAssigned.filter(id => id !== childId);
+  } else {
+    state.form.assignedTo = [...baseAssigned, childId];
+  }
+  rerender();
+}
+
+// ── Bank adjust ───────────────────────────────
+function bankAdjust(childId, direction) {
+  const d = state.data;
+  const child = d.children.find(c => c.id === childId);
+  const amountStr = prompt(`${direction > 0 ? 'Add to' : 'Deduct from'} ${child.name}'s bank (${d.family.currency}):`);
+  if (amountStr === null) { bindEvents(); return; }
+  const amount = parseFloat(amountStr);
+  if (isNaN(amount) || amount <= 0) { state.alert = { msg: 'Enter a valid positive amount.', type: 'error' }; rerender(); return; }
+  const note = prompt('Note (optional):') || (direction > 0 ? 'Parent added funds' : 'Spent / withdrawn');
+  d.transactions.push({
+    id: uid(), childId,
+    amount: direction * amount,
+    type: direction > 0 ? 'added' : 'spent',
+    note, date: today()
+  });
+  saveData(d);
+  state.alert = { msg: `${direction > 0 ? 'Added' : 'Deducted'} ${fmt(amount, d.family.currency)} ${direction > 0 ? 'to' : 'from'} ${child.name}'s bank!`, type: 'success' };
+  rerender();
+}
+
+// ── Boot ──────────────────────────────────────
+state.data = loadData();
+render();
+</script>
+</body>
+</html>
