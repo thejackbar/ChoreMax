@@ -16,13 +16,13 @@ async function request(method, path, body, extraHeaders = {}) {
   const res = await fetch(`${BASE}${path}`, opts)
 
   if (res.status === 204) return null
-  if (res.status === 401) {
-    window.dispatchEvent(new CustomEvent('auth:unauthorized'))
-    throw new Error('Unauthorized')
-  }
 
   const data = await res.json().catch(() => null)
   if (!res.ok) {
+    // For 401 on non-auth endpoints, dispatch unauthorized event (session expired)
+    if (res.status === 401 && !path.startsWith('/auth/login') && !path.startsWith('/auth/register')) {
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+    }
     const msg = data?.detail || `Request failed (${res.status})`
     throw new Error(msg)
   }
