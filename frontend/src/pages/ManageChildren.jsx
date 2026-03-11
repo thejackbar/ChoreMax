@@ -17,6 +17,15 @@ export default function ManageChildren() {
   const [birthday, setBirthday] = useState('')
   const [error, setError] = useState(null)
 
+  // Piggy bank adjustment state
+  const [adjBalance, setAdjBalance] = useState(null)
+  const [adjType, setAdjType] = useState('add')
+  const [adjAmount, setAdjAmount] = useState('')
+  const [adjDescription, setAdjDescription] = useState('')
+  const [adjError, setAdjError] = useState(null)
+  const [adjSuccess, setAdjSuccess] = useState(null)
+  const [adjLoading, setAdjLoading] = useState(false)
+
   // Goal state
   const [goalChild, setGoalChild] = useState(null)
   const [goalTitle, setGoalTitle] = useState('')
@@ -53,6 +62,15 @@ export default function ManageChildren() {
 
   useEffect(() => { fetchChildren() }, [fetchChildren])
 
+  const resetAdjustment = () => {
+    setAdjBalance(null)
+    setAdjType('add')
+    setAdjAmount('')
+    setAdjDescription('')
+    setAdjError(null)
+    setAdjSuccess(null)
+  }
+
   const openAdd = () => {
     setEditing(null)
     setName('')
@@ -60,15 +78,21 @@ export default function ManageChildren() {
     setBirthday('')
     setShowForm(true)
     setError(null)
+    resetAdjustment()
   }
 
-  const openEdit = (child) => {
+  const openEdit = async (child) => {
     setEditing(child)
     setName(child.name)
     setAvatarValue(child.avatar_value)
     setBirthday(child.birthday || '')
     setShowForm(true)
     setError(null)
+    resetAdjustment()
+    try {
+      const bal = await api.piggyBank.balance(child.id)
+      setAdjBalance(bal.balance)
+    } catch {}
   }
 
   const handleSave = async (e) => {
@@ -100,6 +124,33 @@ export default function ManageChildren() {
       await fetchChildren()
     } catch (e) {
       alert(e.message)
+    }
+  }
+
+  const handleAdjust = async () => {
+    setAdjError(null)
+    setAdjSuccess(null)
+    if (!adjAmount || Number(adjAmount) <= 0) {
+      setAdjError('Enter a valid amount')
+      return
+    }
+    setAdjLoading(true)
+    try {
+      await api.piggyBank.adjust({
+        child_id: editing.id,
+        amount: Number(adjAmount),
+        type: adjType,
+        description: adjDescription || null,
+      }, pin)
+      const bal = await api.piggyBank.balance(editing.id)
+      setAdjBalance(bal.balance)
+      setAdjAmount('')
+      setAdjDescription('')
+      setAdjSuccess(`${adjType === 'add' ? 'Added' : 'Subtracted'} ${formatMoney(Number(adjAmount), currency)} successfully`)
+    } catch (e) {
+      setAdjError(e.message)
+    } finally {
+      setAdjLoading(false)
     }
   }
 
@@ -183,6 +234,64 @@ export default function ManageChildren() {
               <button className="btn btn-outline" type="button" onClick={() => setShowForm(false)}>Cancel</button>
             </div>
           </form>
+
+          {editing && (
+            <>
+              <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '1.5rem 0' }} />
+              <h4 style={{ color: 'var(--piggy)', marginBottom: '0.75rem' }}>🐷 Piggy Bank Adjustment</h4>
+              {adjBalance !== null && (
+                <div style={{ marginBottom: '1rem', fontWeight: 600, color: 'var(--secondary)', fontSize: '1.1rem' }}>
+                  Current Balance: {formatMoney(adjBalance, currency)}
+                </div>
+              )}
+              {adjError && <div className="msg-error">{adjError}</div>}
+              {adjSuccess && <div className="msg-success">{adjSuccess}</div>}
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${adjType === 'add' ? 'btn-success' : 'btn-outline'}`}
+                  onClick={() => setAdjType('add')}
+                >
+                  + Add
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${adjType === 'subtract' ? 'btn-danger' : 'btn-outline'}`}
+                  onClick={() => setAdjType('subtract')}
+                >
+                  − Subtract
+                </button>
+              </div>
+              <div className="field">
+                <label>Amount ({currency})</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={adjAmount}
+                  onChange={e => setAdjAmount(e.target.value)}
+                  placeholder="e.g. 5.00"
+                />
+              </div>
+              <div className="field">
+                <label>Description (optional)</label>
+                <input
+                  type="text"
+                  value={adjDescription}
+                  onChange={e => setAdjDescription(e.target.value)}
+                  placeholder="e.g. Birthday gift, Lost toy penalty"
+                />
+              </div>
+              <button
+                type="button"
+                className={`btn btn-sm ${adjType === 'add' ? 'btn-success' : 'btn-danger'}`}
+                onClick={handleAdjust}
+                disabled={adjLoading}
+              >
+                {adjLoading ? 'Processing...' : `${adjType === 'add' ? 'Add' : 'Subtract'} Funds`}
+              </button>
+            </>
+          )}
         </div>
       )}
 

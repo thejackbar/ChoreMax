@@ -152,6 +152,13 @@ class CashOutRequest(BaseModel):
     description: str | None = "Cash out"
 
 
+class AdjustmentRequest(BaseModel):
+    child_id: str
+    amount: Decimal = Field(..., gt=0)
+    type: Literal["add", "subtract"]
+    description: str | None = None
+
+
 class PiggyBankBalanceResponse(BaseModel):
     child_id: str
     child_name: str

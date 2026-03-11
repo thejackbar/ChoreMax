@@ -68,6 +68,7 @@ export const api = {
     balance: (childId) => request('GET', `/piggy-bank/${childId}/balance`),
     transactions: (childId, params) => request('GET', `/piggy-bank/${childId}/transactions` + (params ? '?' + new URLSearchParams(params) : '')),
     cashOut: (data, pin) => withPin('POST', '/piggy-bank/cash-out', data, pin),
+    adjust: (data, pin) => withPin('POST', '/piggy-bank/adjust', data, pin),
   },
   targets: {
     get: (childId) => request('GET', `/targets/child/${childId}`),

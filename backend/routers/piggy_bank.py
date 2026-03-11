@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from auth import get_current_user, require_pin
 from database import get_db
 from models import Child, PiggyBankTransaction, User
-from schemas import CashOutRequest, PiggyBankBalanceResponse, TransactionListResponse, TransactionResponse
+from schemas import AdjustmentRequest, CashOutRequest, PiggyBankBalanceResponse, TransactionListResponse, TransactionResponse
 
 router = APIRouter(prefix="/api/piggy-bank", tags=["piggy-bank"])
 
@@ -123,6 +123,39 @@ async def cash_out(
         type="cash_out",
         amount=-data.amount,
         description=data.description or "Cash out",
+    )
+    db.add(txn)
+    await db.flush()
+
+    return TransactionResponse.model_validate(txn)
+
+
+@router.post("/adjust", status_code=201)
+async def adjust_balance(
+    data: AdjustmentRequest,
+    current_user: User = Depends(require_pin),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Child).where(Child.id == data.child_id, Child.user_id == current_user.id)
+    )
+    child = result.scalar_one_or_none()
+    if not child:
+        raise HTTPException(status_code=404, detail="Child not found")
+
+    if data.type == "subtract":
+        balances = await _get_balance(data.child_id, db)
+        if data.amount > balances["balance"]:
+            raise HTTPException(status_code=400, detail="Insufficient balance")
+
+    signed_amount = data.amount if data.type == "add" else -data.amount
+    default_desc = "Manual adjustment (add)" if data.type == "add" else "Manual adjustment (subtract)"
+
+    txn = PiggyBankTransaction(
+        child_id=data.child_id,
+        type="adjustment",
+        amount=signed_amount,
+        description=data.description or default_desc,
     )
     db.add(txn)
     await db.flush()
