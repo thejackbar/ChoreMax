@@ -6,16 +6,24 @@ import { formatMoney } from '../data/currencies'
 import ProgressBar from '../components/ProgressBar'
 import ChoreCalendar from '../components/ChoreCalendar'
 
+const getToday = () => new Date().toISOString().split('T')[0]
+
+const formatSelectedDate = (dateStr) => {
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+}
+
 export default function ChildDashboard() {
   const { childId } = useParams()
   const { user } = useAuth()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [selectedDate, setSelectedDate] = useState(null)
 
   useEffect(() => {
     async function load() {
       try {
-        const d = await api.dashboard.child(childId)
+        const d = await api.dashboard.child(childId, selectedDate || undefined)
         setData(d)
       } catch (e) {
         console.error(e)
@@ -24,12 +32,22 @@ export default function ChildDashboard() {
       }
     }
     load()
-  }, [childId])
+  }, [childId, selectedDate])
+
+  const handleDayClick = (dateStr) => {
+    const today = getToday()
+    if (dateStr === today || dateStr === selectedDate) {
+      setSelectedDate(null)
+    } else {
+      setSelectedDate(dateStr)
+    }
+  }
 
   if (loading) return <div className="text-center mt-lg">Loading...</div>
   if (!data) return <div className="text-center mt-lg">Could not load dashboard</div>
 
   const currency = user?.currency || 'AUD'
+  const viewingPast = selectedDate && selectedDate !== getToday()
 
   return (
     <div>
@@ -55,7 +73,17 @@ export default function ChildDashboard() {
         </div>
       )}
 
-      {/* Today's Progress */}
+      {/* Date viewing banner */}
+      {viewingPast && (
+        <div className="date-viewing-banner mb-lg">
+          <span>Viewing: {formatSelectedDate(selectedDate)}</span>
+          <button onClick={() => setSelectedDate(null)} className="date-viewing-reset">
+            Show Today
+          </button>
+        </div>
+      )}
+
+      {/* Progress Stats */}
       <div className="stat-grid mb-lg">
         <div className="stat-card">
           <div className="stat-value">{data.daily_completed}/{data.daily_total}</div>
@@ -72,7 +100,7 @@ export default function ChildDashboard() {
         <ProgressBar
           current={data.daily_completed}
           target={data.daily_total}
-          label="Today's Progress"
+          label={viewingPast ? `Daily Progress` : "Today's Progress"}
           emoji="&#x2600;&#xFE0F;"
           green
         />
@@ -81,7 +109,7 @@ export default function ChildDashboard() {
         <ProgressBar
           current={data.weekly_completed}
           target={data.weekly_total}
-          label="This Week's Progress"
+          label={viewingPast ? `Weekly Progress` : "This Week's Progress"}
           emoji="&#x1F4C5;"
         />
       )}
@@ -89,7 +117,11 @@ export default function ChildDashboard() {
       {/* Calendar */}
       <div className="mt-lg">
         <h3 className="mb-md">Chore Calendar</h3>
-        <ChoreCalendar childId={childId} />
+        <ChoreCalendar
+          childId={childId}
+          onDayClick={handleDayClick}
+          selectedDate={selectedDate}
+        />
       </div>
     </div>
   )

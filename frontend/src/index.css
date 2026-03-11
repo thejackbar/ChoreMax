@@ -460,6 +460,80 @@ a { color: var(--primary); text-decoration: none; }
   margin-bottom: 0.75rem;
 }
 
+/* Date navigator */
+.date-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: var(--r);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+.date-nav-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--primary);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--r);
+  transition: background 0.2s;
+}
+.date-nav-btn:hover:not(:disabled) { background: var(--primary-bg); }
+.date-nav-btn:disabled { color: var(--muted); opacity: 0.4; cursor: default; }
+.date-nav-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+.date-nav-label {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
+}
+.date-nav-today-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--r-full);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.date-nav-today-btn:hover { opacity: 0.85; }
+
+/* Date viewing banner */
+.date-viewing-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--primary-bg);
+  border: 1px solid var(--primary);
+  border-radius: var(--r);
+  padding: 0.75rem 1rem;
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  color: var(--primary);
+}
+.date-viewing-reset {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--r-full);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* Filter bar */
 .filter-bar {
   display: flex;
@@ -895,6 +969,13 @@ a { color: var(--primary); text-decoration: none; }
 .calendar-day .day-dot.red { background: var(--danger); opacity: 0.5; }
 .calendar-day.all-done { background: rgba(16, 185, 129, 0.12); }
 .calendar-day.some-done { background: rgba(245, 158, 11, 0.1); }
+.calendar-day.clickable { cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+.calendar-day.clickable:hover { transform: scale(1.1); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+.calendar-day.selected {
+  border: 2px solid var(--primary);
+  background: var(--primary-bg);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
 
 /* Chart container */
 .chart-container { margin: 1.5rem 0; }

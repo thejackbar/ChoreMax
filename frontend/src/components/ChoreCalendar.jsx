@@ -5,7 +5,7 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December']
 
-export default function ChoreCalendar({ childId }) {
+export default function ChoreCalendar({ childId, onDayClick, selectedDate }) {
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
@@ -89,7 +89,14 @@ export default function ChoreCalendar({ childId }) {
               cell.isToday && 'today',
               cell.allDone && 'all-done',
               cell.someDone && 'some-done',
+              !cell.empty && !cell.isFuture && onDayClick && 'clickable',
+              selectedDate && cell.key === selectedDate && 'selected',
             ].filter(Boolean).join(' ')}
+            onClick={() => {
+              if (!cell.empty && !cell.isFuture && onDayClick) {
+                onDayClick(cell.key)
+              }
+            }}
           >
             {!cell.empty && (
               <>

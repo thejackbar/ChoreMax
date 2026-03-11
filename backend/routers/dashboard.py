@@ -25,8 +25,8 @@ async def _child_balance(child_id: str, db: AsyncSession) -> Decimal:
     return Decimal(str(result.scalar_one()))
 
 
-async def _chore_counts(child_id: str, frequency: str, timezone: str, db: AsyncSession) -> tuple[int, int]:
-    period_date = get_period_date(frequency, timezone)
+async def _chore_counts(child_id: str, frequency: str, timezone: str, db: AsyncSession, for_date: date | None = None) -> tuple[int, int]:
+    period_date = get_period_date(frequency, timezone, for_date=for_date)
 
     # Total assigned chores for this frequency
     result = await db.execute(
@@ -60,6 +60,7 @@ async def _chore_counts(child_id: str, frequency: str, timezone: str, db: AsyncS
 @router.get("/child/{child_id}")
 async def child_dashboard(
     child_id: str,
+    for_date: date | None = Query(default=None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -70,8 +71,8 @@ async def child_dashboard(
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
 
-    daily_completed, daily_total = await _chore_counts(child_id, "daily", current_user.timezone, db)
-    weekly_completed, weekly_total = await _chore_counts(child_id, "weekly", current_user.timezone, db)
+    daily_completed, daily_total = await _chore_counts(child_id, "daily", current_user.timezone, db, for_date=for_date)
+    weekly_completed, weekly_total = await _chore_counts(child_id, "weekly", current_user.timezone, db, for_date=for_date)
     balance = await _child_balance(child_id, db)
 
     # Active target

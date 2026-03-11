@@ -8,6 +8,18 @@ import ProgressBar from '../components/ProgressBar'
 import EmptyState from '../components/EmptyState'
 import PinModal from '../components/PinModal'
 
+const getToday = () => new Date().toISOString().split('T')[0]
+
+const formatDisplayDate = (dateStr) => {
+  const today = getToday()
+  if (dateStr === today) return 'Today'
+  const d = new Date(dateStr + 'T00:00:00')
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  if (dateStr === yesterday.toISOString().split('T')[0]) return 'Yesterday'
+  return d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
 export default function ChildDailyChores() {
   const { childId } = useParams()
   const navigate = useNavigate()
@@ -19,17 +31,21 @@ export default function ChildDailyChores() {
   const [completing, setCompleting] = useState(null)
   const [undoChore, setUndoChore] = useState(null)
   const [pinError, setPinError] = useState(null)
+  const [selectedDate, setSelectedDate] = useState(getToday)
+
+  const isToday = selectedDate === getToday()
 
   const fetchChores = useCallback(async () => {
     try {
-      const data = await api.chores.childDaily(childId)
+      const forDate = selectedDate === getToday() ? undefined : selectedDate
+      const data = await api.chores.childDaily(childId, forDate)
       setChores(data)
     } catch (e) {
       console.error(e)
     } finally {
       setLoading(false)
     }
-  }, [childId])
+  }, [childId, selectedDate])
 
   useEffect(() => { fetchChores() }, [fetchChores])
 
@@ -42,10 +58,16 @@ export default function ChildDailyChores() {
     }
     setCompleting(chore.id)
     try {
-      await api.completions.complete({ chore_id: chore.id, child_id: childId })
+      const payload = { chore_id: chore.id, child_id: childId }
+      if (!isToday) {
+        payload.for_date = selectedDate
+      }
+      await api.completions.complete(payload)
       setConfettiTrigger(t => t + 1)
       await fetchChores()
-      setTimeout(() => navigate('/'), 1500)
+      if (isToday) {
+        setTimeout(() => navigate('/'), 1500)
+      }
     } catch (e) {
       alert(e.message)
     } finally {
@@ -61,6 +83,21 @@ export default function ChildDailyChores() {
       await fetchChores()
     } catch (e) {
       setPinError(e.message)
+    }
+  }
+
+  const goToPreviousDay = () => {
+    const d = new Date(selectedDate + 'T00:00:00')
+    d.setDate(d.getDate() - 1)
+    setSelectedDate(d.toISOString().split('T')[0])
+  }
+
+  const goToNextDay = () => {
+    const d = new Date(selectedDate + 'T00:00:00')
+    d.setDate(d.getDate() + 1)
+    const next = d.toISOString().split('T')[0]
+    if (next <= getToday()) {
+      setSelectedDate(next)
     }
   }
 
@@ -93,6 +130,28 @@ export default function ChildDailyChores() {
         />
       </div>
 
+      {/* Date Navigator */}
+      <div className="date-nav">
+        <button className="date-nav-btn" onClick={goToPreviousDay}>
+          &lsaquo;
+        </button>
+        <div className="date-nav-center">
+          <span className="date-nav-label">{formatDisplayDate(selectedDate)}</span>
+          {!isToday && (
+            <button className="date-nav-today-btn" onClick={() => setSelectedDate(getToday())}>
+              Back to Today
+            </button>
+          )}
+        </div>
+        <button
+          className="date-nav-btn"
+          onClick={goToNextDay}
+          disabled={isToday}
+        >
+          &rsaquo;
+        </button>
+      </div>
+
       <div className="filter-bar">
         {['all', 'uncompleted', 'completed'].map(f => (
           <button
@@ -108,8 +167,12 @@ export default function ChildDailyChores() {
       {filtered.length === 0 ? (
         <EmptyState
           icon={filter === 'uncompleted' ? '\u{1F389}' : '\u{1F4CB}'}
-          title={filter === 'uncompleted' ? 'All done for today!' : 'No chores found'}
-          message={filter === 'uncompleted' ? 'Great job! All daily chores are completed.' : null}
+          title={filter === 'uncompleted'
+            ? (isToday ? 'All done for today!' : `All done for ${formatDisplayDate(selectedDate)}!`)
+            : 'No chores found'}
+          message={filter === 'uncompleted'
+            ? (isToday ? 'Great job! All daily chores are completed.' : 'All chores were completed for this day.')
+            : null}
         />
       ) : (
         <div className="chore-grid">

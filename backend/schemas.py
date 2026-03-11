@@ -131,6 +131,7 @@ class ChoreWithStatusResponse(OrmBase):
 class CompleteChoreRequest(BaseModel):
     chore_id: str
     child_id: str
+    for_date: date | None = None
 
 
 class CompletionResponse(OrmBase):

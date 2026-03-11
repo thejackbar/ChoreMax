@@ -56,8 +56,8 @@ export const api = {
     update: (id, data, pin) => withPin('PUT', `/chores/${id}`, data, pin),
     delete: (id, pin) => withPin('DELETE', `/chores/${id}`, null, pin),
     templates: () => request('GET', '/chore-templates'),
-    childDaily: (childId) => request('GET', `/chores/child/${childId}/daily`),
-    childWeekly: (childId) => request('GET', `/chores/child/${childId}/weekly`),
+    childDaily: (childId, forDate) => request('GET', `/chores/child/${childId}/daily` + (forDate ? `?for_date=${forDate}` : '')),
+    childWeekly: (childId, forDate) => request('GET', `/chores/child/${childId}/weekly` + (forDate ? `?for_date=${forDate}` : '')),
   },
   completions: {
     complete: (data) => request('POST', '/completions', data),
@@ -78,7 +78,7 @@ export const api = {
     delete: (id, pin) => withPin('DELETE', `/targets/${id}`, null, pin),
   },
   dashboard: {
-    child: (childId) => request('GET', `/dashboard/child/${childId}`),
+    child: (childId, forDate) => request('GET', `/dashboard/child/${childId}` + (forDate ? `?for_date=${forDate}` : '')),
     parent: (pin) => withPin('GET', '/dashboard/parent', null, pin),
     stats: (params, pin) => withPin('GET', '/dashboard/stats' + (params ? '?' + new URLSearchParams(params) : ''), null, pin),
     calendar: (childId, month) => request('GET', `/dashboard/child/${childId}/calendar?month=${month}`),

@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -174,19 +176,21 @@ async def delete_chore(
 @router.get("/child/{child_id}/daily")
 async def child_daily_chores(
     child_id: str,
+    for_date: date | None = Query(default=None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    return await _get_child_chores(child_id, "daily", current_user, db)
+    return await _get_child_chores(child_id, "daily", current_user, db, for_date=for_date)
 
 
 @router.get("/child/{child_id}/weekly")
 async def child_weekly_chores(
     child_id: str,
+    for_date: date | None = Query(default=None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    return await _get_child_chores(child_id, "weekly", current_user, db)
+    return await _get_child_chores(child_id, "weekly", current_user, db, for_date=for_date)
 
 
 async def _get_child_chores(
@@ -194,6 +198,7 @@ async def _get_child_chores(
     frequency: str,
     current_user: User,
     db: AsyncSession,
+    for_date: date | None = None,
 ) -> list[dict]:
     # Verify child belongs to user
     result = await db.execute(
@@ -203,7 +208,7 @@ async def _get_child_chores(
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
 
-    period_date = get_period_date(frequency, current_user.timezone)
+    period_date = get_period_date(frequency, current_user.timezone, for_date=for_date)
 
     # Get chores assigned to this child
     result = await db.execute(

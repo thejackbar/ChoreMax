@@ -1,3 +1,5 @@
+from datetime import date as date_type
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,7 +45,11 @@ async def complete_chore(
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Child is not assigned to this chore")
 
-    period_date = get_period_date(chore.frequency, current_user.timezone)
+    # Reject future dates
+    if data.for_date and data.for_date > date_type.today():
+        raise HTTPException(status_code=400, detail="Cannot complete chores for future dates")
+
+    period_date = get_period_date(chore.frequency, current_user.timezone, for_date=data.for_date)
 
     # Check if already completed
     if chore.assignment_type == "standalone":
