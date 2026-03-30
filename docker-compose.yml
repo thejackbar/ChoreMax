@@ -24,6 +24,8 @@ services:
       JWT_EXPIRY_DAYS: ${JWT_EXPIRY_DAYS:-7}
       NODE_ENV: ${NODE_ENV:-production}
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-https://choremax.bltbox.com}
+    volumes:
+      - uploads_data:/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -35,6 +37,7 @@ services:
       - "80"
     volumes:
       - ./nginx/nginx-internal.conf:/etc/nginx/nginx.conf:ro
+      - uploads_data:/uploads:ro
     networks:
       - default
       - npm_network
@@ -43,6 +46,7 @@ services:
 
 volumes:
   postgres_data:
+  uploads_data:
 
 networks:
   npm_network:

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom'
+import { Outlet, useNavigate, useLocation, NavLink, Link } from 'react-router-dom'
 import { useChild } from '../context/ChildContext'
 import { useAuth } from '../context/AuthContext'
 import { getAvatarEmoji } from '../data/avatars'
@@ -9,60 +9,81 @@ export default function Layout() {
   const { logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const isChildView = location.pathname.startsWith('/child/')
   const childId = activeChild?.id
+  const themeIndex = activeChild?.display_order != null ? activeChild.display_order % 6 : 0
 
-  const closeDrawer = () => setDrawerOpen(false)
+  const closeSidebar = () => setSidebarOpen(false)
+
+  const navLinkClass = ({ isActive }) => `child-sidebar-link ${isActive ? 'active' : ''}`
 
   return (
-    <div className="app-container">
-      {/* Drawer overlay */}
-      <div className={`drawer-overlay ${drawerOpen ? 'open' : ''}`} onClick={closeDrawer} />
+    <div className="app-layout" data-child-theme={isChildView ? themeIndex : undefined}>
+      {/* Mobile overlay */}
+      <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={closeSidebar} />
 
-      {/* Slide-out drawer */}
-      <nav className={`drawer ${drawerOpen ? 'open' : ''}`}>
-        {isChildView && activeChild && (
-          <>
-            <div style={{ padding: '0 1.75rem', marginBottom: '0.5rem' }}>
-              <div style={{ fontSize: '2.5rem' }}>{getAvatarEmoji(activeChild.avatar_value)}</div>
-              <div style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 700, marginTop: '0.5rem' }}>
-                {activeChild.name}
-              </div>
-            </div>
-            <div className="drawer-divider" />
-          </>
+      {/* Left sidebar */}
+      <nav className={`child-sidebar ${sidebarOpen ? 'open' : ''}`}>
+        {isChildView && activeChild ? (
+          <div className="child-sidebar-header">
+            <div style={{ fontSize: '2.5rem' }}>{getAvatarEmoji(activeChild.avatar_value)}</div>
+            <div className="child-sidebar-name">{activeChild.name}</div>
+          </div>
+        ) : (
+          <div className="child-sidebar-header">
+            <div className="child-sidebar-name">ChoreMax</div>
+          </div>
         )}
-        <Link to="/" className="drawer-link" onClick={closeDrawer}>
-          &#x1F3E0; Home
-        </Link>
-        {isChildView && childId && (
-          <>
-            <Link to={`/child/${childId}/daily`} className={`drawer-link ${location.pathname.includes('/daily') ? 'active' : ''}`} onClick={closeDrawer}>
-              &#x1F4CB; Daily Chores
-            </Link>
-            <Link to={`/child/${childId}/weekly`} className={`drawer-link ${location.pathname.includes('/weekly') ? 'active' : ''}`} onClick={closeDrawer}>
-              &#x1F4C5; Weekly Chores
-            </Link>
-            <Link to={`/child/${childId}/dashboard`} className={`drawer-link ${location.pathname.includes('/dashboard') ? 'active' : ''}`} onClick={closeDrawer}>
-              &#x1F3C6; My Stuff
-            </Link>
-          </>
-        )}
-        <div className="drawer-divider" />
-        <button className="drawer-link" onClick={() => { closeDrawer(); navigate('/parent'); }}>
-          &#x2699;&#xFE0F; Parent Settings
-        </button>
-        <button className="drawer-link" onClick={() => { closeDrawer(); logout(); }}>
-          &#x1F6AA; Logout
-        </button>
+
+        <div className="child-sidebar-section">
+          <NavLink to="/" end className={navLinkClass} onClick={closeSidebar}>
+            &#x1F3E0; Home
+          </NavLink>
+          {isChildView && childId && (
+            <>
+              <NavLink to={`/child/${childId}/daily`} className={navLinkClass} onClick={closeSidebar}>
+                &#x1F4CB; Daily Chores
+              </NavLink>
+              <NavLink to={`/child/${childId}/weekly`} className={navLinkClass} onClick={closeSidebar}>
+                &#x1F4C5; Weekly Chores
+              </NavLink>
+              <NavLink to={`/child/${childId}/dashboard`} className={navLinkClass} onClick={closeSidebar}>
+                &#x1F3C6; My Stuff
+              </NavLink>
+            </>
+          )}
+        </div>
+
+        <div className="child-sidebar-divider" />
+
+        <div className="child-sidebar-section">
+          <NavLink to="/meals/plan" className={navLinkClass} onClick={closeSidebar}>
+            &#x1F37D;&#xFE0F; Meal Plan
+          </NavLink>
+          <NavLink to="/lists/shopping" className={navLinkClass} onClick={closeSidebar}>
+            &#x1F6D2; Shopping List
+          </NavLink>
+        </div>
+
+        <div className="child-sidebar-divider" />
+
+        <div className="child-sidebar-section">
+          <button className="child-sidebar-link" onClick={() => { closeSidebar(); navigate('/parent') }}>
+            &#x2699;&#xFE0F; Parent Settings
+          </button>
+          <button className="child-sidebar-link" onClick={() => { closeSidebar(); logout() }}>
+            &#x1F6AA; Logout
+          </button>
+        </div>
       </nav>
 
-      {/* Top nav */}
-      <nav className="topnav">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <button className={`burger-btn ${drawerOpen ? 'open' : ''}`} onClick={() => setDrawerOpen(!drawerOpen)}>
+      {/* Main content area */}
+      <div className="app-main">
+        {/* Mobile top bar */}
+        <nav className="mobile-topbar">
+          <button className={`burger-btn ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(!sidebarOpen)}>
             <span /><span /><span />
           </button>
           {isChildView && activeChild ? (
@@ -72,43 +93,17 @@ export default function Layout() {
           ) : (
             <div className="topnav-title">ChoreMax</div>
           )}
-        </div>
-        {isChildView && (
-          <button className="topnav-back" onClick={() => navigate('/')}>
-            &#x1F3E0;
-          </button>
-        )}
-      </nav>
-
-      <main className="page" style={isChildView ? { paddingBottom: '5.5rem' } : {}}>
-        <Outlet />
-      </main>
-
-      {isChildView && childId && (
-        <nav className="bottomnav">
-          <Link
-            to={`/child/${childId}/daily`}
-            className={`bottomnav-item ${location.pathname.includes('/daily') ? 'active' : ''}`}
-          >
-            <span className="nav-icon">&#x1F4CB;</span>
-            Daily
-          </Link>
-          <Link
-            to={`/child/${childId}/weekly`}
-            className={`bottomnav-item ${location.pathname.includes('/weekly') ? 'active' : ''}`}
-          >
-            <span className="nav-icon">&#x1F4C5;</span>
-            Weekly
-          </Link>
-          <Link
-            to={`/child/${childId}/dashboard`}
-            className={`bottomnav-item ${location.pathname.includes('/dashboard') ? 'active' : ''}`}
-          >
-            <span className="nav-icon">&#x1F3C6;</span>
-            My Stuff
-          </Link>
+          {isChildView && (
+            <button className="topnav-back" onClick={() => navigate('/')}>
+              &#x1F3E0;
+            </button>
+          )}
         </nav>
-      )}
+
+        <main className="page">
+          <Outlet />
+        </main>
+      </div>
     </div>
   )
 }

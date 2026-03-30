@@ -75,6 +75,9 @@ from routers.piggy_bank import router as piggy_bank_router
 from routers.targets import router as targets_router
 from routers.dashboard import router as dashboard_router
 from routers.settings import router as settings_router
+from routers.meals import router as meals_router
+from routers.meal_plans import router as meal_plans_router
+from routers.shopping_list import router as shopping_list_router
 
 app.include_router(auth_router)
 app.include_router(children_router)
@@ -84,6 +87,9 @@ app.include_router(piggy_bank_router)
 app.include_router(targets_router)
 app.include_router(dashboard_router)
 app.include_router(settings_router)
+app.include_router(meals_router)
+app.include_router(meal_plans_router)
+app.include_router(shopping_list_router)
 
 
 @app.get("/api/health")

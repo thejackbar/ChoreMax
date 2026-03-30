@@ -5,7 +5,7 @@ from sqlalchemy import (
     Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, Time,
     UniqueConstraint, func
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
@@ -25,11 +25,14 @@ class User(Base):
     pin_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
     currency: Mapped[str] = mapped_column(Text, nullable=False, server_default="AUD")
     timezone: Mapped[str] = mapped_column(Text, nullable=False, server_default="Australia/Sydney")
+    family_size: Mapped[int] = mapped_column(Integer, nullable=False, server_default="4")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     children = relationship("Child", back_populates="user", cascade="all, delete-orphan")
     chores = relationship("Chore", back_populates="user", cascade="all, delete-orphan")
+    meals = relationship("Meal", back_populates="user", cascade="all, delete-orphan")
+    meal_plan_entries = relationship("MealPlanEntry", back_populates="user", cascade="all, delete-orphan")
     reminder_setting = relationship("ReminderSetting", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 
@@ -146,3 +149,64 @@ class ReminderSetting(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     user = relationship("User", back_populates="reminder_setting")
+
+
+class Meal(Base):
+    __tablename__ = "meals"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    categories: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False, server_default="{}")
+    image_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    servings: Mapped[int] = mapped_column(Integer, nullable=False, server_default="4")
+    max_per_week: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    user = relationship("User", back_populates="meals")
+    ingredients = relationship("MealIngredient", back_populates="meal", cascade="all, delete-orphan")
+    meal_plan_entries = relationship("MealPlanEntry", back_populates="meal", cascade="all, delete-orphan")
+
+
+class MealIngredient(Base):
+    __tablename__ = "meal_ingredients"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    meal_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("meals.id", ondelete="CASCADE"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    quantity: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, server_default="1")
+    unit: Mapped[str] = mapped_column(Text, nullable=False, server_default="piece")
+    category: Mapped[str] = mapped_column(Text, nullable=False, server_default="pantry")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    meal = relationship("Meal", back_populates="ingredients")
+
+
+class MealPlanEntry(Base):
+    __tablename__ = "meal_plan_entries"
+    __table_args__ = (UniqueConstraint("user_id", "week_start", "day_of_week", "slot"),)
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    week_start: Mapped[datetime] = mapped_column(Date, nullable=False)
+    day_of_week: Mapped[int] = mapped_column(Integer, nullable=False)
+    slot: Mapped[str] = mapped_column(Text, nullable=False)
+    meal_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("meals.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="meal_plan_entries")
+    meal = relationship("Meal", back_populates="meal_plan_entries")
+
+
+class ShoppingListCheck(Base):
+    __tablename__ = "shopping_list_checks"
+    __table_args__ = (UniqueConstraint("user_id", "week_start", "ingredient_name", "ingredient_unit"),)
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    week_start: Mapped[datetime] = mapped_column(Date, nullable=False)
+    ingredient_name: Mapped[str] = mapped_column(Text, nullable=False)
+    ingredient_unit: Mapped[str] = mapped_column(Text, nullable=False)
+    checked: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    checked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

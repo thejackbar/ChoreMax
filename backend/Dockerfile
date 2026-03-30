@@ -19,6 +19,7 @@ WORKDIR /app
 COPY . .
 
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
+RUN mkdir -p /uploads/meals && chown -R appuser:appgroup /uploads
 USER appuser
 
 EXPOSE 8000

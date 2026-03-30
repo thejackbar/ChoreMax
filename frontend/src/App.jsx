@@ -17,6 +17,9 @@ import ParentDashboard from './pages/ParentDashboard'
 import ManageChores from './pages/ManageChores'
 import ManageChildren from './pages/ManageChildren'
 import AccountSettings from './pages/AccountSettings'
+import ManageMeals from './pages/ManageMeals'
+import MealPlan from './pages/MealPlan'
+import ShoppingList from './pages/ShoppingList'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -127,6 +130,8 @@ export default function App() {
               <Route path="/child/:childId/daily" element={<ChildDailyChores />} />
               <Route path="/child/:childId/weekly" element={<ChildWeeklyChores />} />
               <Route path="/child/:childId/dashboard" element={<ChildDashboard />} />
+              <Route path="/meals/plan" element={<MealPlan />} />
+              <Route path="/lists/shopping" element={<ShoppingList />} />
             </Route>
 
             {/* Parent-facing (PIN protected) */}
@@ -134,6 +139,7 @@ export default function App() {
               <Route path="/parent" element={<ParentDashboard />} />
               <Route path="/parent/chores" element={<ManageChores />} />
               <Route path="/parent/children" element={<ManageChildren />} />
+              <Route path="/parent/meals" element={<ManageMeals />} />
               <Route path="/parent/settings" element={<AccountSettings />} />
             </Route>
 

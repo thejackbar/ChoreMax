@@ -30,6 +30,7 @@ class UserResponse(OrmBase):
     display_name: str
     currency: str
     timezone: str
+    family_size: int = 4
     has_pin: bool = False
     created_at: datetime
 
@@ -234,6 +235,7 @@ class SettingsUpdate(BaseModel):
     currency: str | None = None
     timezone: str | None = None
     display_name: str | None = None
+    family_size: int | None = Field(default=None, ge=1, le=20)
 
 
 class ReminderSettingsUpdate(BaseModel):
@@ -306,3 +308,115 @@ class DetailedStatsResponse(BaseModel):
     total_chores: int
     total_earnings: Decimal
     completion_pct: float
+
+
+# ---------------------------------------------------------------------------
+# Meals
+# ---------------------------------------------------------------------------
+
+INGREDIENT_UNITS = Literal[
+    "g", "kg", "ml", "L", "cup", "tbsp", "tsp", "piece",
+    "bunch", "can", "packet", "slice", "clove", "pinch",
+]
+
+INGREDIENT_CATEGORIES = Literal[
+    "produce", "dairy", "meat", "seafood", "pantry", "frozen",
+    "bakery", "beverages", "condiments", "other",
+]
+
+MEAL_CATEGORIES = Literal["breakfast", "lunch", "dinner"]
+
+
+class MealIngredientCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    quantity: Decimal = Field(..., gt=0)
+    unit: INGREDIENT_UNITS = "piece"
+    category: INGREDIENT_CATEGORIES = "pantry"
+
+
+class MealIngredientResponse(OrmBase):
+    id: str
+    name: str
+    quantity: Decimal
+    unit: str
+    category: str
+
+
+class MealCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    categories: list[MEAL_CATEGORIES]
+    servings: int = Field(default=4, ge=1)
+    max_per_week: int | None = Field(default=None, ge=1)
+    ingredients: list[MealIngredientCreate] = []
+
+
+class MealUpdate(BaseModel):
+    name: str | None = None
+    categories: list[MEAL_CATEGORIES] | None = None
+    servings: int | None = Field(default=None, ge=1)
+    max_per_week: int | None = None
+    ingredients: list[MealIngredientCreate] | None = None
+
+
+class MealResponse(OrmBase):
+    id: str
+    name: str
+    categories: list[str]
+    image_path: str | None
+    servings: int
+    max_per_week: int | None
+    ingredients: list[MealIngredientResponse] = []
+    created_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# Meal Plans
+# ---------------------------------------------------------------------------
+
+MEAL_SLOTS = Literal["breakfast", "lunch", "dinner"]
+
+
+class MealPlanEntryCreate(BaseModel):
+    week_start: date
+    day_of_week: int = Field(..., ge=0, le=6)
+    slot: MEAL_SLOTS
+    meal_id: str
+
+
+class MealPlanEntryResponse(OrmBase):
+    id: str
+    week_start: date
+    day_of_week: int
+    slot: str
+    meal: MealResponse
+    created_at: datetime
+
+
+class MealPlanWeekResponse(BaseModel):
+    week_start: date
+    entries: list[MealPlanEntryResponse]
+
+
+# ---------------------------------------------------------------------------
+# Shopping List
+# ---------------------------------------------------------------------------
+
+class ShoppingListItemResponse(BaseModel):
+    ingredient_name: str
+    ingredient_unit: str
+    ingredient_category: str
+    total_quantity: Decimal
+    checked: bool = False
+
+
+class ShoppingListResponse(BaseModel):
+    week_start: date
+    family_size: int
+    items: list[ShoppingListItemResponse]
+
+
+class ShoppingListCheckRequest(BaseModel):
+    week_start: date
+    ingredient_name: str
+    ingredient_unit: str
+    checked: bool

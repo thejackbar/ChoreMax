@@ -91,4 +91,35 @@ export const api = {
     getReminders: () => request('GET', '/settings/reminders'),
     updateReminders: (data, pin) => withPin('PUT', '/settings/reminders', data, pin),
   },
+  meals: {
+    list: (params) => request('GET', '/meals' + (params ? '?' + new URLSearchParams(params) : '')),
+    create: (data, pin) => withPin('POST', '/meals', data, pin),
+    get: (id) => request('GET', `/meals/${id}`),
+    update: (id, data, pin) => withPin('PUT', `/meals/${id}`, data, pin),
+    delete: (id, pin) => withPin('DELETE', `/meals/${id}`, null, pin),
+    uploadImage: (id, file, pin) => {
+      const fd = new FormData()
+      fd.append('file', file)
+      return fetch(`${BASE}/meals/${id}/image`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: pin ? { 'X-Parent-PIN': pin } : {},
+        body: fd,
+      }).then(async (res) => {
+        const data = await res.json().catch(() => null)
+        if (!res.ok) throw new Error(data?.detail || `Upload failed (${res.status})`)
+        return data
+      })
+    },
+  },
+  mealPlans: {
+    getWeek: (weekStart) => request('GET', `/meal-plans?week_start=${weekStart}`),
+    addEntry: (data, pin) => withPin('POST', '/meal-plans', data, pin),
+    removeEntry: (id, pin) => withPin('DELETE', `/meal-plans/${id}`, null, pin),
+  },
+  shoppingList: {
+    get: (weekStart) => request('GET', `/shopping-list?week_start=${weekStart}`),
+    check: (data) => request('POST', '/shopping-list/check', data),
+    clearChecks: (weekStart, pin) => withPin('DELETE', `/shopping-list/checks?week_start=${weekStart}`, null, pin),
+  },
 }

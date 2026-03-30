@@ -9,6 +9,7 @@ export default function AccountSettings() {
   const [currency, setCurrency] = useState(user?.currency || 'AUD')
   const [timezone, setTimezone] = useState(user?.timezone || 'Australia/Sydney')
   const [displayName, setDisplayName] = useState(user?.display_name || '')
+  const [familySize, setFamilySize] = useState(user?.family_size || 4)
   const [newPin, setNewPin] = useState('')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -43,7 +44,7 @@ export default function AccountSettings() {
     setMsg(null)
     setError(null)
     try {
-      await api.settings.updateAccount({ currency, timezone, display_name: displayName }, pin)
+      await api.settings.updateAccount({ currency, timezone, display_name: displayName, family_size: familySize }, pin)
       await refreshUser()
       setMsg('Account updated!')
     } catch (e) {
@@ -129,6 +130,13 @@ export default function AccountSettings() {
                 <option key={tz} value={tz}>{tz}</option>
               ))}
             </select>
+          </div>
+          <div className="field">
+            <label>Family Size</label>
+            <input type="number" min="1" max="20" value={familySize} onChange={e => setFamilySize(Number(e.target.value))} />
+            <small style={{ color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'block' }}>
+              Used to scale meal ingredients for your shopping list
+            </small>
           </div>
           <button className="btn btn-primary" type="submit">Save</button>
         </form>

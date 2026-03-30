@@ -32,6 +32,7 @@ def _user_response(user: User) -> dict:
         "display_name": user.display_name,
         "currency": user.currency,
         "timezone": user.timezone,
+        "family_size": user.family_size,
         "has_pin": user.pin_hash is not None,
         "created_at": user.created_at,
     }

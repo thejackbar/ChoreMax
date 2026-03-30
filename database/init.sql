@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
     pin_hash        TEXT,
     currency        TEXT NOT NULL DEFAULT 'AUD',
     timezone        TEXT NOT NULL DEFAULT 'Australia/Sydney',
+    family_size     INTEGER NOT NULL DEFAULT 4,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
@@ -100,6 +101,54 @@ CREATE TABLE IF NOT EXISTS reminder_settings (
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Meal definitions
+CREATE TABLE IF NOT EXISTS meals (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name            TEXT NOT NULL,
+    categories      TEXT[] NOT NULL DEFAULT '{}',
+    image_path      TEXT,
+    servings        INTEGER NOT NULL DEFAULT 4,
+    max_per_week    INTEGER,
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Meal ingredients
+CREATE TABLE IF NOT EXISTS meal_ingredients (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    meal_id         UUID NOT NULL REFERENCES meals(id) ON DELETE CASCADE,
+    name            TEXT NOT NULL,
+    quantity        NUMERIC(10,2) NOT NULL DEFAULT 1,
+    unit            TEXT NOT NULL DEFAULT 'piece',
+    category        TEXT NOT NULL DEFAULT 'pantry',
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Weekly meal plan entries
+CREATE TABLE IF NOT EXISTS meal_plan_entries (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    week_start      DATE NOT NULL,
+    day_of_week     INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
+    slot            TEXT NOT NULL CHECK (slot IN ('breakfast','lunch','dinner')),
+    meal_id         UUID NOT NULL REFERENCES meals(id) ON DELETE CASCADE,
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, week_start, day_of_week, slot)
+);
+
+-- Shopping list check tracking
+CREATE TABLE IF NOT EXISTS shopping_list_checks (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    week_start      DATE NOT NULL,
+    ingredient_name TEXT NOT NULL,
+    ingredient_unit TEXT NOT NULL,
+    checked         BOOLEAN NOT NULL DEFAULT FALSE,
+    checked_at      TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, week_start, ingredient_name, ingredient_unit)
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_children_user            ON children(user_id);
 CREATE INDEX IF NOT EXISTS idx_chores_user              ON chores(user_id);
@@ -114,3 +163,8 @@ CREATE INDEX IF NOT EXISTS idx_piggy_created            ON piggy_bank_transactio
 CREATE INDEX IF NOT EXISTS idx_targets_child            ON targets(child_id);
 CREATE INDEX IF NOT EXISTS idx_targets_active           ON targets(child_id, is_active) WHERE is_active = TRUE;
 CREATE INDEX IF NOT EXISTS idx_reminder_user            ON reminder_settings(user_id);
+CREATE INDEX IF NOT EXISTS idx_meals_user               ON meals(user_id);
+CREATE INDEX IF NOT EXISTS idx_meal_ingredients_meal     ON meal_ingredients(meal_id);
+CREATE INDEX IF NOT EXISTS idx_meal_plan_user_week       ON meal_plan_entries(user_id, week_start);
+CREATE INDEX IF NOT EXISTS idx_meal_plan_meal            ON meal_plan_entries(meal_id);
+CREATE INDEX IF NOT EXISTS idx_shopping_checks_user_week ON shopping_list_checks(user_id, week_start);
