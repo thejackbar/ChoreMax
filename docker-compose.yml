@@ -39,8 +39,10 @@ services:
       - ./nginx/nginx-internal.conf:/etc/nginx/nginx.conf:ro
       - uploads_data:/uploads:ro
     networks:
-      - default
-      - npm_network
+      default:
+      npm_network:
+        aliases:
+          - choremax-frontend
     depends_on:
       - backend
 
