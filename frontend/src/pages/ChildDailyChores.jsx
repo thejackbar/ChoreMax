@@ -112,8 +112,8 @@ export default function ChildDailyChores() {
 
   // Group by time_of_day
   const morningChores = filtered.filter(c => c.time_of_day === 'morning')
-  const anytimeChores = filtered.filter(c => c.time_of_day === 'anytime')
   const eveningChores = filtered.filter(c => c.time_of_day === 'evening')
+  const anytimeChores = filtered.filter(c => c.time_of_day === 'anytime')
 
   const renderChoreCard = (chore) => (
     <button
@@ -205,18 +205,18 @@ export default function ChildDailyChores() {
               <div className="chore-grid">{morningChores.map(renderChoreCard)}</div>
             </div>
           )}
+          {eveningChores.length > 0 && (
+            <div className="chore-section">
+              <h3 className="chore-section-title">&#x1F319; Evening</h3>
+              <div className="chore-grid">{eveningChores.map(renderChoreCard)}</div>
+            </div>
+          )}
           {anytimeChores.length > 0 && (
             <div className="chore-section">
               {(morningChores.length > 0 || eveningChores.length > 0) && (
                 <h3 className="chore-section-title">&#x1F31F; Anytime</h3>
               )}
               <div className="chore-grid">{anytimeChores.map(renderChoreCard)}</div>
-            </div>
-          )}
-          {eveningChores.length > 0 && (
-            <div className="chore-section">
-              <h3 className="chore-section-title">&#x1F319; Evening</h3>
-              <div className="chore-grid">{eveningChores.map(renderChoreCard)}</div>
             </div>
           )}
         </>

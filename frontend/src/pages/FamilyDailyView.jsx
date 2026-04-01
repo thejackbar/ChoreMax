@@ -148,8 +148,8 @@ export default function FamilyDailyView() {
 
           // Group by time_of_day
           const morning = member.chores.filter(c => c.time_of_day === 'morning')
-          const anytime = member.chores.filter(c => c.time_of_day === 'anytime')
           const evening = member.chores.filter(c => c.time_of_day === 'evening')
+          const anytime = member.chores.filter(c => c.time_of_day === 'anytime')
 
           return (
             <div key={member.child_id} className={`family-column ${allDone ? 'family-column--done' : ''}`}>
@@ -195,12 +195,10 @@ export default function FamilyDailyView() {
                   </div>
                 )}
 
-                {anytime.length > 0 && (
+                {evening.length > 0 && (
                   <div className="family-time-group">
-                    {(morning.length > 0 || evening.length > 0) && (
-                      <div className="family-time-label">&#x1F31F; Anytime</div>
-                    )}
-                    {anytime.map(chore => (
+                    <div className="family-time-label">&#x1F319; Evening</div>
+                    {evening.map(chore => (
                       <button
                         key={chore.id}
                         className={`family-chore ${chore.completed ? 'family-chore--done' : ''}`}
@@ -215,10 +213,12 @@ export default function FamilyDailyView() {
                   </div>
                 )}
 
-                {evening.length > 0 && (
+                {anytime.length > 0 && (
                   <div className="family-time-group">
-                    <div className="family-time-label">&#x1F319; Evening</div>
-                    {evening.map(chore => (
+                    {(morning.length > 0 || evening.length > 0) && (
+                      <div className="family-time-label">&#x1F31F; Anytime</div>
+                    )}
+                    {anytime.map(chore => (
                       <button
                         key={chore.id}
                         className={`family-chore ${chore.completed ? 'family-chore--done' : ''}`}
