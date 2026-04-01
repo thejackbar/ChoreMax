@@ -19,6 +19,7 @@ import ManageChildren from './pages/ManageChildren'
 import AccountSettings from './pages/AccountSettings'
 import ManageMeals from './pages/ManageMeals'
 import ManageGoals from './pages/ManageGoals'
+import FamilyDailyView from './pages/FamilyDailyView'
 import MealPlan from './pages/MealPlan'
 import ShoppingList from './pages/ShoppingList'
 
@@ -128,6 +129,7 @@ export default function App() {
             {/* Kid-facing (no PIN) */}
             <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route path="/" element={<Home />} />
+              <Route path="/family" element={<FamilyDailyView />} />
               <Route path="/child/:childId/daily" element={<ChildDailyChores />} />
               <Route path="/child/:childId/weekly" element={<ChildWeeklyChores />} />
               <Route path="/child/:childId/dashboard" element={<ChildDashboard />} />

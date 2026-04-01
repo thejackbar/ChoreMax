@@ -303,6 +303,92 @@ async def detailed_stats(
     )
 
 
+@router.get("/family-daily")
+async def family_daily_view(
+    for_date: date | None = Query(default=None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get all family members' daily chores for a given date (Skylight-style family view)."""
+    target_date = for_date or date.today()
+    period_date = get_period_date("daily", current_user.timezone, for_date=target_date)
+
+    # Get all children
+    result = await db.execute(
+        select(Child)
+        .where(Child.user_id == current_user.id)
+        .order_by(Child.display_order)
+    )
+    children = result.scalars().all()
+
+    members = []
+    for child in children:
+        # Get daily chores assigned to this child
+        result = await db.execute(
+            select(Chore, ChoreAssignment)
+            .join(ChoreAssignment, Chore.id == ChoreAssignment.chore_id)
+            .where(
+                ChoreAssignment.child_id == child.id,
+                Chore.frequency == "daily",
+                Chore.is_active == True,
+            )
+            .order_by(Chore.time_of_day, Chore.title)
+        )
+        chore_rows = result.all()
+
+        chore_ids = [row.Chore.id for row in chore_rows]
+
+        # Get completions for these chores on this date
+        completions_map = {}
+        if chore_ids:
+            result = await db.execute(
+                select(ChoreCompletion)
+                .where(
+                    ChoreCompletion.child_id == child.id,
+                    ChoreCompletion.period_date == period_date,
+                    ChoreCompletion.chore_id.in_(chore_ids),
+                )
+            )
+            for comp in result.scalars().all():
+                completions_map[comp.chore_id] = comp
+
+        chores_list = []
+        for row in chore_rows:
+            chore = row.Chore
+            comp = completions_map.get(chore.id)
+            chores_list.append({
+                "id": chore.id,
+                "title": chore.title,
+                "emoji": chore.emoji,
+                "value": chore.value,
+                "time_of_day": chore.time_of_day,
+                "assignment_type": chore.assignment_type,
+                "completed": comp is not None,
+                "completion_id": comp.id if comp else None,
+            })
+
+        balance = await _child_token_balance(child.id, db)
+        completed_count = sum(1 for c in chores_list if c["completed"])
+
+        members.append({
+            "child_id": child.id,
+            "child_name": child.name,
+            "avatar_type": child.avatar_type,
+            "avatar_value": child.avatar_value,
+            "token_icon": child.token_icon,
+            "color": child.color,
+            "token_balance": balance,
+            "chores": chores_list,
+            "completed_count": completed_count,
+            "total_count": len(chores_list),
+        })
+
+    return {
+        "date": target_date.isoformat(),
+        "members": members,
+    }
+
+
 @router.get("/child/{child_id}/calendar")
 async def child_calendar(
     child_id: str,

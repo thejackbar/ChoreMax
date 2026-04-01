@@ -1462,3 +1462,181 @@ a { color: var(--primary); text-decoration: none; }
   border-radius: 10px;
   margin-top: 0.25rem;
 }
+
+/* ===================================================================
+   Family Daily View (Skylight-style columns)
+   =================================================================== */
+.family-view { padding-bottom: 2rem; }
+
+.family-date-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.5rem 0;
+}
+.family-date-center { text-align: center; }
+.family-date-title {
+  font-size: 2rem;
+  margin: 0;
+  line-height: 1.2;
+}
+.family-date-day {
+  font-size: 1rem;
+  color: var(--muted);
+  font-family: var(--font-heading);
+}
+
+.family-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.family-column {
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: var(--r);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  overflow: hidden;
+  transition: box-shadow 0.3s;
+}
+.family-column--done {
+  border-color: var(--success);
+  box-shadow: 0 0 0 1px var(--success), var(--glass-shadow);
+}
+
+.family-column-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 1.25rem 1rem 0.75rem;
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+  transition: background 0.2s;
+}
+.family-column-header:hover { background: rgba(0,0,0,0.02); }
+.family-avatar { font-size: 2.5rem; }
+.family-name {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+.family-balance {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.family-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1rem 0.75rem;
+}
+.family-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.family-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.family-progress-text {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  font-family: var(--font-heading);
+  min-width: 2.5rem;
+  text-align: right;
+}
+
+.family-chores {
+  padding: 0 0.5rem 0.75rem;
+}
+
+.family-time-group { margin-bottom: 0.5rem; }
+.family-time-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+  padding: 0.25rem 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.family-chore {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem;
+  border: none;
+  background: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-align: left;
+}
+.family-chore:hover { background: var(--primary-bg); }
+.family-chore:active { transform: scale(0.98); }
+.family-chore:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.family-chore--done {
+  opacity: 0.5;
+}
+.family-chore--done .family-chore-title {
+  text-decoration: line-through;
+}
+
+.family-chore-check { font-size: 1.1rem; flex-shrink: 0; }
+.family-chore-emoji { font-size: 1.1rem; flex-shrink: 0; }
+.family-chore-title {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.family-empty {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 1.5rem 0.5rem;
+}
+
+.family-all-done {
+  text-align: center;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--success);
+  padding: 0.75rem;
+}
+
+/* Family View Mobile */
+@media (max-width: 768px) {
+  .family-columns {
+    grid-template-columns: 1fr;
+  }
+  .family-date-title { font-size: 1.5rem; }
+  .family-column-header { padding: 1rem 1rem 0.5rem; flex-direction: row; gap: 0.75rem; }
+  .family-avatar { font-size: 2rem; }
+  .family-name { font-size: 1rem; }
+  .family-column-header { justify-content: flex-start; }
+  .family-balance { margin-left: auto; }
+}

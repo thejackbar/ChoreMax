@@ -41,6 +41,9 @@ export default function Layout() {
           <NavLink to="/" end className={navLinkClass} onClick={closeSidebar}>
             &#x1F3E0; Home
           </NavLink>
+          <NavLink to="/family" className={navLinkClass} onClick={closeSidebar}>
+            &#x1F46A; Family View
+          </NavLink>
           {isChildView && childId && (
             <>
               <NavLink to={`/child/${childId}/daily`} className={navLinkClass} onClick={closeSidebar}>

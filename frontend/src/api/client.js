@@ -80,6 +80,7 @@ export const api = {
   },
   dashboard: {
     child: (childId, forDate) => request('GET', `/dashboard/child/${childId}` + (forDate ? `?for_date=${forDate}` : '')),
+    familyDaily: (forDate) => request('GET', `/dashboard/family-daily` + (forDate ? `?for_date=${forDate}` : '')),
     parent: (pin) => withPin('GET', '/dashboard/parent', null, pin),
     stats: (params, pin) => withPin('GET', '/dashboard/stats' + (params ? '?' + new URLSearchParams(params) : ''), null, pin),
     calendar: (childId, month) => request('GET', `/dashboard/child/${childId}/calendar?month=${month}`),

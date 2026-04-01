@@ -42,6 +42,15 @@ export default function Home() {
       <div className="text-center mb-lg" style={{ marginTop: '2rem' }}>
         <h1>Who are you?</h1>
         <p className="text-muted" style={{ fontSize: '1.1rem', marginTop: '0.5rem' }}>Tap your picture to start!</p>
+        {children.length > 0 && (
+          <button
+            className="btn btn-outline btn-sm"
+            style={{ marginTop: '0.75rem' }}
+            onClick={() => navigate('/family')}
+          >
+            &#x1F46A; Family View
+          </button>
+        )}
       </div>
 
       {children.length === 0 ? (
