@@ -18,6 +18,7 @@ import ManageChores from './pages/ManageChores'
 import ManageChildren from './pages/ManageChildren'
 import AccountSettings from './pages/AccountSettings'
 import ManageMeals from './pages/ManageMeals'
+import ManageGoals from './pages/ManageGoals'
 import MealPlan from './pages/MealPlan'
 import ShoppingList from './pages/ShoppingList'
 
@@ -140,6 +141,7 @@ export default function App() {
               <Route path="/parent/chores" element={<ManageChores />} />
               <Route path="/parent/children" element={<ManageChildren />} />
               <Route path="/parent/meals" element={<ManageMeals />} />
+              <Route path="/parent/goals" element={<ManageGoals />} />
               <Route path="/parent/settings" element={<AccountSettings />} />
             </Route>
 

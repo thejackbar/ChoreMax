@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import { useAuth } from '../context/AuthContext'
-import { formatMoney } from '../data/currencies'
+import { useChild } from '../context/ChildContext'
+import { getTokenEmoji, formatTokens } from '../data/tokenIcons'
 import ProgressBar from '../components/ProgressBar'
 import ChoreCalendar from '../components/ChoreCalendar'
 
@@ -15,10 +15,12 @@ const formatSelectedDate = (dateStr) => {
 
 export default function ChildDashboard() {
   const { childId } = useParams()
-  const { user } = useAuth()
+  const { activeChild } = useChild()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState(null)
+
+  const tokenIcon = activeChild?.token_icon || data?.token_icon || 'star'
 
   useEffect(() => {
     async function load() {
@@ -46,30 +48,43 @@ export default function ChildDashboard() {
   if (loading) return <div className="text-center mt-lg">Loading...</div>
   if (!data) return <div className="text-center mt-lg">Could not load dashboard</div>
 
-  const currency = user?.currency || 'AUD'
   const viewingPast = selectedDate && selectedDate !== getToday()
 
   return (
     <div>
-      {/* Piggy Bank */}
-      <div className="piggy-bank mb-lg">
-        <div className="piggy-icon">&#x1F416;</div>
-        <div className="piggy-amount">{formatMoney(data.piggy_bank_balance, currency)}</div>
-        <div className="piggy-label">My Piggy Bank</div>
+      {/* Token Balance */}
+      <div className="token-balance mb-lg">
+        <div className="token-icon" style={{ fontSize: '3rem' }}>{getTokenEmoji(tokenIcon)}</div>
+        <div className="token-amount">{data.token_balance}</div>
+        <div className="token-label">My {getTokenEmoji(tokenIcon)} Balance</div>
       </div>
 
-      {/* Target Progress */}
-      {data.target && (
+      {/* Goal Store */}
+      {data.goals && data.goals.length > 0 && (
         <div className="card mb-lg">
-          <h3>{data.target.emoji} {data.target.title}</h3>
-          <ProgressBar
-            current={Number(data.target.progress_amount)}
-            target={Number(data.target.target_value)}
-            label={`${formatMoney(data.target.progress_amount, currency)} of ${formatMoney(data.target.target_value, currency)}`}
-          />
-          {data.target.progress_pct >= 1 && (
-            <div className="msg-success mt-md">You reached your goal! Ask your parent to check.</div>
-          )}
+          <h3 className="mb-md">Goal Store</h3>
+          <div className="goal-store-grid">
+            {data.goals.map(goal => {
+              const canAfford = data.token_balance >= goal.token_cost
+              const progressPct = Math.min((data.token_balance / goal.token_cost) * 100, 100)
+              return (
+                <div key={goal.id} className={`goal-card ${canAfford ? 'goal-card--affordable' : ''}`}>
+                  <span className="goal-emoji">{goal.emoji}</span>
+                  <span className="goal-title">{goal.title}</span>
+                  <span className="goal-cost">{formatTokens(goal.token_cost, tokenIcon)}</span>
+                  <div className="goal-progress-bar">
+                    <div
+                      className="goal-progress-fill"
+                      style={{ width: `${progressPct}%` }}
+                    />
+                  </div>
+                  {canAfford && (
+                    <span className="goal-ready-badge">Ready!</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 

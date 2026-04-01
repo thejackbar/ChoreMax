@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
-import { useAuth } from '../context/AuthContext'
-import { formatMoney } from '../data/currencies'
+import { useChild } from '../context/ChildContext'
+import { formatTokens } from '../data/tokenIcons'
 import ConfettiAnimation from '../components/ConfettiAnimation'
 import ProgressBar from '../components/ProgressBar'
 import EmptyState from '../components/EmptyState'
@@ -23,7 +23,7 @@ const formatDisplayDate = (dateStr) => {
 export default function ChildDailyChores() {
   const { childId } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { activeChild } = useChild()
   const [chores, setChores] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -34,6 +34,7 @@ export default function ChildDailyChores() {
   const [selectedDate, setSelectedDate] = useState(getToday)
 
   const isToday = selectedDate === getToday()
+  const tokenIcon = activeChild?.token_icon || 'star'
 
   const fetchChores = useCallback(async () => {
     try {
@@ -109,6 +110,28 @@ export default function ChildDailyChores() {
 
   const completedCount = chores.filter(c => c.completed).length
 
+  // Group by time_of_day
+  const morningChores = filtered.filter(c => c.time_of_day === 'morning')
+  const anytimeChores = filtered.filter(c => c.time_of_day === 'anytime')
+  const eveningChores = filtered.filter(c => c.time_of_day === 'evening')
+
+  const renderChoreCard = (chore) => (
+    <button
+      key={chore.id}
+      className={`chore-card ${chore.completed ? 'chore-card--done' : ''}`}
+      onClick={() => handleComplete(chore)}
+      disabled={completing === chore.id}
+    >
+      <span className="chore-emoji">{chore.emoji}</span>
+      <span className="chore-title">{chore.title}</span>
+      <span className="chore-value">{formatTokens(chore.value, tokenIcon)}</span>
+      {chore.completed && chore.completed_by_name && chore.assignment_type === 'standalone' && (
+        <span className="chore-claimed">Done by {chore.completed_by_name}</span>
+      )}
+      {completing === chore.id && <span className="chore-claimed">Completing...</span>}
+    </button>
+  )
+
   if (loading) return <div className="text-center mt-lg">Loading...</div>
 
   return (
@@ -175,24 +198,28 @@ export default function ChildDailyChores() {
             : null}
         />
       ) : (
-        <div className="chore-grid">
-          {filtered.map(chore => (
-            <button
-              key={chore.id}
-              className={`chore-card ${chore.completed ? 'chore-card--done' : ''}`}
-              onClick={() => handleComplete(chore)}
-              disabled={completing === chore.id}
-            >
-              <span className="chore-emoji">{chore.emoji}</span>
-              <span className="chore-title">{chore.title}</span>
-              <span className="chore-value">{formatMoney(chore.value, user?.currency)}</span>
-              {chore.completed && chore.completed_by_name && chore.assignment_type === 'standalone' && (
-                <span className="chore-claimed">Done by {chore.completed_by_name}</span>
+        <>
+          {morningChores.length > 0 && (
+            <div className="chore-section">
+              <h3 className="chore-section-title">&#x2600;&#xFE0F; Morning</h3>
+              <div className="chore-grid">{morningChores.map(renderChoreCard)}</div>
+            </div>
+          )}
+          {anytimeChores.length > 0 && (
+            <div className="chore-section">
+              {(morningChores.length > 0 || eveningChores.length > 0) && (
+                <h3 className="chore-section-title">&#x1F31F; Anytime</h3>
               )}
-              {completing === chore.id && <span className="chore-claimed">Completing...</span>}
-            </button>
-          ))}
-        </div>
+              <div className="chore-grid">{anytimeChores.map(renderChoreCard)}</div>
+            </div>
+          )}
+          {eveningChores.length > 0 && (
+            <div className="chore-section">
+              <h3 className="chore-section-title">&#x1F319; Evening</h3>
+              <div className="chore-grid">{eveningChores.map(renderChoreCard)}</div>
+            </div>
+          )}
+        </>
       )}
 
       {undoChore && (

@@ -4,7 +4,7 @@ import { useChild } from '../context/ChildContext'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api/client'
 import { getAvatarEmoji } from '../data/avatars'
-import { formatMoney } from '../data/currencies'
+import { formatTokens } from '../data/tokenIcons'
 import EmptyState from '../components/EmptyState'
 
 export default function Home() {
@@ -37,8 +37,6 @@ export default function Home() {
     return <div className="text-center mt-lg"><h2>Loading...</h2></div>
   }
 
-  const currency = user?.currency || 'AUD'
-
   return (
     <div>
       <div className="text-center mb-lg" style={{ marginTop: '2rem' }}>
@@ -61,6 +59,7 @@ export default function Home() {
         <div className="avatar-grid">
           {children.map(child => {
             const s = summaries[child.id]
+            const tokenIcon = child.token_icon || s?.token_icon || 'star'
             return (
               <button
                 key={child.id}
@@ -80,7 +79,7 @@ export default function Home() {
                       <span>Weekly</span>
                     </div>
                     <div className="child-summary-item">
-                      <span className="summary-value money">{formatMoney(s.piggy_bank_balance, currency)}</span>
+                      <span className="summary-value">{formatTokens(s.token_balance, tokenIcon)}</span>
                       <span>Balance</span>
                     </div>
                   </div>

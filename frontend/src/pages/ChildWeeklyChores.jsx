@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
-import { useAuth } from '../context/AuthContext'
-import { formatMoney } from '../data/currencies'
+import { useChild } from '../context/ChildContext'
+import { formatTokens } from '../data/tokenIcons'
 import ConfettiAnimation from '../components/ConfettiAnimation'
 import ProgressBar from '../components/ProgressBar'
 import EmptyState from '../components/EmptyState'
@@ -11,7 +11,7 @@ import PinModal from '../components/PinModal'
 export default function ChildWeeklyChores() {
   const { childId } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { activeChild } = useChild()
   const [chores, setChores] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -19,6 +19,8 @@ export default function ChildWeeklyChores() {
   const [completing, setCompleting] = useState(null)
   const [undoChore, setUndoChore] = useState(null)
   const [pinError, setPinError] = useState(null)
+
+  const tokenIcon = activeChild?.token_icon || 'star'
 
   const fetchChores = useCallback(async () => {
     try {
@@ -35,6 +37,7 @@ export default function ChildWeeklyChores() {
 
   const handleComplete = async (chore) => {
     if (completing) return
+    // If fully completed, offer undo on last completion
     if (chore.completed) {
       setUndoChore(chore)
       setPinError(null)
@@ -45,7 +48,12 @@ export default function ChildWeeklyChores() {
       await api.completions.complete({ chore_id: chore.id, child_id: childId })
       setConfettiTrigger(t => t + 1)
       await fetchChores()
-      setTimeout(() => navigate('/'), 1500)
+      // Only navigate home if ALL weekly chores are now fully done
+      const updated = await api.chores.childWeekly(childId)
+      const allDone = updated.every(c => c.completed)
+      if (allDone) {
+        setTimeout(() => navigate('/'), 1500)
+      }
     } catch (e) {
       alert(e.message)
     } finally {
@@ -70,7 +78,9 @@ export default function ChildWeeklyChores() {
     return true
   })
 
-  const completedCount = chores.filter(c => c.completed).length
+  // Total completions possible = sum of max_completions per chore
+  const totalPossible = chores.reduce((sum, c) => sum + c.max_completions, 0)
+  const totalDone = chores.reduce((sum, c) => sum + c.completions_done, 0)
 
   if (loading) return <div className="text-center mt-lg">Loading...</div>
 
@@ -82,12 +92,12 @@ export default function ChildWeeklyChores() {
         <div className="chore-progress-top">
           <h2>Weekly Chores</h2>
           <span className="text-muted font-heading" style={{ fontSize: '1.1rem' }}>
-            {completedCount}/{chores.length} done
+            {totalDone}/{totalPossible} done
           </span>
         </div>
         <ProgressBar
-          current={completedCount}
-          target={chores.length}
+          current={totalDone}
+          target={totalPossible}
           showLabel={false}
         />
       </div>
@@ -117,11 +127,16 @@ export default function ChildWeeklyChores() {
               key={chore.id}
               className={`chore-card ${chore.completed ? 'chore-card--done' : ''}`}
               onClick={() => handleComplete(chore)}
-              disabled={completing === chore.id}
+              disabled={completing === chore.id || chore.completed}
             >
               <span className="chore-emoji">{chore.emoji}</span>
               <span className="chore-title">{chore.title}</span>
-              <span className="chore-value">{formatMoney(chore.value, user?.currency)}</span>
+              <span className="chore-value">{formatTokens(chore.value, tokenIcon)}</span>
+              {chore.max_completions > 1 && (
+                <span className="chore-progress-badge">
+                  {chore.completions_done}/{chore.max_completions}
+                </span>
+              )}
               {chore.completed && chore.completed_by_name && chore.assignment_type === 'standalone' && (
                 <span className="chore-claimed">Done by {chore.completed_by_name}</span>
               )}

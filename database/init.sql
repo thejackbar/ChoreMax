@@ -1,4 +1,4 @@
--- ChoreMax v1.0 Database Schema
+-- ChoreMax v2.0 Database Schema
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Parent accounts
@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS children (
     avatar_value    TEXT NOT NULL DEFAULT 'bear',
     display_order   INTEGER NOT NULL DEFAULT 0,
     birthday        DATE,
+    token_icon      TEXT NOT NULL DEFAULT 'star',
+    color           TEXT NOT NULL DEFAULT '#6366f1',
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
@@ -36,8 +38,10 @@ CREATE TABLE IF NOT EXISTS chores (
     description       TEXT,
     emoji             TEXT NOT NULL DEFAULT '⭐',
     image_url         TEXT,
-    value             NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    value             INTEGER NOT NULL DEFAULT 0,
     frequency         TEXT NOT NULL DEFAULT 'daily',
+    time_of_day       TEXT NOT NULL DEFAULT 'anytime' CHECK (time_of_day IN ('morning', 'evening', 'anytime')),
+    times_per_week    INTEGER NOT NULL DEFAULT 1 CHECK (times_per_week >= 1 AND times_per_week <= 7),
     assignment_type   TEXT NOT NULL DEFAULT 'per-child',
     is_template       BOOLEAN NOT NULL DEFAULT FALSE,
     is_active         BOOLEAN NOT NULL DEFAULT TRUE,
@@ -60,34 +64,44 @@ CREATE TABLE IF NOT EXISTS chore_completions (
     chore_id        UUID NOT NULL REFERENCES chores(id) ON DELETE CASCADE,
     child_id        UUID NOT NULL REFERENCES children(id) ON DELETE CASCADE,
     period_date     DATE NOT NULL,
-    value_earned    NUMERIC(10,2) NOT NULL,
+    tokens_earned   INTEGER NOT NULL DEFAULT 0,
     completed_at    TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Piggy bank transaction ledger
-CREATE TABLE IF NOT EXISTS piggy_bank_transactions (
+-- Token transaction ledger (replaces piggy_bank_transactions)
+CREATE TABLE IF NOT EXISTS token_transactions (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     child_id        UUID NOT NULL REFERENCES children(id) ON DELETE CASCADE,
     type            TEXT NOT NULL,
-    amount          NUMERIC(10,2) NOT NULL,
+    amount          INTEGER NOT NULL,
     description     TEXT,
     reference_id    UUID,
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Savings targets / goals
-CREATE TABLE IF NOT EXISTS targets (
+-- Goal activities (family-wide reusable rewards)
+CREATE TABLE IF NOT EXISTS goal_activities (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    child_id        UUID NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title           TEXT NOT NULL,
-    target_type     TEXT NOT NULL DEFAULT 'monetary',
-    target_value    NUMERIC(10,2) NOT NULL,
-    emoji           TEXT DEFAULT '🎯',
+    token_cost      INTEGER NOT NULL CHECK (token_cost > 0),
+    emoji           TEXT NOT NULL DEFAULT '🎯',
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
-    achieved_at     TIMESTAMPTZ,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Goal redemptions (when a child cashes in tokens for a goal)
+CREATE TABLE IF NOT EXISTS goal_redemptions (
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    child_id          UUID NOT NULL REFERENCES children(id) ON DELETE CASCADE,
+    goal_activity_id  UUID NOT NULL REFERENCES goal_activities(id) ON DELETE CASCADE,
+    tokens_spent      INTEGER NOT NULL,
+    redeemed_at       TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Legacy tables kept for migration (will be removed in future version)
+-- piggy_bank_transactions and targets may still exist from v1
 
 -- Reminder preferences per user
 CREATE TABLE IF NOT EXISTS reminder_settings (
@@ -158,6 +172,10 @@ CREATE INDEX IF NOT EXISTS idx_completions_chore        ON chore_completions(cho
 CREATE INDEX IF NOT EXISTS idx_completions_child        ON chore_completions(child_id);
 CREATE INDEX IF NOT EXISTS idx_completions_period       ON chore_completions(period_date);
 CREATE INDEX IF NOT EXISTS idx_completions_child_period  ON chore_completions(child_id, period_date);
+CREATE INDEX IF NOT EXISTS idx_token_txn_child          ON token_transactions(child_id);
+CREATE INDEX IF NOT EXISTS idx_token_txn_created        ON token_transactions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_goal_activities_user     ON goal_activities(user_id);
+CREATE INDEX IF NOT EXISTS idx_goal_redemptions_child   ON goal_redemptions(child_id);
 CREATE INDEX IF NOT EXISTS idx_piggy_child              ON piggy_bank_transactions(child_id);
 CREATE INDEX IF NOT EXISTS idx_piggy_created            ON piggy_bank_transactions(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_targets_child            ON targets(child_id);

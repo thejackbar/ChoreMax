@@ -1,5 +1,4 @@
 from datetime import date, timedelta
-from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
@@ -7,39 +6,53 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import get_current_user, require_pin
 from database import get_db
-from models import Child, Chore, ChoreAssignment, ChoreCompletion, PiggyBankTransaction, Target, User
+from models import Child, Chore, ChoreAssignment, ChoreCompletion, GoalActivity, TokenTransaction, User
 from schemas import (
     ChildDashboardResponse, ChildStatsResponse, ChoreWithStatusResponse,
-    DetailedStatsResponse, ParentDashboardResponse, StatsDataPoint, TargetResponse,
+    DetailedStatsResponse, GoalActivityResponse, ParentDashboardResponse, StatsDataPoint,
 )
 from utils import get_period_date
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 
-async def _child_balance(child_id: str, db: AsyncSession) -> Decimal:
+async def _child_token_balance(child_id: str, db: AsyncSession) -> int:
     result = await db.execute(
-        select(func.coalesce(func.sum(PiggyBankTransaction.amount), 0))
-        .where(PiggyBankTransaction.child_id == child_id)
+        select(func.coalesce(func.sum(TokenTransaction.amount), 0))
+        .where(TokenTransaction.child_id == child_id)
     )
-    return Decimal(str(result.scalar_one()))
+    return int(result.scalar_one())
 
 
 async def _chore_counts(child_id: str, frequency: str, timezone: str, db: AsyncSession, for_date: date | None = None) -> tuple[int, int]:
     period_date = get_period_date(frequency, timezone, for_date=for_date)
 
-    # Total assigned chores for this frequency
-    result = await db.execute(
-        select(func.count())
-        .select_from(ChoreAssignment)
-        .join(Chore, ChoreAssignment.chore_id == Chore.id)
-        .where(
-            ChoreAssignment.child_id == child_id,
-            Chore.frequency == frequency,
-            Chore.is_active == True,
+    if frequency == "weekly":
+        # For weekly chores, total = sum of times_per_week for each assigned chore
+        result = await db.execute(
+            select(func.coalesce(func.sum(Chore.times_per_week), 0))
+            .select_from(ChoreAssignment)
+            .join(Chore, ChoreAssignment.chore_id == Chore.id)
+            .where(
+                ChoreAssignment.child_id == child_id,
+                Chore.frequency == frequency,
+                Chore.is_active == True,
+            )
         )
-    )
-    total = result.scalar_one()
+        total = int(result.scalar_one())
+    else:
+        # For daily chores, each chore counts once
+        result = await db.execute(
+            select(func.count())
+            .select_from(ChoreAssignment)
+            .join(Chore, ChoreAssignment.chore_id == Chore.id)
+            .where(
+                ChoreAssignment.child_id == child_id,
+                Chore.frequency == frequency,
+                Chore.is_active == True,
+            )
+        )
+        total = result.scalar_one()
 
     # Completed count for this period
     result = await db.execute(
@@ -73,41 +86,29 @@ async def child_dashboard(
 
     daily_completed, daily_total = await _chore_counts(child_id, "daily", current_user.timezone, db, for_date=for_date)
     weekly_completed, weekly_total = await _chore_counts(child_id, "weekly", current_user.timezone, db, for_date=for_date)
-    balance = await _child_balance(child_id, db)
+    balance = await _child_token_balance(child_id, db)
 
-    # Active target
+    # Get active goal activities
     result = await db.execute(
-        select(Target).where(Target.child_id == child_id, Target.is_active == True)
+        select(GoalActivity).where(
+            GoalActivity.user_id == current_user.id,
+            GoalActivity.is_active == True,
+        ).order_by(GoalActivity.token_cost)
     )
-    target_obj = result.scalar_one_or_none()
-    target = None
-    if target_obj:
-        progress_pct = float(balance / target_obj.target_value) if target_obj.target_value > 0 else 0.0
-        target = TargetResponse(
-            id=target_obj.id,
-            child_id=target_obj.child_id,
-            title=target_obj.title,
-            target_type=target_obj.target_type,
-            target_value=target_obj.target_value,
-            emoji=target_obj.emoji,
-            is_active=target_obj.is_active,
-            achieved_at=target_obj.achieved_at,
-            progress_amount=balance,
-            progress_pct=round(min(max(progress_pct, 0.0), 1.0), 4),
-            created_at=target_obj.created_at,
-        )
+    goals = [GoalActivityResponse.model_validate(g) for g in result.scalars().all()]
 
     return ChildDashboardResponse(
         child_id=child_id,
         child_name=child.name,
         avatar_type=child.avatar_type,
         avatar_value=child.avatar_value,
+        token_icon=child.token_icon,
         daily_completed=daily_completed,
         daily_total=daily_total,
         weekly_completed=weekly_completed,
         weekly_total=weekly_total,
-        piggy_bank_balance=balance,
-        target=target,
+        token_balance=balance,
+        goals=goals,
     )
 
 
@@ -124,14 +125,14 @@ async def parent_dashboard(
     children = result.scalars().all()
 
     children_stats = []
-    total_earnings = Decimal("0.00")
+    total_tokens = 0
     total_completions = 0
     total_chores = 0
 
     for child in children:
         daily_completed, daily_total = await _chore_counts(child.id, "daily", current_user.timezone, db)
         weekly_completed, weekly_total = await _chore_counts(child.id, "weekly", current_user.timezone, db)
-        balance = await _child_balance(child.id, db)
+        balance = await _child_token_balance(child.id, db)
 
         child_total = daily_total + weekly_total
         child_completed = daily_completed + weekly_completed
@@ -142,14 +143,15 @@ async def parent_dashboard(
             child_name=child.name,
             avatar_type=child.avatar_type,
             avatar_value=child.avatar_value,
+            token_icon=child.token_icon,
             daily_completed=daily_completed,
             daily_total=daily_total,
             weekly_completed=weekly_completed,
             weekly_total=weekly_total,
-            piggy_bank_balance=balance,
+            token_balance=balance,
             completion_pct=round(pct, 1),
         ))
-        total_earnings += balance
+        total_tokens += balance
         total_completions += child_completed
         total_chores += child_total
 
@@ -157,7 +159,7 @@ async def parent_dashboard(
 
     return ParentDashboardResponse(
         children_stats=children_stats,
-        total_earnings=total_earnings,
+        total_tokens_earned=total_tokens,
         total_completions=total_completions,
         total_chores=total_chores,
         overall_completion_pct=round(overall_pct, 1),
@@ -225,65 +227,65 @@ async def detailed_stats(
     # Build data points by period
     data_points = []
     total_completed = 0
-    total_earnings = Decimal("0.00")
+    total_tokens = 0
 
     if period == "daily" or (date_from and date_to and (end - start).days <= 31):
         d = start
         while d <= end:
             day_comps = [c for c in completions if c.period_date == d]
-            earnings = sum(Decimal(str(c.value_earned)) for c in day_comps)
+            tokens = sum(c.tokens_earned for c in day_comps)
             data_points.append(StatsDataPoint(
                 label=d.strftime("%a %d/%m"),
                 completed=len(day_comps),
                 total=0,
-                earnings=earnings,
+                tokens=tokens,
             ))
             total_completed += len(day_comps)
-            total_earnings += earnings
+            total_tokens += tokens
             d += timedelta(days=1)
     elif period == "weekly":
         d = start - timedelta(days=start.weekday())
         while d <= end:
             week_end = d + timedelta(days=6)
             week_comps = [c for c in completions if d <= c.period_date <= week_end]
-            earnings = sum(Decimal(str(c.value_earned)) for c in week_comps)
+            tokens = sum(c.tokens_earned for c in week_comps)
             data_points.append(StatsDataPoint(
                 label=f"W/C {d.strftime('%d/%m')}",
                 completed=len(week_comps),
                 total=0,
-                earnings=earnings,
+                tokens=tokens,
             ))
             total_completed += len(week_comps)
-            total_earnings += earnings
+            total_tokens += tokens
             d += timedelta(weeks=1)
     elif period == "monthly":
         current = start.replace(day=1)
         while current <= end:
             next_month = (current.replace(day=28) + timedelta(days=4)).replace(day=1)
             month_comps = [c for c in completions if current <= c.period_date < next_month]
-            earnings = sum(Decimal(str(c.value_earned)) for c in month_comps)
+            tokens = sum(c.tokens_earned for c in month_comps)
             data_points.append(StatsDataPoint(
                 label=current.strftime("%b %Y"),
                 completed=len(month_comps),
                 total=0,
-                earnings=earnings,
+                tokens=tokens,
             ))
             total_completed += len(month_comps)
-            total_earnings += earnings
+            total_tokens += tokens
             current = next_month
     else:
         current_year = start.year
         while current_year <= end.year:
             year_comps = [c for c in completions if c.period_date.year == current_year]
-            earnings = sum(Decimal(str(c.value_earned)) for c in year_comps)
+            tokens = sum(c.tokens_earned for c in year_comps)
             data_points.append(StatsDataPoint(
                 label=str(current_year),
                 completed=len(year_comps),
                 total=0,
-                earnings=earnings,
+                tokens=tokens,
             ))
             total_completed += len(year_comps)
-            total_earnings += earnings
+            total_tokens += tokens
             current_year += 1
 
     total_chores = total_completed
@@ -296,7 +298,7 @@ async def detailed_stats(
         data_points=data_points,
         total_completed=total_completed,
         total_chores=total_chores,
-        total_earnings=total_earnings,
+        total_tokens=total_tokens,
         completion_pct=round(completion_pct, 1),
     )
 

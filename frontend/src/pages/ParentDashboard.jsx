@@ -1,12 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client'
-import { useAuth } from '../context/AuthContext'
-import { formatMoney } from '../data/currencies'
 import { getAvatarEmoji } from '../data/avatars'
+import { getTokenEmoji, formatTokens } from '../data/tokenIcons'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 export default function ParentDashboard() {
-  const { user } = useAuth()
   const [dashboard, setDashboard] = useState(null)
   const [stats, setStats] = useState(null)
   const [period, setPeriod] = useState('weekly')
@@ -33,8 +31,6 @@ export default function ParentDashboard() {
   if (loading) return <div className="text-center mt-lg">Loading...</div>
   if (!dashboard) return <div className="text-center mt-lg">Could not load dashboard</div>
 
-  const currency = user?.currency || 'AUD'
-
   return (
     <div>
       <h1 className="mb-lg">Parent Dashboard</h1>
@@ -54,8 +50,8 @@ export default function ParentDashboard() {
           <div className="stat-label">Completion Rate</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{formatMoney(dashboard.total_earnings, currency)}</div>
-          <div className="stat-label">Total Earned</div>
+          <div className="stat-value">{dashboard.total_tokens_earned} &#x2B50;</div>
+          <div className="stat-label">Total Tokens</div>
         </div>
       </div>
 
@@ -69,7 +65,7 @@ export default function ParentDashboard() {
               <h3>{child.child_name}</h3>
             </div>
             <span className="font-heading" style={{ color: 'var(--secondary)', fontWeight: 700 }}>
-              {formatMoney(child.piggy_bank_balance, currency)}
+              {formatTokens(child.token_balance, child.token_icon)}
             </span>
           </div>
           <div className="stat-grid">
@@ -89,8 +85,8 @@ export default function ParentDashboard() {
         </div>
       ))}
 
-      {/* Earnings chart */}
-      <h2 className="mb-md mt-lg">Earnings Over Time</h2>
+      {/* Completions chart */}
+      <h2 className="mb-md mt-lg">Completions Over Time</h2>
       <div className="filter-bar mb-md">
         {['daily', 'weekly', 'monthly', 'yearly'].map(p => (
           <button

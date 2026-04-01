@@ -1,12 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client'
-import { useAuth } from '../context/AuthContext'
-import { formatMoney } from '../data/currencies'
 import { getAvatarEmoji } from '../data/avatars'
+import { formatTokens } from '../data/tokenIcons'
 import EmptyState from '../components/EmptyState'
 
 export default function ManageChores() {
-  const { user } = useAuth()
   const [chores, setChores] = useState([])
   const [children, setChildren] = useState([])
   const [templates, setTemplates] = useState([])
@@ -23,6 +21,8 @@ export default function ManageChores() {
   const [emoji, setEmoji] = useState('\u2B50')
   const [value, setValue] = useState('')
   const [frequency, setFrequency] = useState('daily')
+  const [timeOfDay, setTimeOfDay] = useState('anytime')
+  const [timesPerWeek, setTimesPerWeek] = useState(1)
   const [assignmentType, setAssignmentType] = useState('per-child')
   const [assignedChildIds, setAssignedChildIds] = useState([])
   const [assignAll, setAssignAll] = useState(true)
@@ -56,6 +56,8 @@ export default function ManageChores() {
     setEmoji('\u2B50')
     setValue('')
     setFrequency('daily')
+    setTimeOfDay('anytime')
+    setTimesPerWeek(1)
     setAssignmentType('per-child')
     setAssignedChildIds([])
     setAssignAll(true)
@@ -71,6 +73,8 @@ export default function ManageChores() {
     setEmoji(chore.emoji)
     setValue(String(chore.value))
     setFrequency(chore.frequency)
+    setTimeOfDay(chore.time_of_day || 'anytime')
+    setTimesPerWeek(chore.times_per_week || 1)
     setAssignmentType(chore.assignment_type)
     setAssignedChildIds(chore.assigned_child_ids || [])
     setAssignAll(!chore.assigned_child_ids?.length || chore.assigned_child_ids.length === children.length)
@@ -84,8 +88,10 @@ export default function ManageChores() {
     setTitle(t.title)
     setDescription(t.description || '')
     setEmoji(t.emoji)
-    setValue(t.value)
+    setValue(String(t.value))
     setFrequency(t.frequency)
+    setTimeOfDay(t.time_of_day || 'anytime')
+    setTimesPerWeek(t.times_per_week || 1)
     setAssignmentType('per-child')
     setAssignedChildIds([])
     setAssignAll(true)
@@ -107,8 +113,10 @@ export default function ManageChores() {
       title,
       description: description || null,
       emoji,
-      value,
+      value: parseInt(value) || 0,
       frequency,
+      time_of_day: frequency === 'daily' ? timeOfDay : 'anytime',
+      times_per_week: frequency === 'weekly' ? timesPerWeek : 1,
       assignment_type: assignmentType,
       assigned_child_ids: assignAll ? null : assignedChildIds,
     }
@@ -134,8 +142,6 @@ export default function ManageChores() {
       alert(e.message)
     }
   }
-
-  const currency = user?.currency || 'AUD'
 
   if (loading) return <div className="text-center mt-lg">Loading...</div>
 
@@ -163,10 +169,15 @@ export default function ManageChores() {
                   <span className="item-emoji">{t.emoji}</span>
                   <div>
                     <div className="item-title">{t.title}</div>
-                    <div className="item-sub">{t.frequency} - {t.description}</div>
+                    <div className="item-sub">
+                      {t.frequency}
+                      {t.time_of_day && t.time_of_day !== 'anytime' ? ` (${t.time_of_day})` : ''}
+                      {t.times_per_week > 1 ? ` - ${t.times_per_week}x/week` : ''}
+                      {t.description ? ` - ${t.description}` : ''}
+                    </div>
                   </div>
                 </div>
-                <span className="item-value">{formatMoney(t.value, currency)}</span>
+                <span className="item-value">{t.value} &#x2B50;</span>
               </div>
             ))}
           </div>
@@ -195,8 +206,8 @@ export default function ManageChores() {
             </div>
             <div className="flex gap-md">
               <div className="field" style={{ flex: 1 }}>
-                <label>Value ($)</label>
-                <input type="number" step="0.01" min="0" value={value} onChange={e => setValue(e.target.value)} required />
+                <label>Token Value</label>
+                <input type="number" step="1" min="0" value={value} onChange={e => setValue(e.target.value)} required placeholder="e.g. 10" />
               </div>
               <div className="field" style={{ flex: 1 }}>
                 <label>Frequency</label>
@@ -206,6 +217,29 @@ export default function ManageChores() {
                 </select>
               </div>
             </div>
+            {frequency === 'daily' && (
+              <div className="field">
+                <label>Time of Day</label>
+                <select value={timeOfDay} onChange={e => setTimeOfDay(e.target.value)}>
+                  <option value="morning">Morning</option>
+                  <option value="anytime">Anytime</option>
+                  <option value="evening">Evening</option>
+                </select>
+              </div>
+            )}
+            {frequency === 'weekly' && (
+              <div className="field">
+                <label>Times per Week</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="7"
+                  value={timesPerWeek}
+                  onChange={e => setTimesPerWeek(parseInt(e.target.value) || 1)}
+                />
+                <small className="text-muted">How many times this chore should be done each week</small>
+              </div>
+            )}
             <div className="field">
               <label>Assignment Type</label>
               <select value={assignmentType} onChange={e => setAssignmentType(e.target.value)}>
@@ -274,11 +308,12 @@ export default function ManageChores() {
                   <div className="item-sub">
                     {chore.assignment_type === 'standalone' ? 'First come' : 'Each child'} &middot;
                     {chore.assigned_child_ids.length} children
+                    {chore.time_of_day !== 'anytime' && ` \u2022 ${chore.time_of_day}`}
                   </div>
                 </div>
               </div>
               <div className="manage-item-actions">
-                <span className="item-value">{formatMoney(chore.value, currency)}</span>
+                <span className="item-value">{chore.value} &#x2B50;</span>
                 <button className="btn btn-sm btn-outline" onClick={() => openEdit(chore)}>Edit</button>
                 <button className="btn btn-sm btn-danger" onClick={() => handleDelete(chore)}>Delete</button>
               </div>
@@ -295,11 +330,12 @@ export default function ManageChores() {
                   <div className="item-sub">
                     {chore.assignment_type === 'standalone' ? 'First come' : 'Each child'} &middot;
                     {chore.assigned_child_ids.length} children
+                    {chore.times_per_week > 1 && ` \u2022 ${chore.times_per_week}x/week`}
                   </div>
                 </div>
               </div>
               <div className="manage-item-actions">
-                <span className="item-value">{formatMoney(chore.value, currency)}</span>
+                <span className="item-value">{chore.value} &#x2B50;</span>
                 <button className="btn btn-sm btn-outline" onClick={() => openEdit(chore)}>Edit</button>
                 <button className="btn btn-sm btn-danger" onClick={() => handleDelete(chore)}>Delete</button>
               </div>

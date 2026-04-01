@@ -12,8 +12,11 @@ from chore_templates import get_templates
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception:
+        pass  # Tables may already exist or another worker is creating them
     yield
     await engine.dispose()
 
@@ -71,8 +74,8 @@ from routers.auth import router as auth_router
 from routers.children import router as children_router
 from routers.chores import router as chores_router
 from routers.completions import router as completions_router
-from routers.piggy_bank import router as piggy_bank_router
-from routers.targets import router as targets_router
+from routers.tokens import router as tokens_router
+from routers.goals import router as goals_router
 from routers.dashboard import router as dashboard_router
 from routers.settings import router as settings_router
 from routers.meals import router as meals_router
@@ -83,8 +86,8 @@ app.include_router(auth_router)
 app.include_router(children_router)
 app.include_router(chores_router)
 app.include_router(completions_router)
-app.include_router(piggy_bank_router)
-app.include_router(targets_router)
+app.include_router(tokens_router)
+app.include_router(goals_router)
 app.include_router(dashboard_router)
 app.include_router(settings_router)
 app.include_router(meals_router)

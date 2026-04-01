@@ -64,18 +64,19 @@ export const api = {
     undo: (id, pin) => withPin('DELETE', `/completions/${id}`, null, pin),
     list: (childId, params) => request('GET', `/completions/child/${childId}` + (params ? '?' + new URLSearchParams(params) : '')),
   },
-  piggyBank: {
-    balance: (childId) => request('GET', `/piggy-bank/${childId}/balance`),
-    transactions: (childId, params) => request('GET', `/piggy-bank/${childId}/transactions` + (params ? '?' + new URLSearchParams(params) : '')),
-    cashOut: (data, pin) => withPin('POST', '/piggy-bank/cash-out', data, pin),
-    adjust: (data, pin) => withPin('POST', '/piggy-bank/adjust', data, pin),
+  tokens: {
+    balance: (childId) => request('GET', `/tokens/${childId}/balance`),
+    transactions: (childId, params) => request('GET', `/tokens/${childId}/transactions` + (params ? '?' + new URLSearchParams(params) : '')),
+    adjust: (data, pin) => withPin('POST', '/tokens/adjust', data, pin),
   },
-  targets: {
-    get: (childId) => request('GET', `/targets/child/${childId}`),
-    create: (data, pin) => withPin('POST', '/targets', data, pin),
-    update: (id, data, pin) => withPin('PUT', `/targets/${id}`, data, pin),
-    achieve: (id, pin) => withPin('POST', `/targets/${id}/achieve`, null, pin),
-    delete: (id, pin) => withPin('DELETE', `/targets/${id}`, null, pin),
+  goals: {
+    list: () => request('GET', '/goals'),
+    listAll: (pin) => withPin('GET', '/goals/all', null, pin),
+    create: (data, pin) => withPin('POST', '/goals', data, pin),
+    update: (id, data, pin) => withPin('PUT', `/goals/${id}`, data, pin),
+    delete: (id, pin) => withPin('DELETE', `/goals/${id}`, null, pin),
+    redeem: (id, data, pin) => withPin('POST', `/goals/${id}/redeem`, data, pin),
+    redemptions: (childId) => request('GET', `/goals/redemptions/${childId}`),
   },
   dashboard: {
     child: (childId, forDate) => request('GET', `/dashboard/child/${childId}` + (forDate ? `?for_date=${forDate}` : '')),

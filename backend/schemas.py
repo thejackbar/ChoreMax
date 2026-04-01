@@ -44,11 +44,19 @@ class PasswordChangeRequest(BaseModel):
 # Children
 # ---------------------------------------------------------------------------
 
+TOKEN_ICONS = Literal[
+    "star", "soccer", "heart", "lightning", "diamond",
+    "flame", "music", "rocket", "rainbow", "paw",
+]
+
+
 class ChildCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     avatar_type: str = "builtin"
     avatar_value: str = "bear"
     birthday: date | None = None
+    token_icon: TOKEN_ICONS = "star"
+    color: str = "#6366f1"
 
 
 class ChildUpdate(BaseModel):
@@ -57,6 +65,8 @@ class ChildUpdate(BaseModel):
     avatar_value: str | None = None
     display_order: int | None = None
     birthday: date | None = None
+    token_icon: TOKEN_ICONS | None = None
+    color: str | None = None
 
 
 class ChildResponse(OrmBase):
@@ -66,6 +76,8 @@ class ChildResponse(OrmBase):
     avatar_value: str
     display_order: int
     birthday: date | None = None
+    token_icon: str = "star"
+    color: str = "#6366f1"
     created_at: datetime
 
 
@@ -77,12 +89,17 @@ class ChildReorderRequest(BaseModel):
 # Chores
 # ---------------------------------------------------------------------------
 
+TIME_OF_DAY = Literal["morning", "evening", "anytime"]
+
+
 class ChoreCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     description: str | None = None
     emoji: str = "⭐"
-    value: Decimal = Field(..., ge=0, decimal_places=2)
+    value: int = Field(..., ge=0)
     frequency: Literal["daily", "weekly"] = "daily"
+    time_of_day: TIME_OF_DAY = "anytime"
+    times_per_week: int = Field(default=1, ge=1, le=7)
     assignment_type: Literal["standalone", "per-child"] = "per-child"
     assigned_child_ids: list[str] | None = None
 
@@ -91,8 +108,10 @@ class ChoreUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
     emoji: str | None = None
-    value: Decimal | None = Field(default=None, ge=0)
+    value: int | None = Field(default=None, ge=0)
     frequency: Literal["daily", "weekly"] | None = None
+    time_of_day: TIME_OF_DAY | None = None
+    times_per_week: int | None = Field(default=None, ge=1, le=7)
     assignment_type: Literal["standalone", "per-child"] | None = None
     is_active: bool | None = None
     assigned_child_ids: list[str] | None = None
@@ -103,8 +122,10 @@ class ChoreResponse(OrmBase):
     title: str
     description: str | None
     emoji: str
-    value: Decimal
+    value: int
     frequency: str
+    time_of_day: str = "anytime"
+    times_per_week: int = 1
     assignment_type: str
     is_active: bool
     assigned_child_ids: list[str] = []
@@ -116,10 +137,14 @@ class ChoreWithStatusResponse(OrmBase):
     title: str
     description: str | None
     emoji: str
-    value: Decimal
+    value: int
     frequency: str
+    time_of_day: str = "anytime"
+    times_per_week: int = 1
     assignment_type: str
     completed: bool = False
+    completions_done: int = 0
+    max_completions: int = 1
     completed_by: str | None = None
     completed_by_name: str | None = None
     completion_id: str | None = None
@@ -140,46 +165,41 @@ class CompletionResponse(OrmBase):
     chore_id: str
     child_id: str
     period_date: date
-    value_earned: Decimal
+    tokens_earned: int
     completed_at: datetime
 
 
 # ---------------------------------------------------------------------------
-# Piggy Bank
+# Token System (replaces Piggy Bank)
 # ---------------------------------------------------------------------------
 
-class CashOutRequest(BaseModel):
+class TokenAdjustmentRequest(BaseModel):
     child_id: str
-    amount: Decimal = Field(..., gt=0)
-    description: str | None = "Cash out"
-
-
-class AdjustmentRequest(BaseModel):
-    child_id: str
-    amount: Decimal = Field(..., gt=0)
+    amount: int = Field(..., gt=0)
     type: Literal["add", "subtract"]
     description: str | None = None
 
 
-class PiggyBankBalanceResponse(BaseModel):
+class TokenBalanceResponse(BaseModel):
     child_id: str
     child_name: str
-    balance: Decimal
-    total_earned: Decimal
-    total_cashed_out: Decimal
+    token_icon: str
+    balance: int
+    total_earned: int
+    total_spent: int
 
 
-class TransactionResponse(OrmBase):
+class TokenTransactionResponse(OrmBase):
     id: str
     child_id: str
     type: str
-    amount: Decimal
+    amount: int
     description: str | None
     created_at: datetime
 
 
-class TransactionListResponse(BaseModel):
-    transactions: list[TransactionResponse]
+class TokenTransactionListResponse(BaseModel):
+    transactions: list[TokenTransactionResponse]
     total: int
     page: int
     per_page: int
@@ -187,36 +207,43 @@ class TransactionListResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Targets
+# Goal Activities (replaces Targets)
 # ---------------------------------------------------------------------------
 
-class TargetCreate(BaseModel):
-    child_id: str
-    title: str = Field(..., min_length=1)
-    target_type: Literal["monetary", "item"] = "monetary"
-    target_value: Decimal = Field(..., gt=0)
+class GoalActivityCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    token_cost: int = Field(..., gt=0)
     emoji: str = "🎯"
 
 
-class TargetUpdate(BaseModel):
+class GoalActivityUpdate(BaseModel):
     title: str | None = None
-    target_type: Literal["monetary", "item"] | None = None
-    target_value: Decimal | None = Field(default=None, gt=0)
+    token_cost: int | None = Field(default=None, gt=0)
     emoji: str | None = None
+    is_active: bool | None = None
 
 
-class TargetResponse(OrmBase):
+class GoalActivityResponse(OrmBase):
     id: str
-    child_id: str
     title: str
-    target_type: str
-    target_value: Decimal
+    token_cost: int
     emoji: str
     is_active: bool
-    achieved_at: datetime | None
-    progress_amount: Decimal = Decimal("0.00")
-    progress_pct: float = 0.0
     created_at: datetime
+
+
+class GoalRedeemRequest(BaseModel):
+    child_id: str
+
+
+class GoalRedemptionResponse(OrmBase):
+    id: str
+    child_id: str
+    goal_activity_id: str
+    tokens_spent: int
+    redeemed_at: datetime
+    goal_title: str = ""
+    goal_emoji: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -261,12 +288,13 @@ class ChildDashboardResponse(BaseModel):
     child_name: str
     avatar_type: str
     avatar_value: str
+    token_icon: str = "star"
     daily_completed: int
     daily_total: int
     weekly_completed: int
     weekly_total: int
-    piggy_bank_balance: Decimal
-    target: TargetResponse | None = None
+    token_balance: int
+    goals: list[GoalActivityResponse] = []
     uncompleted_daily: list[ChoreWithStatusResponse] = []
     uncompleted_weekly: list[ChoreWithStatusResponse] = []
 
@@ -276,17 +304,18 @@ class ChildStatsResponse(BaseModel):
     child_name: str
     avatar_type: str
     avatar_value: str
+    token_icon: str = "star"
     daily_completed: int
     daily_total: int
     weekly_completed: int
     weekly_total: int
-    piggy_bank_balance: Decimal
+    token_balance: int
     completion_pct: float
 
 
 class ParentDashboardResponse(BaseModel):
     children_stats: list[ChildStatsResponse]
-    total_earnings: Decimal
+    total_tokens_earned: int
     total_completions: int
     total_chores: int
     overall_completion_pct: float
@@ -296,7 +325,7 @@ class StatsDataPoint(BaseModel):
     label: str
     completed: int
     total: int
-    earnings: Decimal
+    tokens: int
 
 
 class DetailedStatsResponse(BaseModel):
@@ -306,7 +335,7 @@ class DetailedStatsResponse(BaseModel):
     data_points: list[StatsDataPoint]
     total_completed: int
     total_chores: int
-    total_earnings: Decimal
+    total_tokens: int
     completion_pct: float
 
 

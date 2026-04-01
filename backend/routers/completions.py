@@ -1,12 +1,12 @@
 from datetime import date as date_type
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import get_current_user, require_pin
 from database import get_db
-from models import Child, Chore, ChoreAssignment, ChoreCompletion, PiggyBankTransaction, User
+from models import Child, Chore, ChoreAssignment, ChoreCompletion, TokenTransaction, User
 from schemas import CompleteChoreRequest, CompletionResponse
 from utils import get_period_date
 
@@ -51,51 +51,58 @@ async def complete_chore(
 
     period_date = get_period_date(chore.frequency, current_user.timezone, for_date=data.for_date)
 
-    # Check if already completed
+    # Determine max completions for this period
+    if chore.frequency == "weekly":
+        max_completions = chore.times_per_week
+    else:
+        max_completions = 1  # daily chores: once per day
+
+    # Check completion count
     if chore.assignment_type == "standalone":
-        # Only one child can complete per period
+        # Standalone: count all children's completions for this chore in this period
         result = await db.execute(
-            select(ChoreCompletion).where(
+            select(func.count()).select_from(ChoreCompletion).where(
                 ChoreCompletion.chore_id == chore.id,
                 ChoreCompletion.period_date == period_date,
             )
         )
-        existing = result.scalar_one_or_none()
-        if existing:
+        existing_count = result.scalar_one()
+        if existing_count >= max_completions:
             raise HTTPException(status_code=409, detail="This chore has already been completed for this period")
     else:
-        # Per-child: check this specific child
+        # Per-child: count this child's completions for this chore in this period
         result = await db.execute(
-            select(ChoreCompletion).where(
+            select(func.count()).select_from(ChoreCompletion).where(
                 ChoreCompletion.chore_id == chore.id,
                 ChoreCompletion.child_id == child.id,
                 ChoreCompletion.period_date == period_date,
             )
         )
-        existing = result.scalar_one_or_none()
-        if existing:
-            raise HTTPException(status_code=409, detail="This chore has already been completed")
+        existing_count = result.scalar_one()
+        if existing_count >= max_completions:
+            raise HTTPException(status_code=409, detail="This chore has already been completed the maximum number of times")
 
     # Create completion
     completion = ChoreCompletion(
         chore_id=chore.id,
         child_id=child.id,
         period_date=period_date,
-        value_earned=chore.value,
+        tokens_earned=chore.value,
     )
     db.add(completion)
     await db.flush()
 
-    # Create piggy bank transaction
-    transaction = PiggyBankTransaction(
-        child_id=child.id,
-        type="chore_earning",
-        amount=chore.value,
-        description=f"Completed: {chore.title}",
-        reference_id=completion.id,
-    )
-    db.add(transaction)
-    await db.flush()
+    # Create token transaction
+    if chore.value > 0:
+        transaction = TokenTransaction(
+            child_id=child.id,
+            type="chore_earning",
+            amount=chore.value,
+            description=f"Completed: {chore.title}",
+            reference_id=completion.id,
+        )
+        db.add(transaction)
+        await db.flush()
 
     return CompletionResponse.model_validate(completion)
 
@@ -115,9 +122,9 @@ async def undo_completion(
     if not completion:
         raise HTTPException(status_code=404, detail="Completion not found")
 
-    # Remove associated piggy bank transaction
+    # Remove associated token transaction
     result = await db.execute(
-        select(PiggyBankTransaction).where(PiggyBankTransaction.reference_id == completion.id)
+        select(TokenTransaction).where(TokenTransaction.reference_id == completion.id)
     )
     txn = result.scalar_one_or_none()
     if txn:

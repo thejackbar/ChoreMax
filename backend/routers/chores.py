@@ -1,7 +1,7 @@
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -27,6 +27,8 @@ def _chore_response(chore: Chore, assignments: list[ChoreAssignment] | None = No
         "emoji": chore.emoji,
         "value": chore.value,
         "frequency": chore.frequency,
+        "time_of_day": chore.time_of_day,
+        "times_per_week": chore.times_per_week,
         "assignment_type": chore.assignment_type,
         "is_active": chore.is_active,
         "assigned_child_ids": child_ids,
@@ -76,6 +78,8 @@ async def create_chore(
         emoji=data.emoji,
         value=data.value,
         frequency=data.frequency,
+        time_of_day=data.time_of_day,
+        times_per_week=data.times_per_week,
         assignment_type=data.assignment_type,
     )
     db.add(chore)
@@ -239,7 +243,7 @@ async def _get_child_chores(
     else:
         completions = []
 
-    # Build completion lookup
+    # Build completion lookup: chore_id -> list of completions
     completion_map: dict[str, list] = {}
     for comp in completions:
         completion_map.setdefault(comp.chore_id, []).append(comp)
@@ -258,24 +262,28 @@ async def _get_child_chores(
     for chore in chores:
         comps = completion_map.get(chore.id, [])
 
-        completed = False
-        completed_by = None
-        completed_by_name = None
-        completion_id = None
+        # Determine max completions for this chore in this period
+        if frequency == "weekly":
+            max_completions = chore.times_per_week
+        else:
+            max_completions = 1  # daily: once per day
 
         if chore.assignment_type == "standalone":
-            if comps:
-                completed = True
-                completed_by = comps[0].child_id
-                completed_by_name = child_names.get(comps[0].child_id)
-                completion_id = comps[0].id
+            # Standalone: any child's completions count
+            completions_done = len(comps)
+            completed = completions_done >= max_completions
+            completed_by = comps[0].child_id if comps else None
+            completed_by_name = child_names.get(comps[0].child_id) if comps else None
+            completion_id = comps[0].id if comps else None
         else:
-            child_comp = next((c for c in comps if c.child_id == child_id), None)
-            if child_comp:
-                completed = True
-                completed_by = child_comp.child_id
-                completed_by_name = child_names.get(child_comp.child_id)
-                completion_id = child_comp.id
+            # Per-child: only this child's completions
+            child_comps = [c for c in comps if c.child_id == child_id]
+            completions_done = len(child_comps)
+            completed = completions_done >= max_completions
+            completed_by = child_comps[0].child_id if child_comps else None
+            completed_by_name = child_names.get(child_comps[0].child_id) if child_comps else None
+            # Return the most recent completion_id for undo purposes
+            completion_id = child_comps[-1].id if child_comps else None
 
         response.append({
             "id": chore.id,
@@ -284,8 +292,12 @@ async def _get_child_chores(
             "emoji": chore.emoji,
             "value": chore.value,
             "frequency": chore.frequency,
+            "time_of_day": chore.time_of_day,
+            "times_per_week": chore.times_per_week,
             "assignment_type": chore.assignment_type,
             "completed": completed,
+            "completions_done": completions_done,
+            "max_completions": max_completions,
             "completed_by": completed_by,
             "completed_by_name": completed_by_name,
             "completion_id": completion_id,

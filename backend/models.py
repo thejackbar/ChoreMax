@@ -3,7 +3,7 @@ from datetime import datetime, time
 
 from sqlalchemy import (
     Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, Time,
-    UniqueConstraint, func
+    UniqueConstraint, func, CheckConstraint
 )
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -34,6 +34,7 @@ class User(Base):
     meals = relationship("Meal", back_populates="user", cascade="all, delete-orphan")
     meal_plan_entries = relationship("MealPlanEntry", back_populates="user", cascade="all, delete-orphan")
     reminder_setting = relationship("ReminderSetting", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    goal_activities = relationship("GoalActivity", back_populates="user", cascade="all, delete-orphan")
 
 
 class Child(Base):
@@ -46,14 +47,16 @@ class Child(Base):
     avatar_value: Mapped[str] = mapped_column(Text, nullable=False, server_default="bear")
     display_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     birthday: Mapped[datetime | None] = mapped_column(Date, nullable=True)
+    token_icon: Mapped[str] = mapped_column(Text, nullable=False, server_default="star")
+    color: Mapped[str] = mapped_column(Text, nullable=False, server_default="#6366f1")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     user = relationship("User", back_populates="children")
     chore_assignments = relationship("ChoreAssignment", back_populates="child", cascade="all, delete-orphan")
     completions = relationship("ChoreCompletion", back_populates="child", cascade="all, delete-orphan")
-    piggy_bank_transactions = relationship("PiggyBankTransaction", back_populates="child", cascade="all, delete-orphan")
-    targets = relationship("Target", back_populates="child", cascade="all, delete-orphan")
+    token_transactions = relationship("TokenTransaction", back_populates="child", cascade="all, delete-orphan")
+    goal_redemptions = relationship("GoalRedemption", back_populates="child", cascade="all, delete-orphan")
 
 
 class Chore(Base):
@@ -65,8 +68,10 @@ class Chore(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     emoji: Mapped[str] = mapped_column(Text, nullable=False, server_default="⭐")
     image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
-    value: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, server_default="0.00")
+    value: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     frequency: Mapped[str] = mapped_column(Text, nullable=False, server_default="daily")
+    time_of_day: Mapped[str] = mapped_column(Text, nullable=False, server_default="anytime")
+    times_per_week: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
     assignment_type: Mapped[str] = mapped_column(Text, nullable=False, server_default="per-child")
     is_template: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
@@ -98,42 +103,54 @@ class ChoreCompletion(Base):
     chore_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("chores.id", ondelete="CASCADE"), nullable=False, index=True)
     child_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("children.id", ondelete="CASCADE"), nullable=False, index=True)
     period_date: Mapped[datetime] = mapped_column(Date, nullable=False, index=True)
-    value_earned: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    tokens_earned: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     chore = relationship("Chore", back_populates="completions")
     child = relationship("Child", back_populates="completions")
 
 
-class PiggyBankTransaction(Base):
-    __tablename__ = "piggy_bank_transactions"
+class TokenTransaction(Base):
+    __tablename__ = "token_transactions"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
     child_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("children.id", ondelete="CASCADE"), nullable=False, index=True)
     type: Mapped[str] = mapped_column(Text, nullable=False)
-    amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    amount: Mapped[int] = mapped_column(Integer, nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     reference_id: Mapped[str | None] = mapped_column(UUID(as_uuid=False), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    child = relationship("Child", back_populates="piggy_bank_transactions")
+    child = relationship("Child", back_populates="token_transactions")
 
 
-class Target(Base):
-    __tablename__ = "targets"
+class GoalActivity(Base):
+    __tablename__ = "goal_activities"
 
     id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
-    child_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("children.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     title: Mapped[str] = mapped_column(Text, nullable=False)
-    target_type: Mapped[str] = mapped_column(Text, nullable=False, server_default="monetary")
-    target_value: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
-    emoji: Mapped[str] = mapped_column(Text, server_default="🎯")
+    token_cost: Mapped[int] = mapped_column(Integer, nullable=False)
+    emoji: Mapped[str] = mapped_column(Text, nullable=False, server_default="🎯")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
-    achieved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    child = relationship("Child", back_populates="targets")
+    user = relationship("User", back_populates="goal_activities")
+    redemptions = relationship("GoalRedemption", back_populates="goal_activity", cascade="all, delete-orphan")
+
+
+class GoalRedemption(Base):
+    __tablename__ = "goal_redemptions"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    child_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("children.id", ondelete="CASCADE"), nullable=False, index=True)
+    goal_activity_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("goal_activities.id", ondelete="CASCADE"), nullable=False)
+    tokens_spent: Mapped[int] = mapped_column(Integer, nullable=False)
+    redeemed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    child = relationship("Child", back_populates="goal_redemptions")
+    goal_activity = relationship("GoalActivity", back_populates="redemptions")
 
 
 class ReminderSetting(Base):
