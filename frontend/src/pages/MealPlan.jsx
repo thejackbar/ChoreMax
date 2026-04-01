@@ -6,6 +6,7 @@ import MealPicker from '../components/MealPicker'
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const SLOTS = ['breakfast', 'lunch', 'dinner']
+const SLOT_EMOJI = { breakfast: '\u2615', lunch: '\uD83C\uDF5C', dinner: '\uD83C\uDF7D\uFE0F' }
 
 function getMonday(d = new Date()) {
   const date = new Date(d)
@@ -26,7 +27,15 @@ function formatWeekLabel(weekStart) {
   const end = new Date(start)
   end.setDate(end.getDate() + 6)
   const opts = { month: 'short', day: 'numeric' }
-  return `${start.toLocaleDateString(undefined, opts)} - ${end.toLocaleDateString(undefined, opts)}`
+  return `${start.toLocaleDateString(undefined, opts)} \u2013 ${end.toLocaleDateString(undefined, opts)}`
+}
+
+function getTodayDayIndex(weekStart) {
+  const today = new Date()
+  const start = new Date(weekStart + 'T00:00:00')
+  const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24))
+  if (diff >= 0 && diff <= 6) return diff
+  return -1
 }
 
 export default function MealPlan() {
@@ -34,10 +43,12 @@ export default function MealPlan() {
   const [entries, setEntries] = useState([])
   const [meals, setMeals] = useState([])
   const [loading, setLoading] = useState(true)
-  const [pickerSlot, setPickerSlot] = useState(null) // { dayOfWeek, slot }
+  const [pickerSlot, setPickerSlot] = useState(null)
   const [mealFilter, setMealFilter] = useState('')
   const [showSidePanel, setShowSidePanel] = useState(false)
   const pin = sessionStorage.getItem('parentPin')
+
+  const todayIdx = getTodayDayIndex(weekStart)
 
   const fetchData = useCallback(async () => {
     try {
@@ -90,166 +101,180 @@ export default function MealPlan() {
 
   const handleDragEnd = async (result) => {
     if (!result.destination) return
-
     const { droppableId } = result.destination
     const [dayStr, slot] = droppableId.split('-')
     const dayOfWeek = parseInt(dayStr, 10)
     const mealId = result.draggableId
-
     await handleAddMeal(dayOfWeek, slot, mealId)
   }
 
-  const isToday = weekStart === getMonday()
+  const isThisWeek = weekStart === getMonday()
+  const filledCount = entries.length
+  const totalSlots = 21
 
   if (loading) return <div className="text-center mt-lg">Loading...</div>
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div>
-        <div className="flex-between mb-lg" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
-          <h1>Meal Plan</h1>
-          <div className="flex gap-sm" style={{ alignItems: 'center' }}>
-            <button className="btn btn-sm btn-outline" onClick={() => setWeekStart(addWeeks(weekStart, -1))}>&larr;</button>
-            <button
-              className={`btn btn-sm ${isToday ? 'btn-primary' : 'btn-outline'}`}
-              onClick={() => setWeekStart(getMonday())}
-            >Today</button>
-            <span style={{ fontWeight: 600, minWidth: '160px', textAlign: 'center' }}>{formatWeekLabel(weekStart)}</span>
-            <button className="btn btn-sm btn-outline" onClick={() => setWeekStart(addWeeks(weekStart, 1))}>&rarr;</button>
+      <div className="mp-page">
+        {/* Header */}
+        <div className="mp-header">
+          <div className="mp-header-top">
+            <h1>Meal Plan</h1>
+            <div className="mp-stats">
+              <span className="mp-stat">{filledCount}/{totalSlots} planned</span>
+            </div>
           </div>
-          <button
-            className={`btn btn-sm ${showSidePanel ? 'btn-primary' : 'btn-outline'}`}
-            onClick={() => setShowSidePanel(!showSidePanel)}
-          >
-            {showSidePanel ? 'Hide Meals' : 'Show Meals'}
-          </button>
+          <div className="mp-week-nav">
+            <button className="mp-nav-btn" onClick={() => setWeekStart(addWeeks(weekStart, -1))}>
+              &#x2039;
+            </button>
+            <div className="mp-week-center">
+              <span className="mp-week-label">{formatWeekLabel(weekStart)}</span>
+              {!isThisWeek && (
+                <button className="mp-today-btn" onClick={() => setWeekStart(getMonday())}>
+                  This Week
+                </button>
+              )}
+            </div>
+            <button className="mp-nav-btn" onClick={() => setWeekStart(addWeeks(weekStart, 1))}>
+              &#x203A;
+            </button>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          {/* Calendar grid */}
-          <div style={{ flex: 1, overflowX: 'auto' }}>
-            <div className="meal-plan-grid">
-              {/* Header row */}
-              <div className="meal-plan-header">
-                <div className="meal-plan-slot-label"></div>
-                {DAYS.map((day, i) => (
-                  <div key={i} className="meal-plan-day-header">
-                    <span className="meal-plan-day-full">{day}</span>
-                    <span className="meal-plan-day-short">{DAYS_SHORT[i]}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Slot rows */}
-              {SLOTS.map(slot => (
-                <div key={slot} className="meal-plan-row">
-                  <div className="meal-plan-slot-label">
-                    {slot.charAt(0).toUpperCase() + slot.slice(1)}
-                  </div>
-                  {DAYS.map((_, dayIdx) => {
-                    const entry = getEntry(dayIdx, slot)
-                    const droppableId = `${dayIdx}-${slot}`
-                    return (
-                      <Droppable key={droppableId} droppableId={droppableId}>
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.droppableProps}
-                            className={`meal-plan-cell ${snapshot.isDraggingOver ? 'drag-over' : ''} ${entry ? 'has-meal' : ''}`}
-                            onClick={() => !entry && setPickerSlot({ dayOfWeek: dayIdx, slot })}
-                          >
-                            {entry ? (
-                              <div className="meal-plan-meal">
-                                {entry.meal.image_path ? (
-                                  <img src={entry.meal.image_path} alt="" className="meal-plan-meal-img" />
-                                ) : (
-                                  <span className="meal-plan-meal-icon">&#x1F37D;&#xFE0F;</span>
-                                )}
-                                <span className="meal-plan-meal-name">{entry.meal.name}</span>
-                                <button
-                                  className="meal-plan-remove"
-                                  onClick={(e) => { e.stopPropagation(); handleRemoveMeal(entry.id) }}
-                                  title="Remove"
-                                >&times;</button>
-                              </div>
-                            ) : (
-                              <span className="meal-plan-add">+</span>
-                            )}
-                            {provided.placeholder}
-                          </div>
-                        )}
-                      </Droppable>
-                    )
-                  })}
+        <div className="mp-layout">
+          {/* Main calendar */}
+          <div className="mp-calendar">
+            {/* Day headers */}
+            <div className="mp-day-headers">
+              <div className="mp-slot-spacer" />
+              {DAYS.map((day, i) => (
+                <div key={i} className={`mp-day-header ${i === todayIdx ? 'mp-day-today' : ''}`}>
+                  <span className="mp-day-full">{day}</span>
+                  <span className="mp-day-short">{DAYS_SHORT[i]}</span>
                 </div>
               ))}
             </div>
+
+            {/* Slot rows */}
+            {SLOTS.map(slot => (
+              <div key={slot} className="mp-row">
+                <div className="mp-slot-label">
+                  <span className="mp-slot-emoji">{SLOT_EMOJI[slot]}</span>
+                  <span className="mp-slot-text">{slot.charAt(0).toUpperCase() + slot.slice(1)}</span>
+                </div>
+                {DAYS.map((_, dayIdx) => {
+                  const entry = getEntry(dayIdx, slot)
+                  const droppableId = `${dayIdx}-${slot}`
+                  const isToday = dayIdx === todayIdx
+                  return (
+                    <Droppable key={droppableId} droppableId={droppableId}>
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                          className={`mp-cell ${snapshot.isDraggingOver ? 'mp-cell--dragover' : ''} ${entry ? 'mp-cell--filled' : ''} ${isToday ? 'mp-cell--today' : ''}`}
+                          onClick={() => !entry && setPickerSlot({ dayOfWeek: dayIdx, slot })}
+                        >
+                          {entry ? (
+                            <div className="mp-meal-card">
+                              {entry.meal.image_path ? (
+                                <img src={entry.meal.image_path} alt="" className="mp-meal-img" />
+                              ) : (
+                                <div className="mp-meal-placeholder">
+                                  &#x1F37D;&#xFE0F;
+                                </div>
+                              )}
+                              <span className="mp-meal-name">{entry.meal.name}</span>
+                              <button
+                                className="mp-meal-remove"
+                                onClick={(e) => { e.stopPropagation(); handleRemoveMeal(entry.id) }}
+                                title="Remove"
+                              >&times;</button>
+                            </div>
+                          ) : (
+                            <div className="mp-cell-empty">
+                              <span className="mp-cell-plus">+</span>
+                            </div>
+                          )}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
+                  )
+                })}
+              </div>
+            ))}
           </div>
 
-          {/* Side panel with draggable meals */}
-          {showSidePanel && (
-            <div className="meal-side-panel">
-              <h3 className="mb-sm">Meals</h3>
-              <div className="flex gap-sm mb-sm" style={{ flexWrap: 'wrap' }}>
-                <button
-                  className={`btn btn-xs ${!mealFilter ? 'btn-primary' : 'btn-outline'}`}
-                  onClick={() => setMealFilter('')}
-                >All</button>
-                {SLOTS.map(s => (
-                  <button
-                    key={s}
-                    className={`btn btn-xs ${mealFilter === s ? 'btn-primary' : 'btn-outline'}`}
-                    onClick={() => setMealFilter(mealFilter === s ? '' : s)}
-                  >{s.charAt(0).toUpperCase() + s.slice(1)}</button>
-                ))}
-              </div>
-              <Droppable droppableId="meal-source" isDropDisabled>
-                {(provided) => (
-                  <div ref={provided.innerRef} {...provided.droppableProps} className="meal-side-list">
-                    {meals
-                      .filter(m => !mealFilter || m.categories.includes(mealFilter))
-                      .map((meal, index) => {
-                        const count = getMealCount(meal.id)
-                        const atMax = meal.max_per_week != null && count >= meal.max_per_week
-                        return (
-                          <Draggable
-                            key={meal.id}
-                            draggableId={meal.id}
-                            index={index}
-                            isDragDisabled={atMax}
-                          >
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className={`meal-side-item ${atMax ? 'at-max' : ''} ${snapshot.isDragging ? 'dragging' : ''}`}
-                              >
-                                {meal.image_path ? (
-                                  <img src={meal.image_path} alt="" style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '0.25rem' }} />
-                                ) : (
-                                  <span>&#x1F37D;&#xFE0F;</span>
-                                )}
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontWeight: 600, fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meal.name}</div>
-                                  {meal.max_per_week != null && (
-                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                                      {count}/{meal.max_per_week} this week
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </Draggable>
-                        )
-                      })}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
+          {/* Side panel */}
+          <div className={`mp-sidebar ${showSidePanel ? 'mp-sidebar--open' : ''}`}>
+            <div className="mp-sidebar-header">
+              <h3>Meals</h3>
+              <button className="mp-sidebar-close" onClick={() => setShowSidePanel(false)}>&times;</button>
             </div>
-          )}
+            <div className="mp-sidebar-filters">
+              <button
+                className={`mp-filter ${!mealFilter ? 'active' : ''}`}
+                onClick={() => setMealFilter('')}
+              >All</button>
+              {SLOTS.map(s => (
+                <button
+                  key={s}
+                  className={`mp-filter ${mealFilter === s ? 'active' : ''}`}
+                  onClick={() => setMealFilter(mealFilter === s ? '' : s)}
+                >{s.charAt(0).toUpperCase() + s.slice(1)}</button>
+              ))}
+            </div>
+            <Droppable droppableId="meal-source" isDropDisabled>
+              {(provided) => (
+                <div ref={provided.innerRef} {...provided.droppableProps} className="mp-sidebar-list">
+                  {meals
+                    .filter(m => !mealFilter || m.categories.includes(mealFilter))
+                    .map((meal, index) => {
+                      const count = getMealCount(meal.id)
+                      const atMax = meal.max_per_week != null && count >= meal.max_per_week
+                      return (
+                        <Draggable key={meal.id} draggableId={meal.id} index={index} isDragDisabled={atMax}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className={`mp-sidebar-meal ${atMax ? 'mp-sidebar-meal--max' : ''} ${snapshot.isDragging ? 'mp-sidebar-meal--drag' : ''}`}
+                            >
+                              {meal.image_path ? (
+                                <img src={meal.image_path} alt="" className="mp-sidebar-meal-img" />
+                              ) : (
+                                <span className="mp-sidebar-meal-icon">&#x1F37D;&#xFE0F;</span>
+                              )}
+                              <div className="mp-sidebar-meal-info">
+                                <span className="mp-sidebar-meal-name">{meal.name}</span>
+                                {meal.max_per_week != null && (
+                                  <span className="mp-sidebar-meal-count">{count}/{meal.max_per_week} this week</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      )
+                    })}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </div>
         </div>
+
+        {/* Toggle side panel button (floating) */}
+        <button
+          className={`mp-toggle-btn ${showSidePanel ? 'mp-toggle-btn--active' : ''}`}
+          onClick={() => setShowSidePanel(!showSidePanel)}
+          title={showSidePanel ? 'Hide meals' : 'Show meals'}
+        >
+          &#x1F37D;&#xFE0F;
+        </button>
 
         {/* Meal picker modal */}
         {pickerSlot && (

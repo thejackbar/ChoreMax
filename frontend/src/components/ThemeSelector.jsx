@@ -106,8 +106,13 @@ export function applyTheme(themeId) {
   root.style.removeProperty('--shadow-lg')
 
   if (themeId === 'custom') {
-    root.removeAttribute('data-theme')
     const custom = getCustomSettings()
+    const isDark = !isLightColor(custom.bg)
+    if (isDark) {
+      root.setAttribute('data-theme', 'midnight')
+    } else {
+      root.removeAttribute('data-theme')
+    }
     applyCustomColors(custom.bg, custom.accent)
   } else if (themeId === 'warm') {
     root.removeAttribute('data-theme')
@@ -122,6 +127,13 @@ export function applyCustomColors(bg, accent) {
   const isDark = !isLightColor(bg)
   const accentLight = lightenMore(accent, 0.7)
   const accentBg = lighten(accent, 0.92)
+
+  // Set dark mode data attribute so CSS dark overrides apply
+  if (isDark) {
+    root.setAttribute('data-theme', 'midnight')
+  } else {
+    root.removeAttribute('data-theme')
+  }
 
   root.style.setProperty('--bg', bg)
   root.style.setProperty('--bg-gradient', `linear-gradient(135deg, ${bg} 0%, ${bg} 100%)`)
