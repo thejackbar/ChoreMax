@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { CURRENCIES } from '../data/currencies'
+import ThemeSelector, { getStoredTheme, applyTheme } from '../components/ThemeSelector'
 
 export default function AccountSettings() {
   const { user, refreshUser } = useAuth()
@@ -10,6 +11,7 @@ export default function AccountSettings() {
   const [timezone, setTimezone] = useState(user?.timezone || 'Australia/Sydney')
   const [displayName, setDisplayName] = useState(user?.display_name || '')
   const [familySize, setFamilySize] = useState(user?.family_size || 4)
+  const [theme, setTheme] = useState(getStoredTheme)
   const [newPin, setNewPin] = useState('')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -106,6 +108,18 @@ export default function AccountSettings() {
 
       {msg && <div className="msg-success">{msg}</div>}
       {error && <div className="msg-error">{error}</div>}
+
+      {/* Theme */}
+      <div className="card mb-lg">
+        <h3 className="mb-md">Theme</h3>
+        <ThemeSelector
+          current={theme}
+          onChange={(t) => {
+            setTheme(t)
+            applyTheme(t)
+          }}
+        />
+      </div>
 
       {/* Account Details */}
       <div className="card mb-lg">
