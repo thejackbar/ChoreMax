@@ -24,6 +24,7 @@ import MealPlan from './pages/MealPlan'
 import ShoppingList from './pages/ShoppingList'
 import TodoList from './pages/TodoList'
 import Wishlist from './pages/Wishlist'
+import MemberHub from './pages/MemberHub'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -130,8 +131,9 @@ export default function App() {
 
             {/* Kid-facing (no PIN) */}
             <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<FamilyDailyView />} />
               <Route path="/family" element={<FamilyDailyView />} />
+              <Route path="/child/:childId" element={<MemberHub />} />
               <Route path="/child/:childId/daily" element={<ChildDailyChores />} />
               <Route path="/child/:childId/weekly" element={<ChildWeeklyChores />} />
               <Route path="/child/:childId/dashboard" element={<ChildDashboard />} />

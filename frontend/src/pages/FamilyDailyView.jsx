@@ -105,7 +105,7 @@ export default function FamilyDailyView() {
       token_icon: child.token_icon,
       color: child.color,
     })
-    navigate(`/child/${child.child_id}/daily`)
+    navigate(`/child/${child.child_id}`)
   }
 
   if (loading) return <div className="text-center mt-lg"><h2>Loading...</h2></div>

@@ -26,11 +26,8 @@ export default function ParentLayout() {
         <NavLink to="/parent/settings" className={({ isActive }) => `parent-sidebar-link ${isActive ? 'active' : ''}`}>
           Account Settings
         </NavLink>
-        <button className="parent-sidebar-link" onClick={() => navigate('/family')}>
-          &#x1F46A; Family View
-        </button>
         <button className="parent-sidebar-link" onClick={() => navigate('/')}>
-          &larr; Back to Home
+          &#x1F46A; Back to Family
         </button>
         <button className="parent-sidebar-link" onClick={logout}>
           Logout
