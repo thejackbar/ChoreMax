@@ -1,18 +1,22 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client'
 
+function toLocalDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function getMonday(d = new Date()) {
   const date = new Date(d)
   const day = date.getDay()
   const diff = date.getDate() - day + (day === 0 ? -6 : 1)
   date.setDate(diff)
-  return date.toISOString().split('T')[0]
+  return toLocalDateStr(date)
 }
 
 function addWeeks(dateStr, weeks) {
-  const d = new Date(dateStr)
+  const d = new Date(dateStr + 'T00:00:00')
   d.setDate(d.getDate() + weeks * 7)
-  return d.toISOString().split('T')[0]
+  return toLocalDateStr(d)
 }
 
 function formatWeekLabel(weekStart) {

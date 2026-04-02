@@ -6,7 +6,10 @@ import { getTokenEmoji, formatTokens } from '../data/tokenIcons'
 import ProgressBar from '../components/ProgressBar'
 import ChoreCalendar from '../components/ChoreCalendar'
 
-const getToday = () => new Date().toISOString().split('T')[0]
+const getToday = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 const formatSelectedDate = (dateStr) => {
   const d = new Date(dateStr + 'T00:00:00')

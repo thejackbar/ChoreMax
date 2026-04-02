@@ -8,7 +8,10 @@ import ProgressBar from '../components/ProgressBar'
 import EmptyState from '../components/EmptyState'
 import PinModal from '../components/PinModal'
 
-const getToday = () => new Date().toISOString().split('T')[0]
+const getToday = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 const formatDisplayDate = (dateStr) => {
   const today = getToday()
@@ -16,7 +19,8 @@ const formatDisplayDate = (dateStr) => {
   const d = new Date(dateStr + 'T00:00:00')
   const yesterday = new Date()
   yesterday.setDate(yesterday.getDate() - 1)
-  if (dateStr === yesterday.toISOString().split('T')[0]) return 'Yesterday'
+  const yStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`
+  if (dateStr === yStr) return 'Yesterday'
   return d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
@@ -87,16 +91,18 @@ export default function ChildDailyChores() {
     }
   }
 
+  const toDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
   const goToPreviousDay = () => {
     const d = new Date(selectedDate + 'T00:00:00')
     d.setDate(d.getDate() - 1)
-    setSelectedDate(d.toISOString().split('T')[0])
+    setSelectedDate(toDateStr(d))
   }
 
   const goToNextDay = () => {
     const d = new Date(selectedDate + 'T00:00:00')
     d.setDate(d.getDate() + 1)
-    const next = d.toISOString().split('T')[0]
+    const next = toDateStr(d)
     if (next <= getToday()) {
       setSelectedDate(next)
     }

@@ -8,18 +8,22 @@ const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const SLOTS = ['breakfast', 'lunch', 'dinner']
 const SLOT_EMOJI = { breakfast: '\u2615', lunch: '\uD83C\uDF5C', dinner: '\uD83C\uDF7D\uFE0F' }
 
+function toLocalDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function getMonday(d = new Date()) {
   const date = new Date(d)
   const day = date.getDay()
   const diff = date.getDate() - day + (day === 0 ? -6 : 1)
   date.setDate(diff)
-  return date.toISOString().split('T')[0]
+  return toLocalDateStr(date)
 }
 
 function addWeeks(dateStr, weeks) {
-  const d = new Date(dateStr)
+  const d = new Date(dateStr + 'T00:00:00')
   d.setDate(d.getDate() + weeks * 7)
-  return d.toISOString().split('T')[0]
+  return toLocalDateStr(d)
 }
 
 function formatWeekLabel(weekStart) {
@@ -30,11 +34,21 @@ function formatWeekLabel(weekStart) {
   return `${start.toLocaleDateString(undefined, opts)} \u2013 ${end.toLocaleDateString(undefined, opts)}`
 }
 
+function getDayDate(weekStart, dayIdx) {
+  const d = new Date(weekStart + 'T00:00:00')
+  d.setDate(d.getDate() + dayIdx)
+  return d.getDate()
+}
+
 function getTodayDayIndex(weekStart) {
   const today = new Date()
+  const todayStr = toLocalDateStr(today)
   const start = new Date(weekStart + 'T00:00:00')
-  const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24))
-  if (diff >= 0 && diff <= 6) return diff
+  for (let i = 0; i <= 6; i++) {
+    const d = new Date(start)
+    d.setDate(d.getDate() + i)
+    if (toLocalDateStr(d) === todayStr) return i
+  }
   return -1
 }
 
@@ -151,8 +165,8 @@ export default function MealPlan() {
               <div className="mp-slot-spacer" />
               {DAYS.map((day, i) => (
                 <div key={i} className={`mp-day-header ${i === todayIdx ? 'mp-day-today' : ''}`}>
-                  <span className="mp-day-full">{day}</span>
-                  <span className="mp-day-short">{DAYS_SHORT[i]}</span>
+                  <span className="mp-day-full">{day} {getDayDate(weekStart, i)}</span>
+                  <span className="mp-day-short">{DAYS_SHORT[i]} {getDayDate(weekStart, i)}</span>
                 </div>
               ))}
             </div>
