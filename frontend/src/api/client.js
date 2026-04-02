@@ -119,6 +119,20 @@ export const api = {
     addEntry: (data, pin) => withPin('POST', '/meal-plans', data, pin),
     removeEntry: (id, pin) => withPin('DELETE', `/meal-plans/${id}`, null, pin),
   },
+  todos: {
+    list: (params) => request('GET', '/todos' + (params ? '?' + new URLSearchParams(params) : '')),
+    create: (data, pin) => withPin('POST', '/todos', data, pin),
+    update: (id, data, pin) => withPin('PUT', `/todos/${id}`, data, pin),
+    toggle: (id) => request('POST', `/todos/${id}/toggle`),
+    delete: (id, pin) => withPin('DELETE', `/todos/${id}`, null, pin),
+  },
+  wishlists: {
+    list: (childId) => request('GET', `/wishlists/${childId}`),
+    create: (data) => request('POST', '/wishlists', data),
+    update: (id, data) => request('PUT', `/wishlists/${id}`, data),
+    toggle: (id, pin) => withPin('POST', `/wishlists/${id}/toggle`, null, pin),
+    delete: (id, pin) => withPin('DELETE', `/wishlists/${id}`, null, pin),
+  },
   shoppingList: {
     get: (weekStart) => request('GET', `/shopping-list?week_start=${weekStart}`),
     check: (data) => request('POST', '/shopping-list/check', data),

@@ -68,6 +68,12 @@ export default function Layout() {
           <NavLink to="/lists/shopping" className={navLinkClass} onClick={closeSidebar}>
             &#x1F6D2; Shopping List
           </NavLink>
+          <NavLink to="/lists/todos" className={navLinkClass} onClick={closeSidebar}>
+            &#x1F4CB; To-Do List
+          </NavLink>
+          <NavLink to="/lists/wishlist" className={navLinkClass} onClick={closeSidebar}>
+            &#x1F381; Wishlists
+          </NavLink>
         </div>
 
         <div className="child-sidebar-divider" />

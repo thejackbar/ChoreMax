@@ -22,6 +22,8 @@ import ManageGoals from './pages/ManageGoals'
 import FamilyDailyView from './pages/FamilyDailyView'
 import MealPlan from './pages/MealPlan'
 import ShoppingList from './pages/ShoppingList'
+import TodoList from './pages/TodoList'
+import Wishlist from './pages/Wishlist'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -135,6 +137,8 @@ export default function App() {
               <Route path="/child/:childId/dashboard" element={<ChildDashboard />} />
               <Route path="/meals/plan" element={<MealPlan />} />
               <Route path="/lists/shopping" element={<ShoppingList />} />
+              <Route path="/lists/todos" element={<TodoList />} />
+              <Route path="/lists/wishlist" element={<Wishlist />} />
             </Route>
 
             {/* Parent-facing (PIN protected) */}

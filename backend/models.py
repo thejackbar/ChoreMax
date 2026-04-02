@@ -35,6 +35,7 @@ class User(Base):
     meal_plan_entries = relationship("MealPlanEntry", back_populates="user", cascade="all, delete-orphan")
     reminder_setting = relationship("ReminderSetting", back_populates="user", uselist=False, cascade="all, delete-orphan")
     goal_activities = relationship("GoalActivity", back_populates="user", cascade="all, delete-orphan")
+    todo_items = relationship("TodoItem", back_populates="user", cascade="all, delete-orphan")
 
 
 class Child(Base):
@@ -57,6 +58,7 @@ class Child(Base):
     completions = relationship("ChoreCompletion", back_populates="child", cascade="all, delete-orphan")
     token_transactions = relationship("TokenTransaction", back_populates="child", cascade="all, delete-orphan")
     goal_redemptions = relationship("GoalRedemption", back_populates="child", cascade="all, delete-orphan")
+    wishlist_items = relationship("WishlistItem", back_populates="child", cascade="all, delete-orphan")
 
 
 class Chore(Base):
@@ -151,6 +153,41 @@ class GoalRedemption(Base):
 
     child = relationship("Child", back_populates="goal_redemptions")
     goal_activity = relationship("GoalActivity", back_populates="redemptions")
+
+
+class TodoItem(Base):
+    __tablename__ = "todo_items"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    category: Mapped[str] = mapped_column(Text, nullable=False, server_default="general")
+    priority: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    due_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
+    assigned_to: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_completed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    user = relationship("User", back_populates="todo_items")
+
+
+class WishlistItem(Base):
+    __tablename__ = "wishlist_items"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    child_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("children.id", ondelete="CASCADE"), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    emoji: Mapped[str] = mapped_column(Text, nullable=False, server_default="⭐")
+    url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    price: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_purchased: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    child = relationship("Child", back_populates="wishlist_items")
 
 
 class ReminderSetting(Base):
