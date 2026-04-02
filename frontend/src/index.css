@@ -2558,38 +2558,83 @@ a { color: var(--primary); text-decoration: none; }
 }
 
 /* ===================================================================
-   Large screens (1200px+) - fill the space
+   Large screens (1200px+) - proportional scaling
    =================================================================== */
 @media (min-width: 1200px) {
-  .page { max-width: 100%; padding: 1.5rem 2rem; }
-  .chore-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.75rem; }
+  .page { max-width: 1200px; padding: 1.5rem 2rem; }
+
+  /* Family view - scale up content */
+  .family-date-title { font-size: 2.5rem; }
+  .family-avatar { font-size: 3.5rem; }
+  .family-name { font-size: 1.35rem; }
+  .family-balance { font-size: 1.05rem; }
+  .family-chore { padding: 0.65rem 0.75rem; gap: 0.65rem; }
+  .family-chore-check { font-size: 1.3rem; }
+  .family-chore-emoji { font-size: 1.3rem; }
+  .family-chore-title { font-size: 1rem; }
+  .family-time-label { font-size: 0.85rem; }
+  .family-progress-text { font-size: 0.9rem; }
+  .family-columns { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; }
+  .family-column-header { padding: 1.5rem 1.25rem 1rem; }
+
+  /* Chores */
+  .chore-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; }
+
+  /* Meal plan */
   .mp-page { max-width: 100%; }
-  .mp-cell { min-height: clamp(90px, 15vh, 180px); }
-  .mp-meal-img, .mp-meal-placeholder { width: clamp(48px, 5vw, 80px); height: clamp(48px, 5vw, 80px); }
-  .mp-meal-name { font-size: clamp(0.7rem, 0.9vw, 1rem); }
-  .family-columns { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+  .mp-cell { min-height: clamp(100px, 15vh, 180px); }
+  .mp-meal-img, .mp-meal-placeholder { width: clamp(52px, 5vw, 80px); height: clamp(52px, 5vw, 80px); }
+  .mp-meal-name { font-size: clamp(0.75rem, 0.9vw, 1rem); }
+  .mp-day-header { font-size: 1rem; }
 }
 
 /* ===================================================================
    Extra-large / TV screens (1600px+)
    =================================================================== */
 @media (min-width: 1600px) {
+  html { font-size: 17px; }
+  .page { max-width: 1500px; padding: 2rem 2.5rem; }
+
+  /* Sidebar */
   .app-sidebar { width: 300px; }
   .sidebar-time { font-size: 2.75rem; }
   .sidebar-date { font-size: 1rem; }
   .sidebar-link { font-size: 1.1rem; padding: 0.85rem 1.75rem; }
   .sidebar-icon { font-size: 1.3rem; }
 
-  .page { padding: 2rem 2.5rem; }
-  .chore-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
-  .chore-card .chore-emoji { font-size: clamp(2.5rem, 3.5vw, 4rem); }
+  /* Family view */
+  .family-date-title { font-size: 3rem; }
+  .family-avatar { font-size: 4.5rem; }
+  .family-name { font-size: 1.6rem; }
+  .family-balance { font-size: 1.2rem; }
+  .family-chore { padding: 0.75rem 1rem; gap: 0.75rem; }
+  .family-chore-check { font-size: 1.5rem; }
+  .family-chore-emoji { font-size: 1.5rem; }
+  .family-chore-title { font-size: 1.15rem; }
+  .family-time-label { font-size: 0.95rem; }
+  .family-progress-bar { height: 8px; }
+  .family-progress-text { font-size: 1rem; }
+  .family-columns { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
+  .family-column-header { padding: 1.75rem 1.5rem 1rem; gap: 0.35rem; }
+  .family-all-done { font-size: 1.35rem; }
 
+  /* Chores */
+  .chore-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  .chore-card .chore-emoji { font-size: clamp(2.5rem, 3.5vw, 4rem); }
+  .chore-card .chore-title { font-size: 1.05rem; }
+  .chore-card .chore-value { font-size: 1rem; }
+  .chore-progress-header h2 { font-size: 1.75rem; }
+  .chore-section-title { font-size: 1rem; }
+
+  /* Meal plan */
   .mp-cell { min-height: clamp(120px, 18vh, 250px); }
-  .mp-day-header { font-size: 1.1rem; padding: 1rem 0.25rem; }
+  .mp-day-header { font-size: 1.15rem; padding: 1rem 0.25rem; }
   .mp-slot-emoji { font-size: 2rem; }
   .mp-slot-text { font-size: 0.95rem; }
-  .mp-meal-img, .mp-meal-placeholder { width: clamp(60px, 5vw, 100px); height: clamp(60px, 5vw, 100px); }
+  .mp-meal-img, .mp-meal-placeholder { width: clamp(64px, 5vw, 100px); height: clamp(64px, 5vw, 100px); }
+  .mp-meal-name { font-size: clamp(0.8rem, 1vw, 1.1rem); }
 
+  /* Hub */
   .hub-card { padding: 2.5rem 1.5rem; }
   .hub-card-icon { font-size: 3.5rem; }
   .hub-card-title { font-size: 1.35rem; }
@@ -2601,11 +2646,25 @@ a { color: var(--primary); text-decoration: none; }
    Ultra-wide / massive TV screens (2200px+)
    =================================================================== */
 @media (min-width: 2200px) {
-  html { font-size: 18px; }
-  .app-sidebar { width: 340px; }
-  .sidebar-time { font-size: 3.25rem; }
-  .chore-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  html { font-size: 20px; }
+  .page { max-width: 1800px; }
+  .app-sidebar { width: 360px; }
+  .sidebar-time { font-size: 3.5rem; }
+
+  /* Family view */
+  .family-avatar { font-size: 5.5rem; }
+  .family-name { font-size: 2rem; }
+  .family-balance { font-size: 1.4rem; }
+  .family-chore-check { font-size: 1.75rem; }
+  .family-chore-emoji { font-size: 1.75rem; }
+  .family-chore-title { font-size: 1.35rem; }
+  .family-time-label { font-size: 1.1rem; }
+  .family-progress-bar { height: 10px; }
+  .family-columns { grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 2rem; }
+
+  /* Meal plan */
   .mp-cell { min-height: clamp(150px, 20vh, 300px); }
   .mp-meal-img, .mp-meal-placeholder { width: 100px; height: 100px; }
   .mp-meal-name { font-size: 1.1rem; }
+  .mp-day-header { font-size: 1.3rem; }
 }
