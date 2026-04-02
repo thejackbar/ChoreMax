@@ -310,8 +310,8 @@ async def family_daily_view(
     db: AsyncSession = Depends(get_db),
 ):
     """Get all family members' daily chores for a given date (Skylight-style family view)."""
-    target_date = for_date or date.today()
-    period_date = get_period_date("daily", current_user.timezone, for_date=target_date)
+    period_date = get_period_date("daily", current_user.timezone, for_date=for_date)
+    target_date = for_date or period_date
 
     # Get all children
     result = await db.execute(
@@ -338,19 +338,35 @@ async def family_daily_view(
 
         chore_ids = [row.Chore.id for row in chore_rows]
 
-        # Get completions for these chores on this date
+        # Separate standalone vs per-child chore IDs
+        standalone_ids = [row.Chore.id for row in chore_rows if row.Chore.assignment_type == "standalone"]
+        perchild_ids = [row.Chore.id for row in chore_rows if row.Chore.assignment_type != "standalone"]
+
+        # Get completions: per-child chores only for this child, standalone for any child
         completions_map = {}
-        if chore_ids:
+        if perchild_ids:
             result = await db.execute(
                 select(ChoreCompletion)
                 .where(
                     ChoreCompletion.child_id == child.id,
                     ChoreCompletion.period_date == period_date,
-                    ChoreCompletion.chore_id.in_(chore_ids),
+                    ChoreCompletion.chore_id.in_(perchild_ids),
                 )
             )
             for comp in result.scalars().all():
                 completions_map[comp.chore_id] = comp
+        if standalone_ids:
+            result = await db.execute(
+                select(ChoreCompletion)
+                .where(
+                    ChoreCompletion.period_date == period_date,
+                    ChoreCompletion.chore_id.in_(standalone_ids),
+                )
+            )
+            for comp in result.scalars().all():
+                # For standalone, any child's completion counts
+                if comp.chore_id not in completions_map:
+                    completions_map[comp.chore_id] = comp
 
         chores_list = []
         for row in chore_rows:
