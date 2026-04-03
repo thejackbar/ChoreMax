@@ -143,6 +143,7 @@ export const api = {
     googleCalendars: (connId) => request('GET', `/calendar/google/${connId}/calendars`),
     selectGoogleCalendars: (connId, calendars, pin) => withPin('POST', `/calendar/google/${connId}/select-calendars`, { calendars }, pin),
     createEvent: (data, pin) => withPin('POST', '/calendar/events', data, pin),
+    updateEvent: (id, data, pin) => withPin('PUT', `/calendar/events/${id}`, data, pin),
     deleteEvent: (id, pin) => withPin('DELETE', `/calendar/events/${id}`, null, pin),
     week: (weekStart) => request('GET', `/calendar/week` + (weekStart ? `?week_start=${weekStart}` : '')),
     month: (year, month) => request('GET', `/calendar/month?year=${year}&month=${month}`),

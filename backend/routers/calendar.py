@@ -14,6 +14,7 @@ from calendar_sync import (
     create_google_event, decrypt_token, delete_google_event, encrypt_token,
     exchange_google_code, get_google_auth_url, get_google_email,
     get_valid_google_token, list_google_calendars, sync_connection,
+    update_google_event,
 )
 from config import settings
 from database import get_db
@@ -376,6 +377,75 @@ async def create_event(
         "start_date": ev.start_date.isoformat(),
         "end_date": ev.end_date.isoformat() if ev.end_date else None,
         "is_all_day": ev.is_all_day,
+    }
+
+
+@router.put("/events/{event_id}")
+async def update_event(
+    event_id: str,
+    data: dict,
+    current_user: User = Depends(require_pin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a calendar event. If it's on Google, updates Google too."""
+    result = await db.execute(
+        select(CalendarEvent)
+        .join(CalendarConnection, CalendarEvent.connection_id == CalendarConnection.id)
+        .where(
+            CalendarEvent.id == event_id,
+            CalendarConnection.user_id == current_user.id,
+        )
+    )
+    event = result.scalar_one_or_none()
+    if not event:
+        raise HTTPException(404, "Event not found")
+
+    result = await db.execute(
+        select(CalendarConnection).where(CalendarConnection.id == event.connection_id)
+    )
+    conn = result.scalar_one_or_none()
+
+    if conn and conn.provider == "google":
+        from datetime import time as dt_time
+        kwargs = {}
+        if "title" in data:
+            kwargs["title"] = data["title"]
+        if "description" in data:
+            kwargs["description"] = data["description"] or None
+        if "location" in data:
+            kwargs["location"] = data["location"] or None
+        if "is_all_day" in data:
+            kwargs["is_all_day"] = data["is_all_day"]
+        if "start_date" in data:
+            kwargs["start_date"] = date.fromisoformat(data["start_date"])
+        if "end_date" in data:
+            kwargs["end_date"] = date.fromisoformat(data["end_date"]) if data["end_date"] else None
+        if "start_time" in data and data["start_time"]:
+            p = data["start_time"].split(":")
+            kwargs["start_time"] = dt_time(int(p[0]), int(p[1]))
+        elif "start_time" in data:
+            kwargs["start_time"] = None
+        if "end_time" in data and data["end_time"]:
+            p = data["end_time"].split(":")
+            kwargs["end_time"] = dt_time(int(p[0]), int(p[1]))
+        elif "end_time" in data:
+            kwargs["end_time"] = None
+
+        try:
+            event = await update_google_event(
+                conn, event, db, timezone=current_user.timezone, **kwargs,
+            )
+        except Exception as e:
+            raise HTTPException(500, f"Failed to update event: {str(e)}")
+    else:
+        raise HTTPException(400, "Can only edit Google calendar events")
+
+    return {
+        "id": event.id,
+        "title": event.title,
+        "start_date": event.start_date.isoformat(),
+        "end_date": event.end_date.isoformat() if event.end_date else None,
+        "is_all_day": event.is_all_day,
     }
 
 

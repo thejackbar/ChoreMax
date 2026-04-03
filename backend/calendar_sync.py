@@ -322,6 +322,68 @@ async def delete_google_event(conn: CalendarConnection, event: CalendarEvent, db
     await db.flush()
 
 
+async def update_google_event(
+    conn: CalendarConnection, event: CalendarEvent, db: AsyncSession,
+    title: str | None = None, start_date: date | None = None,
+    end_date: date | None = None, start_time: time | None = ...,
+    end_time: time | None = ..., is_all_day: bool | None = None,
+    description: str | None = ..., location: str | None = ...,
+    timezone: str = "UTC",
+) -> CalendarEvent:
+    """Update an event on Google Calendar and locally."""
+    from urllib.parse import quote
+    access_token = await _ensure_google_token(conn, db)
+    cal_id = quote(conn.google_calendar_id or "primary", safe="")
+
+    # Build patch body from provided fields
+    body: dict = {}
+    if title is not None:
+        body["summary"] = title
+        event.title = title
+    if description is not ...:
+        body["description"] = description or ""
+        event.description = description
+    if location is not ...:
+        body["location"] = location or ""
+        event.location = location
+
+    use_all_day = is_all_day if is_all_day is not None else event.is_all_day
+    s_date = start_date or event.start_date
+    e_date = end_date or event.end_date or s_date
+
+    if is_all_day is not None or start_date is not None or end_date is not None or start_time is not ... or end_time is not ...:
+        if use_all_day:
+            body["start"] = {"date": s_date.isoformat()}
+            body["end"] = {"date": (e_date + timedelta(days=1)).isoformat()}
+            event.start_date = s_date
+            event.end_date = e_date
+            event.start_time = None
+            event.end_time = None
+            event.is_all_day = True
+        else:
+            s_time = start_time if start_time is not ... else event.start_time
+            e_time = end_time if end_time is not ... else event.end_time
+            body["start"] = {"dateTime": f"{s_date}T{s_time or '09:00:00'}", "timeZone": timezone}
+            body["end"] = {"dateTime": f"{e_date}T{e_time or '10:00:00'}", "timeZone": timezone}
+            event.start_date = s_date
+            event.end_date = e_date
+            event.start_time = s_time
+            event.end_time = e_time
+            event.is_all_day = False
+
+    if body:
+        async with httpx.AsyncClient() as client:
+            resp = await client.patch(
+                f"{GOOGLE_CALENDAR_API}/calendars/{cal_id}/events/{event.external_id}",
+                headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
+                json=body,
+            )
+            resp.raise_for_status()
+
+    await db.flush()
+    return event
+
+
 # ---------------------------------------------------------------------------
 # iCal feed sync
 # ---------------------------------------------------------------------------

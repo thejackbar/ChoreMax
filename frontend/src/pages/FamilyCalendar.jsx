@@ -140,8 +140,17 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh }) {
   const [eventSaving, setEventSaving] = useState(false)
   const [eventError, setEventError] = useState(null)
 
-  // Delete event state
-  const [deleteTarget, setDeleteTarget] = useState(null) // event object
+  // Event detail / edit state
+  const [selectedEvent, setSelectedEvent] = useState(null)
+  const [editing, setEditing] = useState(false)
+  const [editTitle, setEditTitle] = useState('')
+  const [editAllDay, setEditAllDay] = useState(true)
+  const [editStartTime, setEditStartTime] = useState('09:00')
+  const [editEndTime, setEditEndTime] = useState('10:00')
+  const [editLocation, setEditLocation] = useState('')
+
+  // Delete state
+  const [deleteTarget, setDeleteTarget] = useState(null)
   const [pinError, setPinError] = useState(null)
 
   // Set default calendar when conns load
@@ -175,10 +184,49 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh }) {
     }
   }
 
+  const openEventDetail = (ev) => {
+    setSelectedEvent(ev)
+    setEditing(false)
+    setEventError(null)
+  }
+
+  const startEditing = () => {
+    setEditTitle(selectedEvent.title)
+    setEditAllDay(selectedEvent.is_all_day)
+    setEditStartTime(selectedEvent.start_time || '09:00')
+    setEditEndTime(selectedEvent.end_time || '10:00')
+    setEditLocation(selectedEvent.location || '')
+    setEditing(true)
+    setEventError(null)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editTitle.trim()) return
+    setEventSaving(true)
+    setEventError(null)
+    try {
+      await api.calendar.updateEvent(selectedEvent.id, {
+        title: editTitle.trim(),
+        is_all_day: editAllDay,
+        start_time: editAllDay ? null : editStartTime,
+        end_time: editAllDay ? null : editEndTime,
+        location: editLocation.trim() || null,
+      }, pin)
+      setSelectedEvent(null)
+      setEditing(false)
+      await onRefresh()
+    } catch (e) {
+      setEventError(e.message)
+    } finally {
+      setEventSaving(false)
+    }
+  }
+
   const handleDeleteEvent = async (pinVal) => {
     try {
       await api.calendar.deleteEvent(deleteTarget.id, pinVal)
       setDeleteTarget(null)
+      setSelectedEvent(null)
       setPinError(null)
       await onRefresh()
     } catch (e) {
@@ -221,10 +269,9 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh }) {
                   {dayData.events.length > 0 ? dayData.events.map((ev, j) => (
                     <div
                       key={j}
-                      className={`fc-week-event ${ev.provider === 'google' ? 'fc-week-event--deletable' : ''}`}
+                      className="fc-week-event fc-week-event--clickable"
                       style={{ borderLeftColor: ev.color }}
-                      onClick={() => ev.provider === 'google' ? setDeleteTarget(ev) : null}
-                      title={ev.provider === 'google' ? 'Click to delete' : ''}
+                      onClick={() => openEventDetail(ev)}
                     >
                       <div className="fc-week-event-title">{ev.title}</div>
                       {!ev.is_all_day && ev.start_time && (
@@ -351,6 +398,105 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh }) {
               </button>
               <button className="btn btn-outline" onClick={() => setShowAddEvent(null)}>Cancel</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Event Detail / Edit Modal */}
+      {selectedEvent && (
+        <div className="fc-modal-overlay" onClick={() => { setSelectedEvent(null); setEditing(false) }}>
+          <div className="fc-modal" onClick={e => e.stopPropagation()}>
+            {!editing ? (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                  <h3 style={{ margin: 0 }}>{selectedEvent.title}</h3>
+                  <button
+                    className="fc-detail-close"
+                    onClick={() => setSelectedEvent(null)}
+                    style={{ background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: 'var(--muted)', padding: '0 0.25rem' }}
+                  >&times;</button>
+                </div>
+                <div className="fc-event-detail-body">
+                  <div className="fc-event-detail-row">
+                    <span className="fc-event-detail-icon">&#x1F4C5;</span>
+                    <span>
+                      {new Date(selectedEvent.start_date + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <div className="fc-event-detail-row">
+                    <span className="fc-event-detail-icon">&#x1F552;</span>
+                    <span>{selectedEvent.is_all_day ? 'All day' : `${selectedEvent.start_time || ''}${selectedEvent.end_time ? ' - ' + selectedEvent.end_time : ''}`}</span>
+                  </div>
+                  {selectedEvent.location && (
+                    <div className="fc-event-detail-row">
+                      <span className="fc-event-detail-icon">&#x1F4CD;</span>
+                      <span>{selectedEvent.location}</span>
+                    </div>
+                  )}
+                  {selectedEvent.description && (
+                    <div className="fc-event-detail-row">
+                      <span className="fc-event-detail-icon">&#x1F4DD;</span>
+                      <span>{selectedEvent.description}</span>
+                    </div>
+                  )}
+                  <div className="fc-event-detail-row" style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>
+                    <span className="fc-event-detail-icon" style={{ borderLeftColor: selectedEvent.color }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: selectedEvent.color, display: 'inline-block' }} />
+                    </span>
+                    <span>{selectedEvent.source}</span>
+                  </div>
+                </div>
+                {selectedEvent.provider === 'google' && (
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                    <button className="btn btn-primary btn-sm" onClick={startEditing}>Edit</button>
+                    <button className="btn btn-danger btn-sm" onClick={() => { setDeleteTarget(selectedEvent) }}>Delete</button>
+                    <button className="btn btn-outline btn-sm" style={{ marginLeft: 'auto' }} onClick={() => setSelectedEvent(null)}>Close</button>
+                  </div>
+                )}
+                {selectedEvent.provider !== 'google' && (
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                    <button className="btn btn-outline btn-sm" style={{ marginLeft: 'auto' }} onClick={() => setSelectedEvent(null)}>Close</button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <h3 style={{ marginBottom: '0.75rem' }}>Edit Event</h3>
+                {eventError && <div className="msg-error" style={{ marginBottom: '0.5rem', fontSize: '0.85rem' }}>{eventError}</div>}
+                <div className="field">
+                  <label>Title</label>
+                  <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} autoFocus />
+                </div>
+                <div className="field">
+                  <label>Location</label>
+                  <input type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="Optional" />
+                </div>
+                <div className="field">
+                  <label>
+                    <input type="checkbox" checked={editAllDay} onChange={e => setEditAllDay(e.target.checked)} style={{ marginRight: '0.5rem' }} />
+                    All day
+                  </label>
+                </div>
+                {!editAllDay && (
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div className="field" style={{ flex: 1 }}>
+                      <label>Start</label>
+                      <input type="time" value={editStartTime} onChange={e => setEditStartTime(e.target.value)} />
+                    </div>
+                    <div className="field" style={{ flex: 1 }}>
+                      <label>End</label>
+                      <input type="time" value={editEndTime} onChange={e => setEditEndTime(e.target.value)} />
+                    </div>
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <button className="btn btn-primary" onClick={handleSaveEdit} disabled={eventSaving || !editTitle.trim()}>
+                    {eventSaving ? 'Saving...' : 'Save'}
+                  </button>
+                  <button className="btn btn-outline" onClick={() => setEditing(false)}>Cancel</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

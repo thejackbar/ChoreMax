@@ -1574,11 +1574,11 @@ a { color: var(--primary); text-decoration: none; }
   margin-bottom: 2px;
   transition: background 0.15s;
 }
-.fc-week-event--deletable {
+.fc-week-event--clickable {
   cursor: pointer;
 }
-.fc-week-event--deletable:hover {
-  background: var(--danger-bg);
+.fc-week-event--clickable:hover {
+  background: var(--primary-bg);
 }
 .fc-week-event-title {
   font-size: clamp(0.65rem, 1vh, 0.8rem);
@@ -1716,6 +1716,24 @@ a { color: var(--primary); text-decoration: none; }
   font-size: 0.9rem;
   background: var(--bg);
   color: var(--text);
+}
+
+/* Event detail rows */
+.fc-event-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.fc-event-detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+.fc-event-detail-icon {
+  flex-shrink: 0;
+  width: 1.2rem;
+  text-align: center;
 }
 
 /* Clickable cards in month detail */
