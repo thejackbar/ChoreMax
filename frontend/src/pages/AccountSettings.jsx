@@ -326,7 +326,11 @@ export default function AccountSettings() {
               setIcalUrl('')
               setIcalColor('#3b82f6')
               setShowAddIcal(false)
-              setMsg('Calendar feed added!')
+              if (newConn.sync_warning) {
+                setError(newConn.sync_warning)
+              } else {
+                setMsg('Calendar feed added and synced!')
+              }
             } catch (e) {
               setError(e.message)
             } finally {
@@ -387,17 +391,20 @@ export default function AccountSettings() {
             </button>
             <button
               className="btn btn-outline"
-              onClick={async () => {
-                try {
-                  const { url } = await api.calendar.googleAuthUrl(pin)
-                  window.open(url, '_blank', 'width=500,height=600')
-                } catch (e) {
+              onClick={() => {
+                // Open window immediately (in sync click context) to avoid popup blocker
+                const popup = window.open('about:blank', '_blank', 'width=500,height=600')
+                api.calendar.googleAuthUrl(pin).then(({ url }) => {
+                  if (popup) popup.location.href = url
+                  else window.location.href = url  // fallback if popup was blocked
+                }).catch((e) => {
+                  if (popup) popup.close()
                   if (e.message.includes('not configured')) {
                     setError('Google Calendar is not configured on this server yet')
                   } else {
                     setError(e.message)
                   }
-                }
+                })
               }}
             >
               Connect Google Calendar

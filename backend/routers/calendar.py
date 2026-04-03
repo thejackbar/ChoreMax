@@ -69,12 +69,17 @@ async def create_connection(
     await db.flush()
 
     # Trigger initial sync
+    sync_error = None
     try:
         await sync_connection(conn, db, current_user.timezone)
-    except Exception:
-        pass  # Don't fail creation if initial sync fails
+    except Exception as e:
+        sync_error = str(e)
 
-    return CalendarConnectionResponse.model_validate(conn)
+    resp = CalendarConnectionResponse.model_validate(conn)
+    result = resp.model_dump()
+    if sync_error:
+        result["sync_warning"] = f"Feed added but initial sync failed: {sync_error}"
+    return result
 
 
 @router.put("/connections/{conn_id}")
@@ -225,9 +230,13 @@ async def google_callback(
 
 async def _build_calendar_days(
     start: date, end: date, current_user: User, db: AsyncSession,
-    auto_sync: bool = True,
+    auto_sync: bool = True, detailed_chores: bool = False,
 ) -> tuple[list[dict], bool]:
-    """Return (days_list, google_available) for a date range."""
+    """Return (days_list, google_available) for a date range.
+
+    If detailed_chores=True, each day's chores include full per-child chore
+    lists with individual completion status (for the week view).
+    """
     from sqlalchemy import func
 
     # Auto-sync stale connections (>15 min old)
@@ -267,13 +276,14 @@ async def _build_calendar_days(
                 "source": conn.name if conn else "",
             })
 
-    # Fetch children + chore data
+    # Fetch children
     result = await db.execute(
         select(Child).where(Child.user_id == current_user.id).order_by(Child.display_order)
     )
     children = result.scalars().all()
 
-    chore_data = {}
+    # Fetch chore assignments per child
+    child_chores: dict[str, list] = {}  # child_id -> list of Chore objects
     for child in children:
         result = await db.execute(
             select(Chore)
@@ -283,32 +293,66 @@ async def _build_calendar_days(
                 Chore.frequency == "daily",
                 Chore.is_active == True,
             )
+            .order_by(Chore.time_of_day, Chore.title)
         )
-        chore_data[child.id] = {
-            "name": child.name,
-            "avatar_value": child.avatar_value,
-            "chore_count": len(result.scalars().all()),
-        }
+        child_chores[child.id] = result.scalars().all()
 
-    # Get completions in range
-    completion_counts = {}
-    for child in children:
-        result = await db.execute(
-            select(
-                ChoreCompletion.period_date,
-                func.count().label("cnt"),
+    # Get completions in range (detailed or counts)
+    if detailed_chores:
+        # Fetch individual completions for the week view
+        all_chore_ids = set()
+        for chores in child_chores.values():
+            for chore in chores:
+                all_chore_ids.add(chore.id)
+
+        # completions_map: (period_date, child_id, chore_id) -> completion
+        completions_detail: dict[tuple, object] = {}
+        if all_chore_ids:
+            for child in children:
+                result = await db.execute(
+                    select(ChoreCompletion).where(
+                        ChoreCompletion.child_id == child.id,
+                        ChoreCompletion.period_date >= start,
+                        ChoreCompletion.period_date <= end,
+                        ChoreCompletion.chore_id.in_(all_chore_ids),
+                    )
+                )
+                for comp in result.scalars().all():
+                    completions_detail[(comp.period_date, comp.child_id, comp.chore_id)] = comp
+
+                # Also check standalone completions from other children
+                standalone_ids = [c.id for c in child_chores.get(child.id, []) if c.assignment_type == "standalone"]
+                if standalone_ids:
+                    result = await db.execute(
+                        select(ChoreCompletion).where(
+                            ChoreCompletion.period_date >= start,
+                            ChoreCompletion.period_date <= end,
+                            ChoreCompletion.chore_id.in_(standalone_ids),
+                        )
+                    )
+                    for comp in result.scalars().all():
+                        key = (comp.period_date, child.id, comp.chore_id)
+                        if key not in completions_detail:
+                            completions_detail[key] = comp
+    else:
+        completion_counts = {}
+        for child in children:
+            result = await db.execute(
+                select(
+                    ChoreCompletion.period_date,
+                    func.count().label("cnt"),
+                )
+                .join(Chore, ChoreCompletion.chore_id == Chore.id)
+                .where(
+                    ChoreCompletion.child_id == child.id,
+                    ChoreCompletion.period_date >= start,
+                    ChoreCompletion.period_date <= end,
+                    Chore.frequency == "daily",
+                )
+                .group_by(ChoreCompletion.period_date)
             )
-            .join(Chore, ChoreCompletion.chore_id == Chore.id)
-            .where(
-                ChoreCompletion.child_id == child.id,
-                ChoreCompletion.period_date >= start,
-                ChoreCompletion.period_date <= end,
-                Chore.frequency == "daily",
-            )
-            .group_by(ChoreCompletion.period_date)
-        )
-        for row in result:
-            completion_counts[(row.period_date, child.id)] = row.cnt
+            for row in result:
+                completion_counts[(row.period_date, child.id)] = row.cnt
 
     # Fetch meal plan entries
     monday_of_start = start - timedelta(days=start.weekday())
@@ -354,17 +398,51 @@ async def _build_calendar_days(
                 ))
 
         day_chores = []
-        for child in children:
-            cd = chore_data.get(child.id, {})
-            total = cd.get("chore_count", 0)
-            done = completion_counts.get((d, child.id), 0)
-            if total > 0:
+        if detailed_chores:
+            # Full chore list per child with completion status
+            for child in children:
+                chores = child_chores.get(child.id, [])
+                if not chores:
+                    continue
+                chore_list = []
+                completed_count = 0
+                for chore in chores:
+                    comp = completions_detail.get((d, child.id, chore.id))
+                    is_done = comp is not None
+                    if is_done:
+                        completed_count += 1
+                    chore_list.append({
+                        "id": chore.id,
+                        "title": chore.title,
+                        "emoji": chore.emoji,
+                        "value": chore.value,
+                        "time_of_day": chore.time_of_day,
+                        "assignment_type": chore.assignment_type,
+                        "completed": is_done,
+                        "completion_id": comp.id if comp else None,
+                    })
                 day_chores.append({
-                    "child_name": cd.get("name", ""),
-                    "avatar_value": cd.get("avatar_value", ""),
-                    "completed": done,
-                    "total": total,
+                    "child_id": child.id,
+                    "child_name": child.name,
+                    "avatar_value": child.avatar_value,
+                    "token_icon": child.token_icon,
+                    "color": child.color,
+                    "chores": chore_list,
+                    "completed": completed_count,
+                    "total": len(chores),
                 })
+        else:
+            for child in children:
+                chores = child_chores.get(child.id, [])
+                total = len(chores)
+                done = completion_counts.get((d, child.id), 0)
+                if total > 0:
+                    day_chores.append({
+                        "child_name": child.name,
+                        "avatar_value": child.avatar_value,
+                        "completed": done,
+                        "total": total,
+                    })
 
         day_meals = meals_by_date.get(d, [])
 
@@ -399,7 +477,9 @@ async def calendar_week(
         start = today - timedelta(days=today.weekday())
     end = start + timedelta(days=6)
 
-    days, google_available = await _build_calendar_days(start, end, current_user, db)
+    days, google_available = await _build_calendar_days(
+        start, end, current_user, db, detailed_chores=True,
+    )
     return {
         "week_start": start.isoformat(),
         "week_end": end.isoformat(),

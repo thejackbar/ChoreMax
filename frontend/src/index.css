@@ -1508,11 +1508,32 @@ a { color: var(--primary); text-decoration: none; }
   gap: clamp(2px, 0.3vh, 4px);
 }
 
+/* Week view sections */
+.fc-week-section {
+  margin-bottom: clamp(3px, 0.5vh, 8px);
+}
+.fc-week-section-label {
+  font-size: clamp(0.55rem, 0.85vh, 0.7rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: clamp(2px, 0.3vh, 4px) 0;
+  border-bottom: 1px solid var(--glass-border);
+  margin-bottom: clamp(2px, 0.3vh, 4px);
+}
+.fc-week-section-label--clickable {
+  cursor: pointer;
+}
+.fc-week-section-label--clickable:hover {
+  color: var(--primary);
+}
+
 .fc-week-event {
   border-left: 3px solid var(--primary);
   padding: clamp(0.15rem, 0.3vh, 0.3rem) clamp(0.3rem, 0.4vh, 0.5rem);
   border-radius: 0 4px 4px 0;
   background: var(--glass-bg-strong);
+  margin-bottom: 2px;
 }
 .fc-week-event-title {
   font-size: clamp(0.65rem, 1vh, 0.8rem);
@@ -1529,40 +1550,86 @@ a { color: var(--primary); text-decoration: none; }
 .fc-week-meal {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.35rem;
   font-size: clamp(0.6rem, 1vh, 0.78rem);
-  padding: clamp(0.1rem, 0.2vh, 0.2rem) 0;
+  padding: clamp(0.15rem, 0.25vh, 0.25rem) clamp(0.2rem, 0.3vh, 0.35rem);
+  border-radius: 4px;
+  transition: background 0.15s;
 }
-.fc-week-meal-icon { font-size: clamp(0.7rem, 1vh, 0.85rem); }
-.fc-week-meal-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc-week-meal--clickable { cursor: pointer; }
+.fc-week-meal--clickable:hover { background: var(--glass-bg-strong); }
 .fc-week-meal-slot {
   text-transform: capitalize;
   font-weight: 600;
   color: var(--muted);
   font-size: clamp(0.55rem, 0.85vh, 0.68rem);
+  min-width: 2.5rem;
 }
-
-.fc-week-chore {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: clamp(0.6rem, 1vh, 0.78rem);
-  padding: clamp(0.1rem, 0.2vh, 0.2rem) 0;
-}
-.fc-week-chore-avatar { font-size: clamp(0.75rem, 1.1vh, 0.95rem); }
-.fc-week-chore-name {
-  flex: 1;
+.fc-week-meal-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 500;
 }
-.fc-week-chore-count {
+
+/* Chore child groups in week view */
+.fc-week-child {
+  margin-bottom: clamp(2px, 0.3vh, 5px);
+}
+.fc-week-child-header {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: clamp(0.1rem, 0.2vh, 0.2rem) 0;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.fc-week-child-header--clickable { cursor: pointer; }
+.fc-week-child-header--clickable:hover { background: var(--glass-bg-strong); }
+.fc-week-child-avatar { font-size: clamp(0.75rem, 1.1vh, 0.95rem); }
+.fc-week-child-name {
+  flex: 1;
+  font-size: clamp(0.6rem, 1vh, 0.78rem);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fc-week-child-count {
   font-weight: 700;
-  color: var(--secondary);
   font-size: clamp(0.6rem, 0.9vh, 0.75rem);
+  color: var(--secondary);
 }
-.fc-week-chore-count.done { color: var(--success); }
+.fc-week-child-count.done { color: var(--success); }
+
+/* Individual chore items (completable) */
+.fc-week-chore-list {
+  padding-left: clamp(0.5rem, 0.8vh, 1rem);
+}
+.fc-week-chore-item {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.15rem, 0.25vh, 0.3rem);
+  padding: clamp(0.1rem, 0.2vh, 0.2rem) clamp(0.15rem, 0.2vh, 0.25rem);
+  border: none;
+  background: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  border-radius: 4px;
+  transition: background 0.15s;
+  font-family: inherit;
+  color: inherit;
+}
+.fc-week-chore-item:hover { background: var(--glass-bg-strong); }
+.fc-week-chore-item--done { opacity: 0.5; }
+.fc-week-chore-check { font-size: clamp(0.6rem, 0.9vh, 0.78rem); flex-shrink: 0; }
+.fc-week-chore-emoji { font-size: clamp(0.6rem, 0.9vh, 0.78rem); flex-shrink: 0; }
+.fc-week-chore-text {
+  font-size: clamp(0.55rem, 0.85vh, 0.72rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .fc-week-empty {
   color: var(--muted);
@@ -1570,6 +1637,19 @@ a { color: var(--primary); text-decoration: none; }
   text-align: center;
   padding: 0.5rem;
   font-size: 0.8rem;
+}
+
+/* Clickable cards in month detail */
+.fc-chore-card--clickable,
+.fc-meal-card--clickable {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0.3rem;
+  transition: background 0.15s;
+}
+.fc-chore-card--clickable:hover,
+.fc-meal-card--clickable:hover {
+  background: var(--glass-bg);
 }
 
 /* ============================================================
