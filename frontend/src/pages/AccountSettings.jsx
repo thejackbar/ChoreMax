@@ -391,20 +391,18 @@ export default function AccountSettings() {
             </button>
             <button
               className="btn btn-outline"
-              onClick={() => {
-                // Open window immediately (in sync click context) to avoid popup blocker
-                const popup = window.open('about:blank', '_blank', 'width=500,height=600')
-                api.calendar.googleAuthUrl(pin).then(({ url }) => {
-                  if (popup) popup.location.href = url
-                  else window.location.href = url  // fallback if popup was blocked
-                }).catch((e) => {
-                  if (popup) popup.close()
+              onClick={async () => {
+                try {
+                  const { url } = await api.calendar.googleAuthUrl(pin)
+                  // Redirect in same tab - OAuth will redirect back to /parent/settings
+                  window.location.href = url
+                } catch (e) {
                   if (e.message.includes('not configured')) {
                     setError('Google Calendar is not configured on this server yet')
                   } else {
                     setError(e.message)
                   }
-                })
+                }
               }}
             >
               Connect Google Calendar
