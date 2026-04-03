@@ -42,7 +42,7 @@ def decrypt_token(encrypted: str) -> str:
 
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3"
-GOOGLE_SCOPES = "https://www.googleapis.com/auth/calendar.events"
+GOOGLE_SCOPES = "https://www.googleapis.com/auth/calendar"
 
 
 def get_google_auth_url(state: str = "") -> str:

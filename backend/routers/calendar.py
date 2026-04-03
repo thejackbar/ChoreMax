@@ -174,15 +174,20 @@ async def google_auth_url(current_user: User = Depends(require_pin)):
 async def google_callback(
     code: str = Query(...),
     state: str = Query(default=""),
+    error: str = Query(default=""),
     db: AsyncSession = Depends(get_db),
 ):
     """OAuth2 callback from Google. state = user_id."""
+    if error:
+        return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/settings?calendar_error={error}")
     if not settings.GOOGLE_CLIENT_ID:
-        raise HTTPException(501, "Google Calendar not configured")
+        return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/settings?calendar_error=not_configured")
 
     try:
         tokens = await exchange_google_code(code)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/settings?calendar_error=auth_failed")
 
     access_token = tokens["access_token"]
@@ -194,20 +199,25 @@ async def google_callback(
     except Exception:
         email = ""
 
-    # Create a pending connection (is_enabled=False, no calendar_id yet)
-    conn = CalendarConnection(
-        user_id=state,
-        provider="google",
-        name=f"Google ({email})" if email else "Google Calendar",
-        is_enabled=False,
-        google_access_token=encrypt_token(access_token),
-        google_refresh_token=encrypt_token(refresh_token) if refresh_token else None,
-        google_token_expiry=datetime.now(ZoneInfo("UTC")) + timedelta(seconds=expires_in),
-        google_email=email,
-        google_calendar_id=None,
-    )
-    db.add(conn)
-    await db.commit()
+    try:
+        # Create a pending connection (is_enabled=False, no calendar_id yet)
+        conn = CalendarConnection(
+            user_id=state,
+            provider="google",
+            name=f"Google ({email})" if email else "Google Calendar",
+            is_enabled=False,
+            google_access_token=encrypt_token(access_token),
+            google_refresh_token=encrypt_token(refresh_token) if refresh_token else None,
+            google_token_expiry=datetime.now(ZoneInfo("UTC")) + timedelta(seconds=expires_in),
+            google_email=email,
+            google_calendar_id=None,
+        )
+        db.add(conn)
+        await db.commit()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/settings?calendar_error=save_failed")
 
     return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/settings?google_pending={conn.id}")
 
@@ -230,9 +240,14 @@ async def list_google_calendars_endpoint(
     if not conn:
         raise HTTPException(404, "Connection not found")
 
-    access_token = await get_valid_google_token(conn, db)
-    calendars = await list_google_calendars(access_token)
-    return {"calendars": calendars}
+    try:
+        access_token = await get_valid_google_token(conn, db)
+        calendars = await list_google_calendars(access_token)
+        return {"calendars": calendars}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Failed to list calendars: {str(e)}")
 
 
 @router.post("/google/{conn_id}/select-calendars")
