@@ -25,6 +25,7 @@ import ShoppingList from './pages/ShoppingList'
 import TodoList from './pages/TodoList'
 import Wishlist from './pages/Wishlist'
 import MemberHub from './pages/MemberHub'
+import FamilyCalendar from './pages/FamilyCalendar'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -141,6 +142,7 @@ export default function App() {
               <Route path="/lists/shopping" element={<ShoppingList />} />
               <Route path="/lists/todos" element={<TodoList />} />
               <Route path="/lists/wishlist" element={<Wishlist />} />
+              <Route path="/calendar" element={<FamilyCalendar />} />
             </Route>
 
             {/* Parent-facing (PIN protected) */}

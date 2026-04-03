@@ -10,6 +10,12 @@ class Settings(BaseSettings):
     NODE_ENV: Literal["development", "production", "test"] = "development"
     FRONTEND_ORIGIN: str = "http://localhost:3000"
 
+    # Calendar integration (optional)
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = ""
+    CALENDAR_ENCRYPTION_KEY: str = ""  # Fernet key for encrypting OAuth tokens
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

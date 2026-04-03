@@ -36,6 +36,7 @@ class User(Base):
     reminder_setting = relationship("ReminderSetting", back_populates="user", uselist=False, cascade="all, delete-orphan")
     goal_activities = relationship("GoalActivity", back_populates="user", cascade="all, delete-orphan")
     todo_items = relationship("TodoItem", back_populates="user", cascade="all, delete-orphan")
+    calendar_connections = relationship("CalendarConnection", back_populates="user", cascade="all, delete-orphan")
 
 
 class Child(Base):
@@ -264,3 +265,47 @@ class ShoppingListCheck(Base):
     ingredient_unit: Mapped[str] = mapped_column(Text, nullable=False)
     checked: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     checked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class CalendarConnection(Base):
+    __tablename__ = "calendar_connections"
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    provider: Mapped[str] = mapped_column(Text, nullable=False)  # "google" or "ical"
+    name: Mapped[str] = mapped_column(Text, nullable=False)
+    color: Mapped[str] = mapped_column(Text, nullable=False, server_default="#3b82f6")
+    is_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+    # Google OAuth fields
+    google_access_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    google_refresh_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    google_token_expiry: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    google_email: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # iCal fields
+    ical_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    user = relationship("User", back_populates="calendar_connections")
+    events = relationship("CalendarEvent", back_populates="connection", cascade="all, delete-orphan")
+
+
+class CalendarEvent(Base):
+    __tablename__ = "calendar_events"
+    __table_args__ = (UniqueConstraint("connection_id", "external_id"),)
+
+    id: Mapped[str] = mapped_column(UUID(as_uuid=False), primary_key=True, default=_uuid)
+    connection_id: Mapped[str] = mapped_column(UUID(as_uuid=False), ForeignKey("calendar_connections.id", ondelete="CASCADE"), nullable=False, index=True)
+    external_id: Mapped[str] = mapped_column(Text, nullable=False)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    start_date: Mapped[datetime] = mapped_column(Date, nullable=False, index=True)
+    start_time: Mapped[time | None] = mapped_column(Time, nullable=True)
+    end_date: Mapped[datetime] = mapped_column(Date, nullable=False)
+    end_time: Mapped[time | None] = mapped_column(Time, nullable=True)
+    is_all_day: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    location: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    connection = relationship("CalendarConnection", back_populates="events")

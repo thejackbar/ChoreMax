@@ -83,6 +83,7 @@ from routers.meal_plans import router as meal_plans_router
 from routers.shopping_list import router as shopping_list_router
 from routers.todos import router as todos_router
 from routers.wishlists import router as wishlists_router
+from routers.calendar import router as calendar_router
 
 app.include_router(auth_router)
 app.include_router(children_router)
@@ -97,6 +98,7 @@ app.include_router(meal_plans_router)
 app.include_router(shopping_list_router)
 app.include_router(todos_router)
 app.include_router(wishlists_router)
+app.include_router(calendar_router)
 
 
 @app.get("/api/health")

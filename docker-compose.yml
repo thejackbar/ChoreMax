@@ -24,6 +24,10 @@ services:
       JWT_EXPIRY_DAYS: ${JWT_EXPIRY_DAYS:-7}
       NODE_ENV: ${NODE_ENV:-production}
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-https://choremax.bltbox.com}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
+      CALENDAR_ENCRYPTION_KEY: ${CALENDAR_ENCRYPTION_KEY:-}
     volumes:
       - uploads_data:/uploads
     depends_on:

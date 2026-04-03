@@ -449,3 +449,54 @@ class ShoppingListCheckRequest(BaseModel):
     ingredient_name: str
     ingredient_unit: str
     checked: bool
+
+
+# ---------------------------------------------------------------------------
+# Calendar
+# ---------------------------------------------------------------------------
+
+class CalendarConnectionCreate(BaseModel):
+    provider: Literal["google", "ical"]
+    name: str = Field(..., min_length=1, max_length=200)
+    color: str = "#3b82f6"
+    ical_url: str | None = None
+
+
+class CalendarConnectionUpdate(BaseModel):
+    name: str | None = None
+    color: str | None = None
+    is_enabled: bool | None = None
+    ical_url: str | None = None
+
+
+class CalendarConnectionResponse(OrmBase):
+    id: str
+    provider: str
+    name: str
+    color: str
+    is_enabled: bool
+    google_email: str | None = None
+    ical_url: str | None = None
+    last_synced_at: datetime | None = None
+    created_at: datetime
+
+
+class CalendarEventResponse(BaseModel):
+    id: str
+    title: str
+    description: str | None = None
+    start_date: date
+    start_time: str | None = None
+    end_date: date
+    end_time: str | None = None
+    is_all_day: bool = False
+    location: str | None = None
+    color: str = "#3b82f6"
+    source: str = ""  # connection name
+
+
+class CalendarDayResponse(BaseModel):
+    date: date
+    events: list[CalendarEventResponse] = []
+    chores: list[dict] = []
+    meals: list[dict] = []

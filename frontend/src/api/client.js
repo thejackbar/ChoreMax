@@ -133,6 +133,15 @@ export const api = {
     toggle: (id, pin) => withPin('POST', `/wishlists/${id}/toggle`, null, pin),
     delete: (id, pin) => withPin('DELETE', `/wishlists/${id}`, null, pin),
   },
+  calendar: {
+    connections: () => request('GET', '/calendar/connections'),
+    addConnection: (data, pin) => withPin('POST', '/calendar/connections', data, pin),
+    updateConnection: (id, data, pin) => withPin('PUT', `/calendar/connections/${id}`, data, pin),
+    deleteConnection: (id, pin) => withPin('DELETE', `/calendar/connections/${id}`, null, pin),
+    syncConnection: (id, pin) => withPin('POST', `/calendar/connections/${id}/sync`, null, pin),
+    googleAuthUrl: (pin) => withPin('GET', '/calendar/google/auth-url', null, pin),
+    month: (year, month) => request('GET', `/calendar/month?year=${year}&month=${month}`),
+  },
   shoppingList: {
     get: (weekStart) => request('GET', `/shopping-list?week_start=${weekStart}`),
     check: (data) => request('POST', '/shopping-list/check', data),

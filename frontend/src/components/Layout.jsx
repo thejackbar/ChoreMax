@@ -115,12 +115,11 @@ export default function Layout() {
 
         <div className="sidebar-divider" />
 
-        {/* Calendar coming soon */}
+        {/* Calendar */}
         <div className="sidebar-section">
-          <div className="sidebar-link sidebar-link--disabled">
+          <NavLink to="/calendar" className={navLinkClass} onClick={closeSidebar}>
             <span className="sidebar-icon">&#x1F4C5;</span> Calendar
-            <span className="sidebar-badge">Soon</span>
-          </div>
+          </NavLink>
         </div>
 
         {/* Spacer pushes settings to bottom */}
