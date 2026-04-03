@@ -1,6 +1,6 @@
 """Calendar sync helpers for Google Calendar and iCal feeds."""
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -174,21 +174,21 @@ async def _upsert_google_events(connection_id: str, items: list[dict], db: Async
 
         if "date" in start:
             # All-day event
-            start_date = start["date"]
+            start_date = date.fromisoformat(start["date"])
             start_time = None
-            end_date = end.get("date", start_date)
+            end_date = date.fromisoformat(end.get("date", start["date"]))
             end_time = None
             is_all_day = True
         else:
             # Timed event
             dt_str = start.get("dateTime", "")
             dt = datetime.fromisoformat(dt_str)
-            start_date = dt.date().isoformat()
-            start_time = dt.strftime("%H:%M:%S")
+            start_date = dt.date()
+            start_time = dt.time().replace(tzinfo=None)
             edt_str = end.get("dateTime", dt_str)
             edt = datetime.fromisoformat(edt_str)
-            end_date = edt.date().isoformat()
-            end_time = edt.strftime("%H:%M:%S")
+            end_date = edt.date()
+            end_time = edt.time().replace(tzinfo=None)
             is_all_day = False
 
         stmt = pg_insert(CalendarEvent).values(
@@ -265,9 +265,9 @@ async def sync_ical_connection(conn: CalendarConnection, db: AsyncSession, timez
                 if hasattr(dtend_val, "hour") and dtend_val.tzinfo:
                     dtend_val = dtend_val.astimezone(tz)
             s_date = dtstart_val.date()
-            s_time = dtstart_val.strftime("%H:%M:%S")
+            s_time = dtstart_val.time().replace(tzinfo=None)
             e_date = dtend_val.date() if hasattr(dtend_val, "hour") else dtend_val
-            e_time = dtend_val.strftime("%H:%M:%S") if hasattr(dtend_val, "hour") else None
+            e_time = dtend_val.time().replace(tzinfo=None) if hasattr(dtend_val, "hour") else None
             is_all_day = False
         else:
             # It's a date (all-day)
@@ -285,9 +285,9 @@ async def sync_ical_connection(conn: CalendarConnection, db: AsyncSession, timez
             "uid": uid,
             "title": str(component.get("summary", "(No title)")),
             "description": str(component.get("description", "")) or None,
-            "start_date": s_date.isoformat(),
+            "start_date": s_date,
             "start_time": s_time,
-            "end_date": e_date.isoformat(),
+            "end_date": e_date,
             "end_time": e_time,
             "is_all_day": is_all_day,
             "location": str(component.get("location", "")) or None,
