@@ -1420,6 +1420,315 @@ a { color: var(--primary); text-decoration: none; }
   font-style: italic;
 }
 
+/* View toggle */
+.fc-view-toggle {
+  display: flex;
+  gap: 2px;
+  margin-bottom: clamp(0.5rem, 1vh, 1rem);
+  background: var(--glass-bg);
+  border-radius: var(--r);
+  padding: 3px;
+  width: fit-content;
+}
+.fc-view-btn {
+  background: none;
+  border: none;
+  padding: 0.35rem 1rem;
+  border-radius: calc(var(--r) - 2px);
+  font-size: clamp(0.75rem, 1.2vh, 0.9rem);
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.2s;
+}
+.fc-view-btn.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* ============================================================
+   Week View
+   ============================================================ */
+
+.fc-week {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: clamp(3px, 0.4vh, 6px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.fc-week-day {
+  display: flex;
+  flex-direction: column;
+  background: var(--glass-bg);
+  border-radius: var(--r);
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+  min-height: 0;
+}
+.fc-week-day--today {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+.fc-week-day--past { opacity: 0.6; }
+
+.fc-week-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: clamp(0.3rem, 0.6vh, 0.6rem) clamp(0.4rem, 0.6vh, 0.75rem);
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg-strong);
+}
+.fc-week-day-name {
+  font-weight: 700;
+  font-size: clamp(0.65rem, 1.1vh, 0.85rem);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.fc-week-day-num {
+  font-size: clamp(0.7rem, 1.2vh, 0.9rem);
+  font-weight: 600;
+}
+.fc-week-day-num--today {
+  background: var(--primary);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+}
+
+.fc-week-day-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: clamp(0.25rem, 0.4vh, 0.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2px, 0.3vh, 4px);
+}
+
+.fc-week-event {
+  border-left: 3px solid var(--primary);
+  padding: clamp(0.15rem, 0.3vh, 0.3rem) clamp(0.3rem, 0.4vh, 0.5rem);
+  border-radius: 0 4px 4px 0;
+  background: var(--glass-bg-strong);
+}
+.fc-week-event-title {
+  font-size: clamp(0.65rem, 1vh, 0.8rem);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fc-week-event-time {
+  font-size: clamp(0.55rem, 0.85vh, 0.7rem);
+  color: var(--muted);
+}
+
+.fc-week-meal {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: clamp(0.6rem, 1vh, 0.78rem);
+  padding: clamp(0.1rem, 0.2vh, 0.2rem) 0;
+}
+.fc-week-meal-icon { font-size: clamp(0.7rem, 1vh, 0.85rem); }
+.fc-week-meal-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc-week-meal-slot {
+  text-transform: capitalize;
+  font-weight: 600;
+  color: var(--muted);
+  font-size: clamp(0.55rem, 0.85vh, 0.68rem);
+}
+
+.fc-week-chore {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: clamp(0.6rem, 1vh, 0.78rem);
+  padding: clamp(0.1rem, 0.2vh, 0.2rem) 0;
+}
+.fc-week-chore-avatar { font-size: clamp(0.75rem, 1.1vh, 0.95rem); }
+.fc-week-chore-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.fc-week-chore-count {
+  font-weight: 700;
+  color: var(--secondary);
+  font-size: clamp(0.6rem, 0.9vh, 0.75rem);
+}
+.fc-week-chore-count.done { color: var(--success); }
+
+.fc-week-empty {
+  color: var(--muted);
+  opacity: 0.4;
+  text-align: center;
+  padding: 0.5rem;
+  font-size: 0.8rem;
+}
+
+/* ============================================================
+   Hub Week Preview
+   ============================================================ */
+
+.hub-week {
+  margin-top: 1.5rem;
+}
+.hub-week-title {
+  font-family: var(--font-heading);
+  font-size: clamp(1rem, 2vh, 1.3rem);
+  margin-bottom: 0.75rem;
+}
+.hub-week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.hub-week-day {
+  background: var(--glass-bg);
+  border-radius: var(--r);
+  border: 1px solid var(--glass-border);
+  padding: clamp(0.3rem, 0.5vh, 0.5rem);
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: clamp(4rem, 8vh, 7rem);
+  display: flex;
+  flex-direction: column;
+}
+.hub-week-day:hover { background: var(--glass-bg-strong); }
+.hub-week-day--today {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+}
+.hub-week-day--past { opacity: 0.5; }
+
+.hub-week-day-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.3rem;
+}
+.hub-week-day-name {
+  font-size: clamp(0.6rem, 1vh, 0.75rem);
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.hub-week-day-num {
+  font-size: clamp(0.7rem, 1.2vh, 0.9rem);
+  font-weight: 600;
+}
+
+.hub-week-day-items {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hub-week-chore {
+  font-size: clamp(0.6rem, 0.9vh, 0.75rem);
+  font-weight: 600;
+}
+.hub-week-chore.done { color: var(--success); }
+.hub-week-event {
+  font-size: clamp(0.55rem, 0.85vh, 0.7rem);
+  border-left: 2px solid var(--primary);
+  padding-left: 0.3rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hub-week-meal {
+  font-size: clamp(0.55rem, 0.85vh, 0.7rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hub-week-more {
+  font-size: clamp(0.5rem, 0.8vh, 0.65rem);
+  color: var(--muted);
+}
+.hub-week-empty {
+  color: var(--muted);
+  opacity: 0.3;
+  text-align: center;
+  font-size: 0.7rem;
+}
+
+/* ============================================================
+   Calendar Connection Settings
+   ============================================================ */
+
+.cal-conn-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--glass-bg);
+  border-radius: var(--r);
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--glass-border);
+}
+.cal-conn-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cal-conn-info { flex: 1; min-width: 0; }
+.cal-conn-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cal-conn-sync {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.cal-conn-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Toggle switch */
+.cal-conn-toggle {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+}
+.cal-conn-toggle input { opacity: 0; width: 0; height: 0; }
+.cal-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: var(--muted);
+  border-radius: 20px;
+  transition: 0.3s;
+}
+.cal-toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  left: 2px;
+  bottom: 2px;
+  background: #fff;
+  border-radius: 50%;
+  transition: 0.3s;
+}
+.cal-conn-toggle input:checked + .cal-toggle-slider { background: var(--success); }
+.cal-conn-toggle input:checked + .cal-toggle-slider::before { transform: translateX(16px); }
+
 /* Responsive */
 @media (max-width: 768px) {
   .app-layout { height: auto; overflow: visible; }
@@ -1447,11 +1756,25 @@ a { color: var(--primary); text-decoration: none; }
   /* Calendar mobile */
   .fc-page { overflow: visible; }
   .fc-body { flex-direction: column; overflow: visible; }
-  .fc-detail {
-    width: 100%;
-    max-height: none;
-  }
+  .fc-detail { width: 100%; max-height: none; }
   .fc-grid-area { flex: none; }
+  .fc-week {
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+  .fc-week-day { flex-direction: row; min-height: auto; }
+  .fc-week-day-header {
+    flex-direction: column;
+    min-width: 3.5rem;
+    border-bottom: none;
+    border-right: 1px solid var(--glass-border);
+    justify-content: center;
+    align-items: center;
+  }
+  .fc-week-day-body { flex-direction: row; flex-wrap: wrap; }
+  .hub-week-grid { grid-template-columns: repeat(7, 1fr); }
+  .cal-conn-row { flex-wrap: wrap; }
+  .cal-conn-actions { width: 100%; justify-content: flex-end; }
 }
 
 @media (max-width: 480px) {

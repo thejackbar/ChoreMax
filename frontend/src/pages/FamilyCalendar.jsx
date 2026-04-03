@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client'
 import { getAvatarEmoji } from '../data/avatars'
 
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const WEEKDAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const WEEKDAYS_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -13,19 +14,53 @@ function getToday() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+function toDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function getMonday(dateStr) {
+  const d = dateStr ? new Date(dateStr + 'T00:00:00') : new Date()
+  const day = d.getDay()
+  const diff = day === 0 ? -6 : 1 - day
+  d.setDate(d.getDate() + diff)
+  return toDateStr(d)
+}
+
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T00:00:00')
+  d.setDate(d.getDate() + n)
+  return toDateStr(d)
+}
+
+function formatWeekRange(weekStart) {
+  const s = new Date(weekStart + 'T00:00:00')
+  const e = new Date(weekStart + 'T00:00:00')
+  e.setDate(e.getDate() + 6)
+  const sMonth = s.toLocaleDateString('en-AU', { month: 'short' })
+  const eMonth = e.toLocaleDateString('en-AU', { month: 'short' })
+  if (sMonth === eMonth) {
+    return `${s.getDate()} - ${e.getDate()} ${sMonth} ${s.getFullYear()}`
+  }
+  return `${s.getDate()} ${sMonth} - ${e.getDate()} ${eMonth} ${s.getFullYear()}`
+}
+
 export default function FamilyCalendar() {
-  const today = new Date()
-  const [year, setYear] = useState(today.getFullYear())
-  const [month, setMonth] = useState(today.getMonth() + 1) // 1-indexed
+  const [view, setView] = useState('week') // 'week' or 'month'
+  const [weekStart, setWeekStart] = useState(getMonday())
+  const [monthYear, setMonthYear] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() + 1 })
   const [days, setDays] = useState([])
-  const [selectedDay, setSelectedDay] = useState(null)
   const [loading, setLoading] = useState(true)
   const [googleAvailable, setGoogleAvailable] = useState(false)
 
-  const fetchMonth = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await api.calendar.month(year, month)
+      let data
+      if (view === 'week') {
+        data = await api.calendar.week(weekStart)
+      } else {
+        data = await api.calendar.month(monthYear.year, monthYear.month)
+      }
       setDays(data.days || [])
       setGoogleAvailable(data.google_available || false)
     } catch (e) {
@@ -33,35 +68,138 @@ export default function FamilyCalendar() {
     } finally {
       setLoading(false)
     }
-  }, [year, month])
+  }, [view, weekStart, monthYear])
 
-  useEffect(() => { fetchMonth() }, [fetchMonth])
+  useEffect(() => { fetchData() }, [fetchData])
 
-  const prevMonth = () => {
-    if (month === 1) { setMonth(12); setYear(y => y - 1) }
-    else setMonth(m => m - 1)
-    setSelectedDay(null)
-  }
-  const nextMonth = () => {
-    if (month === 12) { setMonth(1); setYear(y => y + 1) }
-    else setMonth(m => m + 1)
-    setSelectedDay(null)
-  }
-  const goToToday = () => {
-    const t = new Date()
-    setYear(t.getFullYear())
-    setMonth(t.getMonth() + 1)
-    setSelectedDay(null)
-  }
+  // Week navigation
+  const prevWeek = () => setWeekStart(addDays(weekStart, -7))
+  const nextWeek = () => setWeekStart(addDays(weekStart, 7))
+  const goThisWeek = () => setWeekStart(getMonday())
 
-  // Build calendar grid (Monday start)
-  const firstDayOfMonth = new Date(year, month - 1, 1).getDay()
-  const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1 // Mon=0
-  const daysInMonth = new Date(year, month, 0).getDate()
+  // Month navigation
+  const prevMonth = () => setMonthYear(p => p.month === 1 ? { year: p.year - 1, month: 12 } : { ...p, month: p.month - 1 })
+  const nextMonth = () => setMonthYear(p => p.month === 12 ? { year: p.year + 1, month: 1 } : { ...p, month: p.month + 1 })
+  const goThisMonth = () => { const t = new Date(); setMonthYear({ year: t.getFullYear(), month: t.getMonth() + 1 }) }
+
   const todayStr = getToday()
+  const currentMonday = getMonday()
+  const isCurrentWeek = weekStart === currentMonday
+  const isCurrentMonth = monthYear.year === new Date().getFullYear() && monthYear.month === new Date().getMonth() + 1
 
+  return (
+    <div className="fc-page">
+      {/* Header */}
+      <div className="fc-header">
+        <button className="fc-nav-btn" onClick={view === 'week' ? prevWeek : prevMonth}>&lsaquo;</button>
+        <div className="fc-header-center">
+          <h2 className="fc-title">
+            {view === 'week' ? formatWeekRange(weekStart) : `${MONTHS[monthYear.month - 1]} ${monthYear.year}`}
+          </h2>
+          {((view === 'week' && !isCurrentWeek) || (view === 'month' && !isCurrentMonth)) && (
+            <button className="fc-today-btn" onClick={view === 'week' ? goThisWeek : goThisMonth}>Today</button>
+          )}
+        </div>
+        <button className="fc-nav-btn" onClick={view === 'week' ? nextWeek : nextMonth}>&rsaquo;</button>
+      </div>
+
+      {/* View toggle */}
+      <div className="fc-view-toggle">
+        <button className={`fc-view-btn ${view === 'week' ? 'active' : ''}`} onClick={() => setView('week')}>Week</button>
+        <button className={`fc-view-btn ${view === 'month' ? 'active' : ''}`} onClick={() => setView('month')}>Month</button>
+      </div>
+
+      {loading ? (
+        <div className="fc-loading">Loading calendar...</div>
+      ) : view === 'week' ? (
+        <WeekView days={days} todayStr={todayStr} />
+      ) : (
+        <MonthView days={days} todayStr={todayStr} year={monthYear.year} month={monthYear.month} />
+      )}
+    </div>
+  )
+}
+
+
+// ============================================================
+// Week View - 7 column layout with inline events/chores/meals
+// ============================================================
+
+function WeekView({ days, todayStr }) {
   const dayMap = {}
   days.forEach(d => { dayMap[d.date] = d })
+
+  return (
+    <div className="fc-week">
+      {WEEKDAYS_FULL.map((dayName, i) => {
+        const dateStr = days[i]?.date
+        if (!dateStr) return null
+        const data = dayMap[dateStr] || { events: [], chores: [], meals: [] }
+        const d = new Date(dateStr + 'T00:00:00')
+        const isToday = dateStr === todayStr
+        const isPast = dateStr < todayStr
+        const dayNum = d.getDate()
+        const monthShort = d.toLocaleDateString('en-AU', { month: 'short' })
+
+        return (
+          <div key={dateStr} className={`fc-week-day ${isToday ? 'fc-week-day--today' : ''} ${isPast ? 'fc-week-day--past' : ''}`}>
+            <div className="fc-week-day-header">
+              <span className="fc-week-day-name">{WEEKDAYS_SHORT[i]}</span>
+              <span className={`fc-week-day-num ${isToday ? 'fc-week-day-num--today' : ''}`}>{dayNum} {monthShort}</span>
+            </div>
+            <div className="fc-week-day-body">
+              {/* Events */}
+              {data.events.map((ev, j) => (
+                <div key={j} className="fc-week-event" style={{ borderLeftColor: ev.color }}>
+                  <div className="fc-week-event-title">{ev.title}</div>
+                  {!ev.is_all_day && ev.start_time && (
+                    <div className="fc-week-event-time">{ev.start_time}{ev.end_time ? ` - ${ev.end_time}` : ''}</div>
+                  )}
+                  {ev.is_all_day && <div className="fc-week-event-time">All day</div>}
+                </div>
+              ))}
+              {/* Meals */}
+              {data.meals.map((m, j) => (
+                <div key={`m${j}`} className="fc-week-meal">
+                  <span className="fc-week-meal-icon">&#x1F37D;&#xFE0F;</span>
+                  <span className="fc-week-meal-text">
+                    <span className="fc-week-meal-slot">{m.slot}</span> {m.meal_name}
+                  </span>
+                </div>
+              ))}
+              {/* Chores */}
+              {data.chores.map((ch, j) => (
+                <div key={`c${j}`} className="fc-week-chore">
+                  <span className="fc-week-chore-avatar">{getAvatarEmoji(ch.avatar_value)}</span>
+                  <span className="fc-week-chore-name">{ch.child_name}</span>
+                  <span className={`fc-week-chore-count ${ch.completed >= ch.total ? 'done' : ''}`}>
+                    {ch.completed}/{ch.total}
+                  </span>
+                </div>
+              ))}
+              {data.events.length === 0 && data.meals.length === 0 && data.chores.length === 0 && (
+                <div className="fc-week-empty">-</div>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+
+// ============================================================
+// Month View - compact grid with dots
+// ============================================================
+
+function MonthView({ days, todayStr, year, month }) {
+  const dayMap = {}
+  days.forEach(d => { dayMap[d.date] = d })
+
+  const firstDayOfMonth = new Date(year, month - 1, 1).getDay()
+  const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1
+  const daysInMonth = new Date(year, month, 0).getDate()
 
   const cells = []
   for (let i = 0; i < startOffset; i++) {
@@ -71,10 +209,7 @@ export default function FamilyCalendar() {
     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`
     const data = dayMap[dateStr]
     cells.push({
-      empty: false,
-      key: dateStr,
-      day: d,
-      dateStr,
+      empty: false, key: dateStr, day: d, dateStr,
       isToday: dateStr === todayStr,
       events: data?.events || [],
       chores: data?.chores || [],
@@ -82,93 +217,57 @@ export default function FamilyCalendar() {
     })
   }
 
+  const [selectedDay, setSelectedDay] = useState(null)
   const selectedData = selectedDay ? dayMap[selectedDay] : null
 
   return (
-    <div className="fc-page">
-      {/* Header */}
-      <div className="fc-header">
-        <button className="fc-nav-btn" onClick={prevMonth}>&lsaquo;</button>
-        <div className="fc-header-center">
-          <h2 className="fc-title">{MONTHS[month - 1]} {year}</h2>
-          {(year !== today.getFullYear() || month !== today.getMonth() + 1) && (
-            <button className="fc-today-btn" onClick={goToToday}>Today</button>
-          )}
+    <div className="fc-body">
+      <div className="fc-grid-area">
+        <div className="fc-weekdays">
+          {WEEKDAYS_SHORT.map(w => <div key={w} className="fc-weekday">{w}</div>)}
         </div>
-        <button className="fc-nav-btn" onClick={nextMonth}>&rsaquo;</button>
+        <div className="fc-grid">
+          {cells.map(cell => (
+            <div
+              key={cell.key}
+              className={[
+                'fc-cell', cell.empty && 'fc-cell--empty',
+                cell.isToday && 'fc-cell--today',
+                selectedDay === cell.dateStr && 'fc-cell--selected',
+              ].filter(Boolean).join(' ')}
+              onClick={() => !cell.empty && setSelectedDay(cell.dateStr === selectedDay ? null : cell.dateStr)}
+            >
+              {!cell.empty && (
+                <>
+                  <span className="fc-day-num">{cell.day}</span>
+                  <div className="fc-cell-dots">
+                    {cell.events.slice(0, 3).map((ev, i) => (
+                      <span key={i} className="fc-dot" style={{ background: ev.color }} />
+                    ))}
+                    {cell.events.length > 3 && <span className="fc-dot-more">+{cell.events.length - 3}</span>}
+                    {cell.chores.length > 0 && (() => {
+                      const done = cell.chores.reduce((s, c) => s + c.completed, 0)
+                      const total = cell.chores.reduce((s, c) => s + c.total, 0)
+                      const allDone = total > 0 && done >= total
+                      return <span className={`fc-chore-dot ${allDone ? 'fc-chore-done' : done > 0 ? 'fc-chore-partial' : 'fc-chore-none'}`} />
+                    })()}
+                    {cell.meals.length > 0 && <span className="fc-meal-dot" />}
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="fc-legend">
+          <span className="fc-legend-item"><span className="fc-dot" style={{ background: '#3b82f6' }} /> Events</span>
+          <span className="fc-legend-item"><span className="fc-chore-dot fc-chore-done" /> Chores done</span>
+          <span className="fc-legend-item"><span className="fc-chore-dot fc-chore-partial" /> Chores partial</span>
+          <span className="fc-legend-item"><span className="fc-meal-dot" /> Meals</span>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="fc-loading">Loading calendar...</div>
-      ) : (
-        <div className="fc-body">
-          {/* Calendar grid */}
-          <div className="fc-grid-area">
-            <div className="fc-weekdays">
-              {WEEKDAYS.map(w => <div key={w} className="fc-weekday">{w}</div>)}
-            </div>
-            <div className="fc-grid">
-              {cells.map(cell => (
-                <div
-                  key={cell.key}
-                  className={[
-                    'fc-cell',
-                    cell.empty && 'fc-cell--empty',
-                    cell.isToday && 'fc-cell--today',
-                    selectedDay === cell.dateStr && 'fc-cell--selected',
-                  ].filter(Boolean).join(' ')}
-                  onClick={() => !cell.empty && setSelectedDay(cell.dateStr === selectedDay ? null : cell.dateStr)}
-                >
-                  {!cell.empty && (
-                    <>
-                      <span className="fc-day-num">{cell.day}</span>
-                      <div className="fc-cell-dots">
-                        {/* Event dots */}
-                        {cell.events.slice(0, 3).map((ev, i) => (
-                          <span key={i} className="fc-dot" style={{ background: ev.color }} title={ev.title} />
-                        ))}
-                        {cell.events.length > 3 && (
-                          <span className="fc-dot-more">+{cell.events.length - 3}</span>
-                        )}
-                        {/* Chore indicators */}
-                        {cell.chores.length > 0 && (() => {
-                          const totalDone = cell.chores.reduce((s, c) => s + c.completed, 0)
-                          const totalAll = cell.chores.reduce((s, c) => s + c.total, 0)
-                          const allDone = totalAll > 0 && totalDone >= totalAll
-                          const someDone = totalDone > 0 && !allDone
-                          return (
-                            <span className={`fc-chore-dot ${allDone ? 'fc-chore-done' : someDone ? 'fc-chore-partial' : 'fc-chore-none'}`} />
-                          )
-                        })()}
-                        {/* Meal indicator */}
-                        {cell.meals.length > 0 && (
-                          <span className="fc-meal-dot" title={cell.meals.map(m => m.meal_name).join(', ')} />
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Legend */}
-            <div className="fc-legend">
-              <span className="fc-legend-item"><span className="fc-dot" style={{ background: '#3b82f6' }} /> Events</span>
-              <span className="fc-legend-item"><span className="fc-chore-dot fc-chore-done" /> Chores done</span>
-              <span className="fc-legend-item"><span className="fc-chore-dot fc-chore-partial" /> Chores partial</span>
-              <span className="fc-legend-item"><span className="fc-meal-dot" /> Meals</span>
-            </div>
-          </div>
-
-          {/* Day detail panel */}
-          {selectedData && (
-            <DayDetail
-              dateStr={selectedDay}
-              data={selectedData}
-              onClose={() => setSelectedDay(null)}
-            />
-          )}
-        </div>
+      {selectedData && (
+        <DayDetail dateStr={selectedDay} data={selectedData} onClose={() => setSelectedDay(null)} />
       )}
     </div>
   )
@@ -185,20 +284,14 @@ function DayDetail({ dateStr, data, onClose }) {
         <h3>{label}</h3>
         <button className="fc-detail-close" onClick={onClose}>&times;</button>
       </div>
-
-      {/* Events */}
       {data.events.length > 0 && (
         <div className="fc-detail-section">
           <h4>Events</h4>
           {data.events.map((ev, i) => (
             <div key={i} className="fc-event-card" style={{ borderLeftColor: ev.color }}>
               <div className="fc-event-title">{ev.title}</div>
-              {ev.is_all_day ? (
-                <div className="fc-event-time">All day</div>
-              ) : ev.start_time && (
-                <div className="fc-event-time">
-                  {ev.start_time}{ev.end_time ? ` - ${ev.end_time}` : ''}
-                </div>
+              {ev.is_all_day ? <div className="fc-event-time">All day</div> : ev.start_time && (
+                <div className="fc-event-time">{ev.start_time}{ev.end_time ? ` - ${ev.end_time}` : ''}</div>
               )}
               {ev.location && <div className="fc-event-location">{ev.location}</div>}
               <div className="fc-event-source">{ev.source}</div>
@@ -206,8 +299,6 @@ function DayDetail({ dateStr, data, onClose }) {
           ))}
         </div>
       )}
-
-      {/* Chores */}
       {data.chores.length > 0 && (
         <div className="fc-detail-section">
           <h4>Chores</h4>
@@ -215,15 +306,11 @@ function DayDetail({ dateStr, data, onClose }) {
             <div key={i} className="fc-chore-card">
               <span className="fc-chore-avatar">{getAvatarEmoji(ch.avatar_value)}</span>
               <span className="fc-chore-name">{ch.child_name}</span>
-              <span className={`fc-chore-count ${ch.completed >= ch.total ? 'fc-chore-count--done' : ''}`}>
-                {ch.completed}/{ch.total}
-              </span>
+              <span className={`fc-chore-count ${ch.completed >= ch.total ? 'fc-chore-count--done' : ''}`}>{ch.completed}/{ch.total}</span>
             </div>
           ))}
         </div>
       )}
-
-      {/* Meals */}
       {data.meals.length > 0 && (
         <div className="fc-detail-section">
           <h4>Meals</h4>
@@ -235,7 +322,6 @@ function DayDetail({ dateStr, data, onClose }) {
           ))}
         </div>
       )}
-
       {data.events.length === 0 && data.chores.length === 0 && data.meals.length === 0 && (
         <div className="fc-detail-empty">Nothing scheduled</div>
       )}

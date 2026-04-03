@@ -140,6 +140,7 @@ export const api = {
     deleteConnection: (id, pin) => withPin('DELETE', `/calendar/connections/${id}`, null, pin),
     syncConnection: (id, pin) => withPin('POST', `/calendar/connections/${id}/sync`, null, pin),
     googleAuthUrl: (pin) => withPin('GET', '/calendar/google/auth-url', null, pin),
+    week: (weekStart) => request('GET', `/calendar/week` + (weekStart ? `?week_start=${weekStart}` : '')),
     month: (year, month) => request('GET', `/calendar/month?year=${year}&month=${month}`),
   },
   shoppingList: {

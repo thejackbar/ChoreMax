@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import { CURRENCIES } from '../data/currencies'
 import ThemeSelector, { getStoredTheme, applyTheme } from '../components/ThemeSelector'
 
+const FEED_COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316']
+
 export default function AccountSettings() {
   const { user, refreshUser } = useAuth()
   const pin = sessionStorage.getItem('parentPin')
@@ -24,6 +26,14 @@ export default function AccountSettings() {
   const [eveningEnabled, setEveningEnabled] = useState(true)
   const [eveningTime, setEveningTime] = useState('18:00')
 
+  // Calendar connections
+  const [calConns, setCalConns] = useState([])
+  const [showAddIcal, setShowAddIcal] = useState(false)
+  const [icalName, setIcalName] = useState('')
+  const [icalUrl, setIcalUrl] = useState('')
+  const [icalColor, setIcalColor] = useState('#3b82f6')
+  const [calLoading, setCalLoading] = useState(false)
+
   useEffect(() => {
     api.settings.getReminders().then(r => {
       setMorningEnabled(r.morning_enabled)
@@ -31,6 +41,8 @@ export default function AccountSettings() {
       setEveningEnabled(r.evening_enabled)
       setEveningTime(r.evening_time?.slice(0, 5) || '18:00')
     }).catch(() => {})
+    // Load calendar connections
+    api.calendar.connections().then(setCalConns).catch(() => {})
   }, [])
 
   const TIMEZONES = [
@@ -218,6 +230,180 @@ export default function AccountSettings() {
           </div>
           <button className="btn btn-primary" type="submit">Save Reminders</button>
         </form>
+      </div>
+
+      {/* Calendar Feeds */}
+      <div className="card mb-lg">
+        <h3 className="mb-md">Calendar Feeds</h3>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', fontSize: '0.9rem' }}>
+          Connect external calendars to see events on the family calendar. Add iCal feeds from Google Calendar, Apple Calendar, Outlook, or any other calendar app.
+        </p>
+
+        {/* Existing connections */}
+        {calConns.length > 0 && (
+          <div style={{ marginBottom: '1rem' }}>
+            {calConns.map(conn => (
+              <div key={conn.id} className="cal-conn-row">
+                <span className="cal-conn-color" style={{ background: conn.color }} />
+                <div className="cal-conn-info">
+                  <div className="cal-conn-name">
+                    {conn.provider === 'google' ? '\uD83D\uDD35' : '\uD83D\uDCC5'} {conn.name}
+                  </div>
+                  {conn.last_synced_at && (
+                    <div className="cal-conn-sync">
+                      Last synced: {new Date(conn.last_synced_at).toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                    </div>
+                  )}
+                </div>
+                <div className="cal-conn-actions">
+                  <label className="cal-conn-toggle" title={conn.is_enabled ? 'Enabled' : 'Disabled'}>
+                    <input
+                      type="checkbox"
+                      checked={conn.is_enabled}
+                      onChange={async () => {
+                        try {
+                          const updated = await api.calendar.updateConnection(conn.id, { is_enabled: !conn.is_enabled }, pin)
+                          setCalConns(prev => prev.map(c => c.id === conn.id ? updated : c))
+                        } catch {}
+                      }}
+                    />
+                    <span className="cal-toggle-slider" />
+                  </label>
+                  <button
+                    className="btn btn-sm btn-outline"
+                    onClick={async () => {
+                      setCalLoading(true)
+                      try {
+                        const updated = await api.calendar.syncConnection(conn.id, pin)
+                        setCalConns(prev => prev.map(c => c.id === conn.id ? updated : c))
+                        setMsg('Calendar synced!')
+                      } catch (e) {
+                        setError(e.message)
+                      } finally {
+                        setCalLoading(false)
+                      }
+                    }}
+                    disabled={calLoading}
+                  >
+                    {calLoading ? '...' : 'Sync'}
+                  </button>
+                  <button
+                    className="btn btn-sm btn-danger"
+                    onClick={async () => {
+                      if (!confirm('Remove this calendar feed?')) return
+                      try {
+                        await api.calendar.deleteConnection(conn.id, pin)
+                        setCalConns(prev => prev.filter(c => c.id !== conn.id))
+                        setMsg('Calendar removed')
+                      } catch (e) {
+                        setError(e.message)
+                      }
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Add iCal feed form */}
+        {showAddIcal ? (
+          <form onSubmit={async (e) => {
+            e.preventDefault()
+            setCalLoading(true)
+            setError(null)
+            try {
+              const newConn = await api.calendar.addConnection({
+                provider: 'ical',
+                name: icalName,
+                ical_url: icalUrl,
+                color: icalColor,
+              }, pin)
+              setCalConns(prev => [...prev, newConn])
+              setIcalName('')
+              setIcalUrl('')
+              setIcalColor('#3b82f6')
+              setShowAddIcal(false)
+              setMsg('Calendar feed added!')
+            } catch (e) {
+              setError(e.message)
+            } finally {
+              setCalLoading(false)
+            }
+          }}>
+            <div className="field">
+              <label>Feed Name</label>
+              <input
+                type="text"
+                placeholder="e.g. Mum's Calendar, School Events"
+                value={icalName}
+                onChange={e => setIcalName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="field">
+              <label>iCal URL (.ics)</label>
+              <input
+                type="url"
+                placeholder="https://calendar.google.com/calendar/ical/..."
+                value={icalUrl}
+                onChange={e => setIcalUrl(e.target.value)}
+                required
+              />
+              <small style={{ color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'block' }}>
+                Find this in your calendar app's sharing settings - look for "iCal" or ".ics" link
+              </small>
+            </div>
+            <div className="field">
+              <label>Colour</label>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {FEED_COLORS.map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setIcalColor(c)}
+                    style={{
+                      width: '2rem', height: '2rem', borderRadius: '50%', background: c,
+                      border: icalColor === c ? '3px solid var(--text-primary)' : '2px solid transparent',
+                      cursor: 'pointer',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button className="btn btn-primary" type="submit" disabled={calLoading}>
+                {calLoading ? 'Adding...' : 'Add Feed'}
+              </button>
+              <button className="btn btn-outline" type="button" onClick={() => setShowAddIcal(false)}>Cancel</button>
+            </div>
+          </form>
+        ) : (
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-primary" onClick={() => setShowAddIcal(true)}>
+              + Add iCal Feed
+            </button>
+            <button
+              className="btn btn-outline"
+              onClick={async () => {
+                try {
+                  const { url } = await api.calendar.googleAuthUrl(pin)
+                  window.open(url, '_blank', 'width=500,height=600')
+                } catch (e) {
+                  if (e.message.includes('not configured')) {
+                    setError('Google Calendar is not configured on this server yet')
+                  } else {
+                    setError(e.message)
+                  }
+                }
+              }}
+            >
+              Connect Google Calendar
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

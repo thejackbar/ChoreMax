@@ -6,18 +6,28 @@ import { formatTokens } from '../data/tokenIcons'
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+function getToday() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default function MemberHub() {
   const { childId } = useParams()
   const { children, activeChild, setActiveChild } = useChild()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [summary, setSummary] = useState(null)
+  const [weekDays, setWeekDays] = useState([])
 
   const child = children.find(c => c.id === childId) || activeChild
 
   useEffect(() => {
     if (!childId) return
     api.dashboard.child(childId).then(d => setSummary(d)).catch(() => {})
+    // Fetch this week's calendar for the hub preview
+    api.calendar.week().then(data => setWeekDays(data.days || [])).catch(() => {})
   }, [childId])
 
   useEffect(() => {
@@ -30,6 +40,7 @@ export default function MemberHub() {
 
   const tokenIcon = child.token_icon || summary?.token_icon || 'star'
   const balance = summary?.token_balance ?? 0
+  const todayStr = getToday()
 
   return (
     <div className="hub-page">
@@ -79,7 +90,69 @@ export default function MemberHub() {
           <span className="hub-card-title">Wishlist</span>
           <span className="hub-card-meta">Things I want</span>
         </button>
+
+        <button className="hub-card" onClick={() => navigate('/calendar')}>
+          <span className="hub-card-icon">&#x1F4C5;</span>
+          <span className="hub-card-title">Calendar</span>
+          <span className="hub-card-meta">Family schedule</span>
+        </button>
       </div>
+
+      {/* This Week Preview */}
+      {weekDays.length > 0 && (
+        <div className="hub-week">
+          <h3 className="hub-week-title">This Week</h3>
+          <div className="hub-week-grid">
+            {weekDays.map((day, i) => {
+              const isToday = day.date === todayStr
+              const isPast = day.date < todayStr
+              const d = new Date(day.date + 'T00:00:00')
+              const hasContent = day.events.length > 0 || day.meals.length > 0
+              // Find this child's chore data
+              const myChores = day.chores.find(c => c.child_name === child.name)
+
+              return (
+                <div
+                  key={day.date}
+                  className={`hub-week-day ${isToday ? 'hub-week-day--today' : ''} ${isPast ? 'hub-week-day--past' : ''}`}
+                  onClick={() => navigate('/calendar')}
+                >
+                  <div className="hub-week-day-label">
+                    <span className="hub-week-day-name">{WEEKDAYS[i]}</span>
+                    <span className="hub-week-day-num">{d.getDate()}</span>
+                  </div>
+                  <div className="hub-week-day-items">
+                    {myChores && (
+                      <div className={`hub-week-chore ${myChores.completed >= myChores.total ? 'done' : ''}`}>
+                        {myChores.completed >= myChores.total ? '\u2705' : '\u2B55'} {myChores.completed}/{myChores.total}
+                      </div>
+                    )}
+                    {day.events.slice(0, 2).map((ev, j) => (
+                      <div key={j} className="hub-week-event" style={{ borderLeftColor: ev.color }}>
+                        {ev.title}
+                      </div>
+                    ))}
+                    {day.events.length > 2 && (
+                      <div className="hub-week-more">+{day.events.length - 2} more</div>
+                    )}
+                    {day.meals.slice(0, 1).map((m, j) => (
+                      <div key={j} className="hub-week-meal">
+                        &#x1F37D;&#xFE0F; {m.meal_name}
+                      </div>
+                    ))}
+                    {day.meals.length > 1 && (
+                      <div className="hub-week-more">+{day.meals.length - 1} meal{day.meals.length > 2 ? 's' : ''}</div>
+                    )}
+                    {!hasContent && !myChores && !isPast && (
+                      <div className="hub-week-empty">-</div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <button className="btn btn-outline btn-sm mt-lg" onClick={() => navigate('/')}>
         &larr; Back to Family

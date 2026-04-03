@@ -220,25 +220,17 @@ async def google_callback(
 
 
 # ---------------------------------------------------------------------------
-# Combined calendar data
+# Shared helper: build combined calendar days for a date range
 # ---------------------------------------------------------------------------
 
-@router.get("/month")
-async def calendar_month(
-    year: int = Query(...),
-    month: int = Query(..., ge=1, le=12),
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Combined calendar: external events + chores + meals for a month."""
-    start = date(year, month, 1)
-    if month == 12:
-        end = date(year + 1, 1, 1) - timedelta(days=1)
-    else:
-        end = date(year, month + 1, 1) - timedelta(days=1)
+async def _build_calendar_days(
+    start: date, end: date, current_user: User, db: AsyncSession,
+    auto_sync: bool = True,
+) -> tuple[list[dict], bool]:
+    """Return (days_list, google_available) for a date range."""
+    from sqlalchemy import func
 
     # Auto-sync stale connections (>15 min old)
-    stale_threshold = datetime.now(ZoneInfo("UTC")) - timedelta(minutes=15)
     result = await db.execute(
         select(CalendarConnection).where(
             CalendarConnection.user_id == current_user.id,
@@ -246,12 +238,14 @@ async def calendar_month(
         )
     )
     connections = result.scalars().all()
-    for conn in connections:
-        if not conn.last_synced_at or conn.last_synced_at < stale_threshold:
-            try:
-                await sync_connection(conn, db, current_user.timezone)
-            except Exception:
-                pass
+    if auto_sync:
+        stale_threshold = datetime.now(ZoneInfo("UTC")) - timedelta(minutes=15)
+        for conn in connections:
+            if not conn.last_synced_at or conn.last_synced_at < stale_threshold:
+                try:
+                    await sync_connection(conn, db, current_user.timezone)
+                except Exception:
+                    pass
 
     # Fetch external events
     conn_ids = [c.id for c in connections if c.is_enabled]
@@ -273,13 +267,12 @@ async def calendar_month(
                 "source": conn.name if conn else "",
             })
 
-    # Fetch chore data for this month
+    # Fetch children + chore data
     result = await db.execute(
         select(Child).where(Child.user_id == current_user.id).order_by(Child.display_order)
     )
     children = result.scalars().all()
 
-    # Get all daily chore assignments
     chore_data = {}
     for child in children:
         result = await db.execute(
@@ -298,7 +291,6 @@ async def calendar_month(
         }
 
     # Get completions in range
-    from sqlalchemy import func
     completion_counts = {}
     for child in children:
         result = await db.execute(
@@ -316,11 +308,9 @@ async def calendar_month(
             .group_by(ChoreCompletion.period_date)
         )
         for row in result:
-            key = (row.period_date, child.id)
-            completion_counts[key] = row.cnt
+            completion_counts[(row.period_date, child.id)] = row.cnt
 
-    # Fetch meal plan entries for this month
-    # Meals span multiple weeks; find all weeks that overlap this month
+    # Fetch meal plan entries
     monday_of_start = start - timedelta(days=start.weekday())
     result = await db.execute(
         select(MealPlanEntry, Meal)
@@ -341,11 +331,10 @@ async def calendar_month(
                 "meal_name": meal.name,
             })
 
-    # Build day-by-day response
+    # Build day-by-day
     days = []
     d = start
     while d <= end:
-        # External events for this day
         day_events = []
         for ev_data in external_events:
             ev = ev_data["event"]
@@ -364,7 +353,6 @@ async def calendar_month(
                     source=ev_data["source"],
                 ))
 
-        # Chore summary per child
         day_chores = []
         for child in children:
             cd = chore_data.get(child.id, {})
@@ -378,7 +366,6 @@ async def calendar_month(
                     "total": total,
                 })
 
-        # Meals
         day_meals = meals_by_date.get(d, [])
 
         days.append(CalendarDayResponse(
@@ -386,12 +373,59 @@ async def calendar_month(
             events=day_events,
             chores=day_chores,
             meals=day_meals,
-        ))
+        ).model_dump())
         d += timedelta(days=1)
 
+    return days, bool(settings.GOOGLE_CLIENT_ID)
+
+
+# ---------------------------------------------------------------------------
+# Combined calendar endpoints
+# ---------------------------------------------------------------------------
+
+@router.get("/week")
+async def calendar_week(
+    week_start: date | None = Query(default=None),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Combined calendar for a week (Mon-Sun). Defaults to current week."""
+    if week_start:
+        # Snap to Monday
+        start = week_start - timedelta(days=week_start.weekday())
+    else:
+        tz = ZoneInfo(current_user.timezone)
+        today = datetime.now(tz).date()
+        start = today - timedelta(days=today.weekday())
+    end = start + timedelta(days=6)
+
+    days, google_available = await _build_calendar_days(start, end, current_user, db)
+    return {
+        "week_start": start.isoformat(),
+        "week_end": end.isoformat(),
+        "days": days,
+        "google_available": google_available,
+    }
+
+
+@router.get("/month")
+async def calendar_month(
+    year: int = Query(...),
+    month: int = Query(..., ge=1, le=12),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Combined calendar: external events + chores + meals for a month."""
+    start = date(year, month, 1)
+    if month == 12:
+        end = date(year + 1, 1, 1) - timedelta(days=1)
+    else:
+        end = date(year, month + 1, 1) - timedelta(days=1)
+
+    days, google_available = await _build_calendar_days(start, end, current_user, db)
     return {
         "year": year,
         "month": month,
-        "days": [dy.model_dump() for dy in days],
-        "google_available": bool(settings.GOOGLE_CLIENT_ID),
+        "days": days,
+        "google_available": google_available,
     }
