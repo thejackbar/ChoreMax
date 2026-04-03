@@ -26,6 +26,19 @@ async def lifespan(app: FastAPI):
             ))
     except Exception:
         pass  # Column may already exist or table doesn't exist yet
+    try:
+        from sqlalchemy import text
+        async with engine.begin() as conn:
+            await conn.execute(text(
+                "CREATE TABLE IF NOT EXISTS waitlist_entries ("
+                "id UUID PRIMARY KEY, "
+                "name TEXT NOT NULL, "
+                "email TEXT NOT NULL UNIQUE, "
+                "feature TEXT NOT NULL, "
+                "created_at TIMESTAMPTZ DEFAULT NOW())"
+            ))
+    except Exception:
+        pass
     yield
     await engine.dispose()
 
@@ -93,6 +106,7 @@ from routers.shopping_list import router as shopping_list_router
 from routers.todos import router as todos_router
 from routers.wishlists import router as wishlists_router
 from routers.calendar import router as calendar_router
+from routers.waitlist import router as waitlist_router
 
 app.include_router(auth_router)
 app.include_router(children_router)
@@ -108,6 +122,7 @@ app.include_router(shopping_list_router)
 app.include_router(todos_router)
 app.include_router(wishlists_router)
 app.include_router(calendar_router)
+app.include_router(waitlist_router)
 
 
 @app.get("/api/health")

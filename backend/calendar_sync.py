@@ -393,8 +393,13 @@ async def sync_ical_connection(conn: CalendarConnection, db: AsyncSession, timez
     if not conn.ical_url:
         return
 
+    # Convert webcal:// to https:// for fetching
+    fetch_url = conn.ical_url
+    if fetch_url.startswith("webcal://"):
+        fetch_url = "https://" + fetch_url[len("webcal://"):]
+
     async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
-        resp = await client.get(conn.ical_url)
+        resp = await client.get(fetch_url)
         resp.raise_for_status()
         ics_text = resp.text
 

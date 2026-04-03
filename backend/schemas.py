@@ -503,3 +503,9 @@ class CalendarDayResponse(BaseModel):
     events: list[CalendarEventResponse] = []
     chores: list[dict] = []
     meals: list[dict] = []
+
+
+class WaitlistRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    email: EmailStr
+    feature: str = Field(..., min_length=1)

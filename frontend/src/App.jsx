@@ -26,6 +26,9 @@ import TodoList from './pages/TodoList'
 import Wishlist from './pages/Wishlist'
 import MemberHub from './pages/MemberHub'
 import FamilyCalendar from './pages/FamilyCalendar'
+import Landing from './pages/Landing'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import TermsOfService from './pages/TermsOfService'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -127,7 +130,10 @@ export default function App() {
       <ChildProvider>
         <BrowserRouter>
           <Routes>
-            {/* Public */}
+            {/* Public - no auth required */}
+            <Route path="/welcome" element={<Landing />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
             <Route path="/login" element={<PublicRoute><Auth /></PublicRoute>} />
 
             {/* Kid-facing (no PIN) */}

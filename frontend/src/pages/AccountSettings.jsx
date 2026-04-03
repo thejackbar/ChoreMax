@@ -380,14 +380,14 @@ export default function AccountSettings() {
             <div className="field">
               <label>iCal URL (.ics)</label>
               <input
-                type="url"
-                placeholder="https://calendar.google.com/calendar/ical/..."
+                type="text"
+                placeholder="https:// or webcal:// calendar URL"
                 value={icalUrl}
                 onChange={e => setIcalUrl(e.target.value)}
                 required
               />
               <small style={{ color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'block' }}>
-                Find this in your calendar app's sharing settings - look for "iCal" or ".ics" link
+                Paste a webcal:// or https:// link from your calendar app's sharing settings
               </small>
             </div>
             <div className="field">
