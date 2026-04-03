@@ -42,7 +42,7 @@ def decrypt_token(encrypted: str) -> str:
 
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3"
-GOOGLE_SCOPES = "https://www.googleapis.com/auth/calendar.readonly"
+GOOGLE_SCOPES = "https://www.googleapis.com/auth/calendar.events"
 
 
 def get_google_auth_url(state: str = "") -> str:
@@ -202,10 +202,11 @@ async def _upsert_google_events(connection_id: str, items: list[dict], db: Async
         end = item.get("end", {})
 
         if "date" in start:
-            # All-day event
+            # All-day event — Google uses exclusive end date, so subtract 1 day
             start_date = date.fromisoformat(start["date"])
             start_time = None
-            end_date = date.fromisoformat(end.get("date", start["date"]))
+            raw_end = date.fromisoformat(end.get("date", start["date"]))
+            end_date = raw_end - timedelta(days=1) if raw_end > start_date else start_date
             end_time = None
             is_all_day = True
         else:
@@ -245,6 +246,80 @@ async def _upsert_google_events(connection_id: str, items: list[dict], db: Async
             },
         )
         await db.execute(stmt)
+
+
+async def create_google_event(
+    conn: CalendarConnection, db: AsyncSession,
+    title: str, start_date: date, end_date: date | None = None,
+    start_time: time | None = None, end_time: time | None = None,
+    is_all_day: bool = True, description: str | None = None,
+    location: str | None = None, timezone: str = "UTC",
+) -> CalendarEvent:
+    """Create an event on Google Calendar and store locally."""
+    from urllib.parse import quote
+    access_token = await _ensure_google_token(conn, db)
+    cal_id = quote(conn.google_calendar_id or "primary", safe="")
+
+    body: dict = {"summary": title}
+    if description:
+        body["description"] = description
+    if location:
+        body["location"] = location
+
+    if is_all_day:
+        body["start"] = {"date": start_date.isoformat()}
+        # Google uses exclusive end date for all-day events
+        actual_end = (end_date or start_date) + timedelta(days=1)
+        body["end"] = {"date": actual_end.isoformat()}
+    else:
+        tz = timezone
+        body["start"] = {"dateTime": f"{start_date}T{start_time or '09:00:00'}", "timeZone": tz}
+        body["end"] = {"dateTime": f"{end_date or start_date}T{end_time or '10:00:00'}", "timeZone": tz}
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{GOOGLE_CALENDAR_API}/calendars/{cal_id}/events",
+            headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
+            json=body,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+    # Store locally
+    ev = CalendarEvent(
+        connection_id=conn.id,
+        external_id=data["id"],
+        title=title,
+        description=description,
+        start_date=start_date,
+        start_time=start_time,
+        end_date=end_date or start_date,
+        end_time=end_time,
+        is_all_day=is_all_day,
+        location=location,
+    )
+    db.add(ev)
+    await db.flush()
+    return ev
+
+
+async def delete_google_event(conn: CalendarConnection, event: CalendarEvent, db: AsyncSession):
+    """Delete an event from Google Calendar and remove locally."""
+    from urllib.parse import quote
+    access_token = await _ensure_google_token(conn, db)
+    cal_id = quote(conn.google_calendar_id or "primary", safe="")
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.delete(
+            f"{GOOGLE_CALENDAR_API}/calendars/{cal_id}/events/{event.external_id}",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        # 410 Gone means already deleted, which is fine
+        if resp.status_code not in (200, 204, 410):
+            resp.raise_for_status()
+
+    await db.delete(event)
+    await db.flush()
 
 
 # ---------------------------------------------------------------------------
@@ -300,10 +375,10 @@ async def sync_ical_connection(conn: CalendarConnection, db: AsyncSession, timez
                 e_time = dtend_val.time().replace(tzinfo=None) if hasattr(dtend_val, "hour") else None
                 is_all_day = False
             else:
-                # It's a date (all-day)
+                # It's a date (all-day) — iCal uses exclusive end date
                 s_date = dtstart_val
                 s_time = None
-                e_date = dtend_val
+                e_date = dtend_val - timedelta(days=1) if dtend_val > dtstart_val else dtstart_val
                 e_time = None
                 is_all_day = True
 

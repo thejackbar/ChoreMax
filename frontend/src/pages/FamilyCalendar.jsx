@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { getAvatarEmoji } from '../data/avatars'
+import PinModal from '../components/PinModal'
 
 const WEEKDAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTHS = [
@@ -50,6 +51,7 @@ export default function FamilyCalendar() {
   const [monthYear, setMonthYear] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() + 1 })
   const [days, setDays] = useState([])
   const [loading, setLoading] = useState(true)
+  const [googleConns, setGoogleConns] = useState([])
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -57,6 +59,7 @@ export default function FamilyCalendar() {
       let data
       if (view === 'week') {
         data = await api.calendar.week(weekStart)
+        setGoogleConns(data.google_connections || [])
       } else {
         data = await api.calendar.month(monthYear.year, monthYear.month)
       }
@@ -108,6 +111,8 @@ export default function FamilyCalendar() {
           days={days}
           todayStr={todayStr}
           weekStart={weekStart}
+          googleConns={googleConns}
+          onRefresh={fetchData}
         />
       ) : (
         <MonthView days={days} todayStr={todayStr} year={monthYear.year} month={monthYear.month} />
@@ -121,102 +126,245 @@ export default function FamilyCalendar() {
 // Week View - sectioned columns with chore completion
 // ============================================================
 
-function WeekView({ days, todayStr, weekStart, onRefresh, onConfetti }) {
+function WeekView({ days, todayStr, weekStart, googleConns, onRefresh }) {
   const navigate = useNavigate()
+  const pin = sessionStorage.getItem('parentPin')
+
+  // Add event state
+  const [showAddEvent, setShowAddEvent] = useState(null) // date string or null
+  const [eventTitle, setEventTitle] = useState('')
+  const [eventAllDay, setEventAllDay] = useState(true)
+  const [eventStartTime, setEventStartTime] = useState('09:00')
+  const [eventEndTime, setEventEndTime] = useState('10:00')
+  const [eventCalendar, setEventCalendar] = useState('')
+  const [eventSaving, setEventSaving] = useState(false)
+  const [eventError, setEventError] = useState(null)
+
+  // Delete event state
+  const [deleteTarget, setDeleteTarget] = useState(null) // event object
+  const [pinError, setPinError] = useState(null)
+
+  // Set default calendar when conns load
+  useEffect(() => {
+    if (googleConns.length > 0 && !eventCalendar) {
+      setEventCalendar(googleConns[0].id)
+    }
+  }, [googleConns])
+
+  const handleAddEvent = async () => {
+    if (!eventTitle.trim() || !eventCalendar) return
+    setEventSaving(true)
+    setEventError(null)
+    try {
+      await api.calendar.createEvent({
+        connection_id: eventCalendar,
+        title: eventTitle.trim(),
+        start_date: showAddEvent,
+        is_all_day: eventAllDay,
+        start_time: eventAllDay ? undefined : eventStartTime,
+        end_time: eventAllDay ? undefined : eventEndTime,
+      }, pin)
+      setShowAddEvent(null)
+      setEventTitle('')
+      setEventAllDay(true)
+      await onRefresh()
+    } catch (e) {
+      setEventError(e.message)
+    } finally {
+      setEventSaving(false)
+    }
+  }
+
+  const handleDeleteEvent = async (pinVal) => {
+    try {
+      await api.calendar.deleteEvent(deleteTarget.id, pinVal)
+      setDeleteTarget(null)
+      setPinError(null)
+      await onRefresh()
+    } catch (e) {
+      setPinError(e.message)
+    }
+  }
 
   return (
-    <div className="fc-week">
-      {days.map((dayData, i) => {
-        const dateStr = dayData.date
-        if (!dateStr) return null
-        const d = new Date(dateStr + 'T00:00:00')
-        const isToday = dateStr === todayStr
-        const isPast = dateStr < todayStr
-        const dayNum = d.getDate()
-        const monthShort = d.toLocaleDateString('en-AU', { month: 'short' })
+    <>
+      <div className="fc-week">
+        {days.map((dayData, i) => {
+          const dateStr = dayData.date
+          if (!dateStr) return null
+          const d = new Date(dateStr + 'T00:00:00')
+          const isToday = dateStr === todayStr
+          const isPast = dateStr < todayStr
+          const dayNum = d.getDate()
+          const monthShort = d.toLocaleDateString('en-AU', { month: 'short' })
 
-        return (
-          <div key={dateStr} className={`fc-week-day ${isToday ? 'fc-week-day--today' : ''} ${isPast ? 'fc-week-day--past' : ''}`}>
-            <div className="fc-week-day-header">
-              <span className="fc-week-day-name">{WEEKDAYS_SHORT[i]}</span>
-              <span className={`fc-week-day-num ${isToday ? 'fc-week-day-num--today' : ''}`}>{dayNum} {monthShort}</span>
-            </div>
-            <div className="fc-week-day-body">
-
-              {/* Events section */}
-              <div className="fc-week-section">
-                <div className="fc-week-section-label">Events</div>
-                {dayData.events.length > 0 ? dayData.events.map((ev, j) => (
-                  <div key={j} className="fc-week-event" style={{ borderLeftColor: ev.color }}>
-                    <div className="fc-week-event-title">{ev.title}</div>
-                    {!ev.is_all_day && ev.start_time && (
-                      <div className="fc-week-event-time">{ev.start_time}{ev.end_time ? ` - ${ev.end_time}` : ''}</div>
-                    )}
-                    {ev.is_all_day && <div className="fc-week-event-time">All day</div>}
-                  </div>
-                )) : (
-                  <div className="fc-week-section-empty">No events</div>
-                )}
+          return (
+            <div key={dateStr} className={`fc-week-day ${isToday ? 'fc-week-day--today' : ''} ${isPast ? 'fc-week-day--past' : ''}`}>
+              <div className="fc-week-day-header">
+                <span className="fc-week-day-name">{WEEKDAYS_SHORT[i]}</span>
+                <span className={`fc-week-day-num ${isToday ? 'fc-week-day-num--today' : ''}`}>{dayNum} {monthShort}</span>
               </div>
+              <div className="fc-week-day-body">
 
-              {/* Meals section */}
-              <div className="fc-week-section">
-                <div
-                  className="fc-week-section-label fc-week-section-label--clickable"
-                  onClick={() => navigate('/meals/plan')}
-                >
-                  Meals &#x203A;
+                {/* Events section */}
+                <div className="fc-week-section">
+                  <div className="fc-week-section-label">
+                    Events
+                    {googleConns.length > 0 && (
+                      <button
+                        className="fc-add-btn"
+                        onClick={(e) => { e.stopPropagation(); setShowAddEvent(dateStr); setEventError(null) }}
+                        title="Add event"
+                      >+</button>
+                    )}
+                  </div>
+                  {dayData.events.length > 0 ? dayData.events.map((ev, j) => (
+                    <div
+                      key={j}
+                      className={`fc-week-event ${ev.provider === 'google' ? 'fc-week-event--deletable' : ''}`}
+                      style={{ borderLeftColor: ev.color }}
+                      onClick={() => ev.provider === 'google' ? setDeleteTarget(ev) : null}
+                      title={ev.provider === 'google' ? 'Click to delete' : ''}
+                    >
+                      <div className="fc-week-event-title">{ev.title}</div>
+                      {!ev.is_all_day && ev.start_time && (
+                        <div className="fc-week-event-time">{ev.start_time}{ev.end_time ? ` - ${ev.end_time}` : ''}</div>
+                      )}
+                      {ev.is_all_day && <div className="fc-week-event-time">All day</div>}
+                    </div>
+                  )) : (
+                    <div className="fc-week-section-empty">No events</div>
+                  )}
                 </div>
-                {dayData.meals.length > 0 ? dayData.meals.map((m, j) => (
+
+                {/* Meals section */}
+                <div className="fc-week-section">
                   <div
-                    key={`m${j}`}
-                    className="fc-week-meal fc-week-meal--clickable"
+                    className="fc-week-section-label fc-week-section-label--clickable"
                     onClick={() => navigate('/meals/plan')}
                   >
-                    <span className="fc-week-meal-slot">{m.slot}</span>
-                    <span className="fc-week-meal-name">{m.meal_name}</span>
+                    Meals &#x203A;
                   </div>
-                )) : (
-                  <div className="fc-week-section-empty">No meals</div>
-                )}
-              </div>
-
-              {/* Chores section - daily progress per child */}
-              <div className="fc-week-section">
-                <div className="fc-week-section-label">Chores</div>
-                {dayData.chores.length > 0 ? dayData.chores.map((childData) => {
-                  const pct = childData.total > 0 ? Math.round((childData.completed / childData.total) * 100) : 0
-                  return (
+                  {dayData.meals.length > 0 ? dayData.meals.map((m, j) => (
                     <div
-                      key={childData.child_id}
-                      className="fc-week-child fc-week-child--clickable"
-                      onClick={() => navigate(`/child/${childData.child_id}/dashboard`)}
+                      key={`m${j}`}
+                      className="fc-week-meal fc-week-meal--clickable"
+                      onClick={() => navigate('/meals/plan')}
                     >
-                      <div className="fc-week-child-header">
-                        <span className="fc-week-child-avatar">{getAvatarEmoji(childData.avatar_value)}</span>
-                        <span className="fc-week-child-name">{childData.child_name}</span>
-                        <span className={`fc-week-child-count ${childData.completed >= childData.total ? 'done' : ''}`}>
-                          {childData.completed}/{childData.total}
-                        </span>
-                      </div>
-                      <div className="fc-week-progress-bar">
-                        <div
-                          className={`fc-week-progress-fill ${pct >= 100 ? 'fc-week-progress-fill--done' : ''}`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
+                      <span className="fc-week-meal-slot">{m.slot}</span>
+                      <span className="fc-week-meal-name">{m.meal_name}</span>
                     </div>
-                  )
-                }) : (
-                  <div className="fc-week-section-empty">No chores</div>
-                )}
-              </div>
+                  )) : (
+                    <div className="fc-week-section-empty">No meals</div>
+                  )}
+                </div>
 
+                {/* Chores section - daily progress per child */}
+                <div className="fc-week-section">
+                  <div className="fc-week-section-label">Chores</div>
+                  {dayData.chores.length > 0 ? dayData.chores.map((childData) => {
+                    const pct = childData.total > 0 ? Math.round((childData.completed / childData.total) * 100) : 0
+                    return (
+                      <div
+                        key={childData.child_id}
+                        className="fc-week-child fc-week-child--clickable"
+                        onClick={() => navigate(`/child/${childData.child_id}/dashboard`)}
+                      >
+                        <div className="fc-week-child-header">
+                          <span className="fc-week-child-avatar">{getAvatarEmoji(childData.avatar_value)}</span>
+                          <span className="fc-week-child-name">{childData.child_name}</span>
+                          <span className={`fc-week-child-count ${childData.completed >= childData.total ? 'done' : ''}`}>
+                            {childData.completed}/{childData.total}
+                          </span>
+                        </div>
+                        <div className="fc-week-progress-bar">
+                          <div
+                            className={`fc-week-progress-fill ${pct >= 100 ? 'fc-week-progress-fill--done' : ''}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  }) : (
+                    <div className="fc-week-section-empty">No chores</div>
+                  )}
+                </div>
+
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Add Event Modal */}
+      {showAddEvent && (
+        <div className="fc-modal-overlay" onClick={() => setShowAddEvent(null)}>
+          <div className="fc-modal" onClick={e => e.stopPropagation()}>
+            <h3>Add Event - {new Date(showAddEvent + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}</h3>
+            {eventError && <div className="msg-error" style={{ marginBottom: '0.5rem', fontSize: '0.85rem' }}>{eventError}</div>}
+            <div className="field">
+              <label>Title</label>
+              <input
+                type="text"
+                value={eventTitle}
+                onChange={e => setEventTitle(e.target.value)}
+                placeholder="Event name"
+                autoFocus
+              />
+            </div>
+            {googleConns.length > 1 && (
+              <div className="field">
+                <label>Calendar</label>
+                <select value={eventCalendar} onChange={e => setEventCalendar(e.target.value)}>
+                  {googleConns.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="field">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={eventAllDay}
+                  onChange={e => setEventAllDay(e.target.checked)}
+                  style={{ marginRight: '0.5rem' }}
+                />
+                All day
+              </label>
+            </div>
+            {!eventAllDay && (
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div className="field" style={{ flex: 1 }}>
+                  <label>Start</label>
+                  <input type="time" value={eventStartTime} onChange={e => setEventStartTime(e.target.value)} />
+                </div>
+                <div className="field" style={{ flex: 1 }}>
+                  <label>End</label>
+                  <input type="time" value={eventEndTime} onChange={e => setEventEndTime(e.target.value)} />
+                </div>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <button className="btn btn-primary" onClick={handleAddEvent} disabled={eventSaving || !eventTitle.trim()}>
+                {eventSaving ? 'Saving...' : 'Add Event'}
+              </button>
+              <button className="btn btn-outline" onClick={() => setShowAddEvent(null)}>Cancel</button>
             </div>
           </div>
-        )
-      })}
-    </div>
+        </div>
+      )}
+
+      {/* Delete Event - PIN confirmation */}
+      {deleteTarget && (
+        <PinModal
+          title={`Delete "${deleteTarget.title}"?`}
+          error={pinError}
+          onSubmit={handleDeleteEvent}
+          onCancel={() => { setDeleteTarget(null); setPinError(null) }}
+        />
+      )}
+    </>
   )
 }
 

@@ -11,9 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import get_current_user, require_pin
 from calendar_sync import (
-    decrypt_token, encrypt_token, exchange_google_code,
-    get_google_auth_url, get_google_email, get_valid_google_token,
-    list_google_calendars, sync_connection,
+    create_google_event, decrypt_token, delete_google_event, encrypt_token,
+    exchange_google_code, get_google_auth_url, get_google_email,
+    get_valid_google_token, list_google_calendars, sync_connection,
 )
 from config import settings
 from database import get_db
@@ -290,6 +290,117 @@ async def select_google_calendars(
 
 
 # ---------------------------------------------------------------------------
+# Event CRUD (create on Google, delete from Google)
+# ---------------------------------------------------------------------------
+
+@router.post("/events", status_code=201)
+async def create_event(
+    data: dict,
+    current_user: User = Depends(require_pin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a calendar event. If connection_id points to a Google connection, creates on Google too."""
+    conn_id = data.get("connection_id")
+    if not conn_id:
+        raise HTTPException(400, "connection_id is required")
+
+    result = await db.execute(
+        select(CalendarConnection).where(
+            CalendarConnection.id == conn_id,
+            CalendarConnection.user_id == current_user.id,
+        )
+    )
+    conn = result.scalar_one_or_none()
+    if not conn:
+        raise HTTPException(404, "Connection not found")
+    if conn.provider != "google":
+        raise HTTPException(400, "Can only create events on Google calendars")
+
+    title = data.get("title", "").strip()
+    if not title:
+        raise HTTPException(400, "Title is required")
+
+    start_date_str = data.get("start_date")
+    if not start_date_str:
+        raise HTTPException(400, "start_date is required")
+
+    from datetime import time as dt_time
+    start_date_val = date.fromisoformat(start_date_str)
+    end_date_val = date.fromisoformat(data["end_date"]) if data.get("end_date") else None
+    is_all_day = data.get("is_all_day", True)
+
+    start_time_val = None
+    end_time_val = None
+    if not is_all_day:
+        if data.get("start_time"):
+            parts = data["start_time"].split(":")
+            start_time_val = dt_time(int(parts[0]), int(parts[1]))
+        if data.get("end_time"):
+            parts = data["end_time"].split(":")
+            end_time_val = dt_time(int(parts[0]), int(parts[1]))
+
+    try:
+        ev = await create_google_event(
+            conn, db,
+            title=title,
+            start_date=start_date_val,
+            end_date=end_date_val,
+            start_time=start_time_val,
+            end_time=end_time_val,
+            is_all_day=is_all_day,
+            description=data.get("description"),
+            location=data.get("location"),
+            timezone=current_user.timezone,
+        )
+    except Exception as e:
+        raise HTTPException(500, f"Failed to create event: {str(e)}")
+
+    return {
+        "id": ev.id,
+        "title": ev.title,
+        "start_date": ev.start_date.isoformat(),
+        "end_date": ev.end_date.isoformat() if ev.end_date else None,
+        "is_all_day": ev.is_all_day,
+    }
+
+
+@router.delete("/events/{event_id}", status_code=204)
+async def delete_event(
+    event_id: str,
+    current_user: User = Depends(require_pin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a calendar event. If it's on Google, deletes from Google too."""
+    result = await db.execute(
+        select(CalendarEvent)
+        .join(CalendarConnection, CalendarEvent.connection_id == CalendarConnection.id)
+        .where(
+            CalendarEvent.id == event_id,
+            CalendarConnection.user_id == current_user.id,
+        )
+    )
+    event = result.scalar_one_or_none()
+    if not event:
+        raise HTTPException(404, "Event not found")
+
+    # Get the connection to check provider
+    result = await db.execute(
+        select(CalendarConnection).where(CalendarConnection.id == event.connection_id)
+    )
+    conn = result.scalar_one_or_none()
+
+    if conn and conn.provider == "google":
+        try:
+            await delete_google_event(conn, event, db)
+        except Exception as e:
+            raise HTTPException(500, f"Failed to delete from Google: {str(e)}")
+    else:
+        await db.delete(event)
+
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Shared helper: build combined calendar days for a date range
 # ---------------------------------------------------------------------------
 
@@ -337,6 +448,8 @@ async def _build_calendar_days(
             conn = conn_map.get(ev.connection_id)
             external_events.append({
                 "event": ev,
+                "connection_id": ev.connection_id,
+                "provider": conn.provider if conn else "",
                 "color": conn.color if conn else "#3b82f6",
                 "source": conn.name if conn else "",
             })
@@ -450,6 +563,8 @@ async def _build_calendar_days(
             if ev.start_date <= d and ev.end_date >= d:
                 day_events.append(CalendarEventResponse(
                     id=ev.id,
+                    connection_id=ev_data.get("connection_id"),
+                    provider=ev_data.get("provider", ""),
                     title=ev.title,
                     description=ev.description,
                     start_date=ev.start_date,
@@ -545,11 +660,27 @@ async def calendar_week(
     days, google_available = await _build_calendar_days(
         start, end, current_user, db, detailed_chores=True,
     )
+
+    # Include Google connections for "add event" feature
+    result = await db.execute(
+        select(CalendarConnection).where(
+            CalendarConnection.user_id == current_user.id,
+            CalendarConnection.provider == "google",
+            CalendarConnection.is_enabled == True,
+            CalendarConnection.google_calendar_id.isnot(None),
+        )
+    )
+    google_conns = [
+        {"id": c.id, "name": c.name, "color": c.color}
+        for c in result.scalars().all()
+    ]
+
     return {
         "week_start": start.isoformat(),
         "week_end": end.isoformat(),
         "days": days,
         "google_available": google_available,
+        "google_connections": google_conns,
     }
 
 

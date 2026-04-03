@@ -484,6 +484,8 @@ class CalendarConnectionResponse(OrmBase):
 
 class CalendarEventResponse(BaseModel):
     id: str
+    connection_id: str | None = None
+    provider: str = ""  # "google" or "ical"
     title: str
     description: str | None = None
     start_date: date
