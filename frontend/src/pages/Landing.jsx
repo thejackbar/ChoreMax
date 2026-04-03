@@ -1,59 +1,80 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { api } from '../api/client'
 
-const FEATURES = [
-  {
-    icon: '✅',
-    title: 'Daily & Weekly Chores',
-    desc: 'Kids tap their avatar to see what needs doing. Simple checkboxes make completing chores satisfying and fun.',
+// Fallback defaults if API is unavailable
+const DEFAULTS = {
+  hero: {
+    eyebrow: 'The family organiser that kids actually enjoy',
+    title_line1: 'Chores done.',
+    title_line2: 'Family thriving.',
+    subtitle: 'ChoreMax turns daily responsibilities into rewarding habits. Kids earn, save, and learn — while parents get a calmer, more organised home.',
+    cta_primary: 'Join the Waitlist',
+    cta_secondary: 'See how it works',
   },
-  {
-    icon: '🐷',
-    title: 'Piggy Bank & Savings',
-    desc: 'Every chore earns virtual money toward goals they choose. Watch their eyes light up as savings grow.',
+  proof: [
+    { value: '6', label: 'Built-in features' },
+    { value: '5', label: 'Beautiful themes' },
+    { value: '0', label: 'Child logins needed' },
+    { value: '∞', label: 'Family peace' },
+  ],
+  features: {
+    title: 'Everything your family needs',
+    subtitle: 'One app to manage chores, savings, meals, and schedules — beautifully.',
+    items: [
+      { icon: '✅', title: 'Daily & Weekly Chores', desc: 'Kids tap their avatar to see what needs doing. Simple checkboxes make completing chores satisfying and fun.' },
+      { icon: '🐷', title: 'Piggy Bank & Savings', desc: 'Every chore earns virtual money toward goals they choose. Watch their eyes light up as savings grow.' },
+      { icon: '📅', title: 'Family Calendar', desc: 'Google Calendar and iCal sync keeps everyone on the same page. Add, edit, and manage events in one place.' },
+      { icon: '🍽️', title: 'Meal Planning', desc: 'Drag-and-drop weekly meal planner with automatic shopping lists scaled to your family size.' },
+      { icon: '🎨', title: 'Beautiful Themes', desc: 'Choose from Warm, Ocean, Forest, Sunset, or Midnight themes. Every child gets their own colour too.' },
+      { icon: '🔒', title: 'Parent PIN Protection', desc: 'Kids browse freely while settings, finances, and management stay behind your secure PIN.' },
+    ],
   },
-  {
-    icon: '📅',
-    title: 'Family Calendar',
-    desc: 'Google Calendar and iCal sync keeps everyone on the same page. Add, edit, and manage events in one place.',
+  mid_cta: {
+    title: 'Ready to transform your family\u2019s routine?',
+    subtitle: 'Join hundreds of families waiting for ChoreMax. Be first in line when we launch.',
+    button: 'Get Early Access',
   },
-  {
-    icon: '🍽️',
-    title: 'Meal Planning',
-    desc: 'Drag-and-drop weekly meal planner with automatic shopping lists scaled to your family size.',
+  steps: {
+    title: 'Up and running in minutes',
+    subtitle: 'No complicated setup. No child accounts. No friction.',
+    items: [
+      { num: '1', title: 'Set up your family', desc: 'Add your children, pick their avatars, and configure chores in minutes.' },
+      { num: '2', title: 'Kids tap & complete', desc: 'Children tap their avatar on the home screen — no login needed. They see their chores and check them off.' },
+      { num: '3', title: 'Watch them thrive', desc: 'Track progress, celebrate streaks, and watch savings grow toward goals they care about.' },
+    ],
   },
-  {
-    icon: '🎨',
-    title: 'Beautiful Themes',
-    desc: 'Choose from Warm, Ocean, Forest, Sunset, or Midnight themes. Every child gets their own colour too.',
+  testimonials: {
+    title: 'Families love ChoreMax',
+    items: [
+      { quote: 'My kids actually fight over who gets to do chores first now. Never thought I\'d see the day.', name: 'Sarah M.', role: 'Mum of 3' },
+      { quote: 'The meal planner alone saves us hours every week. The chore tracking is the cherry on top.', name: 'James & Priya K.', role: 'Parents of 2' },
+      { quote: 'No more "I forgot" excuses. The kids can see exactly what they need to do and what they\'ll earn.', name: 'Michelle T.', role: 'Mum of 4' },
+    ],
   },
-  {
-    icon: '🔒',
-    title: 'Parent PIN Protection',
-    desc: 'Kids browse freely while settings, finances, and management stay behind your secure PIN.',
+  waitlist: {
+    title: 'Join the Waitlist',
+    subtitle: 'Be the first to know when ChoreMax launches. Early members get exclusive pricing.',
+    success_icon: '🎉',
+    success_title: 'You\u2019re on the list!',
+    success_message: 'We\u2019ll be in touch as soon as ChoreMax is ready. Thanks for your interest!',
+    button: 'Join the Waitlist',
+    fine_print: 'No spam, ever. Unsubscribe anytime.',
+    feature_options: [
+      'Chore tracking & completion',
+      'Piggy bank & savings goals',
+      'Family calendar',
+      'Meal planning & shopping lists',
+      'Multiple themes',
+      'All of the above!',
+    ],
   },
-]
-
-const STEPS = [
-  { num: '1', title: 'Set up your family', desc: 'Add your children, pick their avatars, and configure chores in minutes.' },
-  { num: '2', title: 'Kids tap & complete', desc: 'Children tap their avatar on the home screen — no login needed. They see their chores and check them off.' },
-  { num: '3', title: 'Watch them thrive', desc: 'Track progress, celebrate streaks, and watch savings grow toward goals they care about.' },
-]
-
-const TESTIMONIALS = [
-  { quote: 'My kids actually fight over who gets to do chores first now. Never thought I\'d see the day.', name: 'Sarah M.', role: 'Mum of 3' },
-  { quote: 'The meal planner alone saves us hours every week. The chore tracking is the cherry on top.', name: 'James & Priya K.', role: 'Parents of 2' },
-  { quote: 'No more "I forgot" excuses. The kids can see exactly what they need to do and what they\'ll earn.', name: 'Michelle T.', role: 'Mum of 4' },
-]
-
-const FEATURE_OPTIONS = [
-  'Chore tracking & completion',
-  'Piggy bank & savings goals',
-  'Family calendar',
-  'Meal planning & shopping lists',
-  'Multiple themes',
-  'All of the above!',
-]
+  hero_cards: [
+    { type: 'child', avatar: '🧒', name: 'Liam', stat: '4/5 chores done', percent: 80 },
+    { type: 'child', avatar: '👧', name: 'Emma', stat: '5/5 chores done', percent: 100 },
+    { type: 'piggy', avatar: '🐷', name: 'Emma\u2019s Savings', stat: '$24.50 / $50.00', percent: 49 },
+  ],
+}
 
 function useOnScreen(ref) {
   const [visible, setVisible] = useState(false)
@@ -81,6 +102,7 @@ function AnimatedSection({ children, className = '', delay = 0 }) {
 }
 
 export default function Landing() {
+  const [content, setContent] = useState(DEFAULTS)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [feature, setFeature] = useState('')
@@ -88,6 +110,21 @@ export default function Landing() {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState(null)
   const formRef = useRef()
+
+  useEffect(() => {
+    api.cms.getAll().then(data => {
+      if (data && Object.keys(data).length > 0) setContent(prev => ({ ...prev, ...data }))
+    }).catch(() => {})
+  }, [])
+
+  const hero = content.hero
+  const proof = content.proof
+  const features = content.features
+  const midCta = content.mid_cta
+  const steps = content.steps
+  const testimonials = content.testimonials
+  const waitlist = content.waitlist
+  const heroCards = content.hero_cards
 
   const scrollToForm = () => {
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -125,7 +162,7 @@ export default function Landing() {
           </div>
           <div className="land-nav-links">
             <Link to="/login" className="land-nav-login">Log in</Link>
-            <button className="land-nav-cta" onClick={scrollToForm}>Join Waitlist</button>
+            <button className="land-nav-cta" onClick={scrollToForm}>{hero.cta_primary}</button>
           </div>
         </div>
       </nav>
@@ -135,47 +172,33 @@ export default function Landing() {
         <div className="land-hero-bg" />
         <div className="land-hero-content">
           <AnimatedSection>
-            <p className="land-hero-eyebrow">The family organiser that kids actually enjoy</p>
+            <p className="land-hero-eyebrow">{hero.eyebrow}</p>
             <h1 className="land-hero-title">
-              Chores done.<br />
-              <span className="land-hero-accent">Family thriving.</span>
+              {hero.title_line1}<br />
+              <span className="land-hero-accent">{hero.title_line2}</span>
             </h1>
-            <p className="land-hero-sub">
-              ChoreMax turns daily responsibilities into rewarding habits. Kids earn, save, and learn — while parents get a calmer, more organised home.
-            </p>
+            <p className="land-hero-sub">{hero.subtitle}</p>
             <div className="land-hero-actions">
               <button className="land-btn land-btn-primary" onClick={scrollToForm}>
-                Join the Waitlist
+                {hero.cta_primary}
               </button>
-              <a href="#features" className="land-btn land-btn-ghost">See how it works</a>
+              <a href="#features" className="land-btn land-btn-ghost">{hero.cta_secondary}</a>
             </div>
           </AnimatedSection>
           <AnimatedSection delay={200}>
             <div className="land-hero-visual">
-              <div className="land-hero-card land-hero-card-1">
-                <div className="land-hero-card-avatar">🧒</div>
-                <div className="land-hero-card-info">
-                  <div className="land-hero-card-name">Liam</div>
-                  <div className="land-hero-card-stat">4/5 chores done</div>
-                  <div className="land-hero-card-bar"><div className="land-hero-card-fill" style={{ width: '80%' }} /></div>
+              {heroCards.map((card, i) => (
+                <div key={i} className={`land-hero-card land-hero-card-${i + 1}`}>
+                  <div className={card.type === 'piggy' ? 'land-hero-card-piggy' : 'land-hero-card-avatar'}>{card.avatar}</div>
+                  <div className="land-hero-card-info">
+                    <div className="land-hero-card-name">{card.name}</div>
+                    <div className={`land-hero-card-stat${card.type === 'piggy' ? ' land-hero-card-stat--money' : ''}`}>{card.stat}</div>
+                    <div className="land-hero-card-bar">
+                      <div className={`land-hero-card-fill${card.percent === 100 ? ' land-hero-card-fill--done' : ''}${card.type === 'piggy' ? ' land-hero-card-fill--piggy' : ''}`} style={{ width: `${card.percent}%` }} />
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="land-hero-card land-hero-card-2">
-                <div className="land-hero-card-avatar">👧</div>
-                <div className="land-hero-card-info">
-                  <div className="land-hero-card-name">Emma</div>
-                  <div className="land-hero-card-stat">5/5 chores done</div>
-                  <div className="land-hero-card-bar"><div className="land-hero-card-fill land-hero-card-fill--done" style={{ width: '100%' }} /></div>
-                </div>
-              </div>
-              <div className="land-hero-card land-hero-card-3">
-                <div className="land-hero-card-piggy">🐷</div>
-                <div className="land-hero-card-info">
-                  <div className="land-hero-card-name">Emma's Savings</div>
-                  <div className="land-hero-card-stat land-hero-card-stat--money">$24.50 / $50.00</div>
-                  <div className="land-hero-card-bar"><div className="land-hero-card-fill land-hero-card-fill--piggy" style={{ width: '49%' }} /></div>
-                </div>
-              </div>
+              ))}
             </div>
           </AnimatedSection>
         </div>
@@ -185,25 +208,15 @@ export default function Landing() {
       <section className="land-proof">
         <AnimatedSection>
           <div className="land-proof-inner">
-            <div className="land-proof-item">
-              <span className="land-proof-num">6</span>
-              <span className="land-proof-label">Built-in features</span>
-            </div>
-            <div className="land-proof-sep" />
-            <div className="land-proof-item">
-              <span className="land-proof-num">5</span>
-              <span className="land-proof-label">Beautiful themes</span>
-            </div>
-            <div className="land-proof-sep" />
-            <div className="land-proof-item">
-              <span className="land-proof-num">0</span>
-              <span className="land-proof-label">Child logins needed</span>
-            </div>
-            <div className="land-proof-sep" />
-            <div className="land-proof-item">
-              <span className="land-proof-num">&infin;</span>
-              <span className="land-proof-label">Family peace</span>
-            </div>
+            {proof.map((item, i) => (
+              <div key={i} style={{ display: 'contents' }}>
+                {i > 0 && <div className="land-proof-sep" />}
+                <div className="land-proof-item">
+                  <span className="land-proof-num">{item.value}</span>
+                  <span className="land-proof-label">{item.label}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </AnimatedSection>
       </section>
@@ -211,11 +224,11 @@ export default function Landing() {
       {/* Features */}
       <section className="land-features" id="features">
         <AnimatedSection>
-          <h2 className="land-section-title">Everything your family needs</h2>
-          <p className="land-section-sub">One app to manage chores, savings, meals, and schedules — beautifully.</p>
+          <h2 className="land-section-title">{features.title}</h2>
+          <p className="land-section-sub">{features.subtitle}</p>
         </AnimatedSection>
         <div className="land-features-grid">
-          {FEATURES.map((f, i) => (
+          {features.items.map((f, i) => (
             <AnimatedSection key={i} delay={i * 80} className="land-feature-card">
               <span className="land-feature-icon">{f.icon}</span>
               <h3 className="land-feature-title">{f.title}</h3>
@@ -229,9 +242,9 @@ export default function Landing() {
       <section className="land-mid-cta">
         <AnimatedSection>
           <div className="land-mid-cta-inner">
-            <h2>Ready to transform your family's routine?</h2>
-            <p>Join hundreds of families waiting for ChoreMax. Be first in line when we launch.</p>
-            <button className="land-btn land-btn-primary land-btn-lg" onClick={scrollToForm}>Get Early Access</button>
+            <h2>{midCta.title}</h2>
+            <p>{midCta.subtitle}</p>
+            <button className="land-btn land-btn-primary land-btn-lg" onClick={scrollToForm}>{midCta.button}</button>
           </div>
         </AnimatedSection>
       </section>
@@ -239,11 +252,11 @@ export default function Landing() {
       {/* How it works */}
       <section className="land-steps">
         <AnimatedSection>
-          <h2 className="land-section-title">Up and running in minutes</h2>
-          <p className="land-section-sub">No complicated setup. No child accounts. No friction.</p>
+          <h2 className="land-section-title">{steps.title}</h2>
+          <p className="land-section-sub">{steps.subtitle}</p>
         </AnimatedSection>
         <div className="land-steps-grid">
-          {STEPS.map((s, i) => (
+          {steps.items.map((s, i) => (
             <AnimatedSection key={i} delay={i * 120} className="land-step">
               <div className="land-step-num">{s.num}</div>
               <h3 className="land-step-title">{s.title}</h3>
@@ -256,10 +269,10 @@ export default function Landing() {
       {/* Testimonials */}
       <section className="land-testimonials">
         <AnimatedSection>
-          <h2 className="land-section-title">Families love ChoreMax</h2>
+          <h2 className="land-section-title">{testimonials.title}</h2>
         </AnimatedSection>
         <div className="land-testimonials-grid">
-          {TESTIMONIALS.map((t, i) => (
+          {testimonials.items.map((t, i) => (
             <AnimatedSection key={i} delay={i * 100} className="land-testimonial">
               <div className="land-testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
               <blockquote className="land-testimonial-quote">&ldquo;{t.quote}&rdquo;</blockquote>
@@ -276,14 +289,14 @@ export default function Landing() {
       <section className="land-waitlist" ref={formRef} id="waitlist">
         <AnimatedSection>
           <div className="land-waitlist-inner">
-            <h2 className="land-section-title">Join the Waitlist</h2>
-            <p className="land-section-sub">Be the first to know when ChoreMax launches. Early members get exclusive pricing.</p>
+            <h2 className="land-section-title">{waitlist.title}</h2>
+            <p className="land-section-sub">{waitlist.subtitle}</p>
 
             {submitted ? (
               <div className="land-waitlist-success">
-                <span className="land-waitlist-success-icon">&#x1F389;</span>
-                <h3>You're on the list!</h3>
-                <p>We'll be in touch as soon as ChoreMax is ready. Thanks for your interest!</p>
+                <span className="land-waitlist-success-icon">{waitlist.success_icon}</span>
+                <h3>{waitlist.success_title}</h3>
+                <p>{waitlist.success_message}</p>
               </div>
             ) : (
               <form className="land-waitlist-form" onSubmit={handleSubmit}>
@@ -315,14 +328,14 @@ export default function Landing() {
                     <label htmlFor="wl-feature">What are you most excited about?</label>
                     <select id="wl-feature" value={feature} onChange={e => setFeature(e.target.value)} required>
                       <option value="" disabled>Pick a feature...</option>
-                      {FEATURE_OPTIONS.map(f => <option key={f} value={f}>{f}</option>)}
+                      {waitlist.feature_options.map(f => <option key={f} value={f}>{f}</option>)}
                     </select>
                   </div>
                 </div>
                 <button type="submit" className="land-btn land-btn-primary land-btn-lg land-btn-full" disabled={submitting}>
-                  {submitting ? 'Joining...' : 'Join the Waitlist'}
+                  {submitting ? 'Joining...' : waitlist.button}
                 </button>
-                <p className="land-waitlist-fine">No spam, ever. Unsubscribe anytime.</p>
+                <p className="land-waitlist-fine">{waitlist.fine_print}</p>
               </form>
             )}
           </div>

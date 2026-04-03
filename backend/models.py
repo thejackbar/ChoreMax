@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, time
 
 from sqlalchemy import (
-    Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, Time,
+    Boolean, Date, DateTime, ForeignKey, Integer, JSON, Numeric, String, Text, Time,
     UniqueConstraint, func, CheckConstraint
 )
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
@@ -310,6 +310,14 @@ class CalendarEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     connection = relationship("CalendarConnection", back_populates="events")
+
+
+class SiteContent(Base):
+    __tablename__ = "site_content"
+
+    key: Mapped[str] = mapped_column(Text, primary_key=True)
+    value: Mapped[dict] = mapped_column(JSON, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
 class WaitlistEntry(Base):

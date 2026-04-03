@@ -37,6 +37,12 @@ async def lifespan(app: FastAPI):
                 "feature TEXT NOT NULL, "
                 "created_at TIMESTAMPTZ DEFAULT NOW())"
             ))
+            await conn.execute(text(
+                "CREATE TABLE IF NOT EXISTS site_content ("
+                "key TEXT PRIMARY KEY, "
+                "value JSONB NOT NULL, "
+                "updated_at TIMESTAMPTZ DEFAULT NOW())"
+            ))
     except Exception:
         pass
     yield
@@ -107,6 +113,7 @@ from routers.todos import router as todos_router
 from routers.wishlists import router as wishlists_router
 from routers.calendar import router as calendar_router
 from routers.waitlist import router as waitlist_router
+from routers.cms import router as cms_router
 
 app.include_router(auth_router)
 app.include_router(children_router)
@@ -123,6 +130,7 @@ app.include_router(todos_router)
 app.include_router(wishlists_router)
 app.include_router(calendar_router)
 app.include_router(waitlist_router)
+app.include_router(cms_router)
 
 
 @app.get("/api/health")

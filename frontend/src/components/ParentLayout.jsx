@@ -23,6 +23,9 @@ export default function ParentLayout() {
         <NavLink to="/parent/goals" className={({ isActive }) => `parent-sidebar-link ${isActive ? 'active' : ''}`}>
           Manage Goals
         </NavLink>
+        <NavLink to="/parent/site" className={({ isActive }) => `parent-sidebar-link ${isActive ? 'active' : ''}`}>
+          Landing Page
+        </NavLink>
         <NavLink to="/parent/settings" className={({ isActive }) => `parent-sidebar-link ${isActive ? 'active' : ''}`}>
           Account Settings
         </NavLink>

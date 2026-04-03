@@ -148,6 +148,10 @@ export const api = {
     week: (weekStart) => request('GET', `/calendar/week` + (weekStart ? `?week_start=${weekStart}` : '')),
     month: (year, month) => request('GET', `/calendar/month?year=${year}&month=${month}`),
   },
+  cms: {
+    getAll: () => request('GET', '/cms'),
+    update: (key, data, pin) => withPin('PUT', `/cms/${key}`, data, pin),
+  },
   shoppingList: {
     get: (weekStart) => request('GET', `/shopping-list?week_start=${weekStart}`),
     check: (data) => request('POST', '/shopping-list/check', data),

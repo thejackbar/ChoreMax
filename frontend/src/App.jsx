@@ -27,6 +27,7 @@ import Wishlist from './pages/Wishlist'
 import MemberHub from './pages/MemberHub'
 import FamilyCalendar from './pages/FamilyCalendar'
 import Landing from './pages/Landing'
+import ManageSite from './pages/ManageSite'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import TermsOfService from './pages/TermsOfService'
 
@@ -158,6 +159,7 @@ export default function App() {
               <Route path="/parent/children" element={<ManageChildren />} />
               <Route path="/parent/meals" element={<ManageMeals />} />
               <Route path="/parent/goals" element={<ManageGoals />} />
+              <Route path="/parent/site" element={<ManageSite />} />
               <Route path="/parent/settings" element={<AccountSettings />} />
             </Route>
 
