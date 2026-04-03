@@ -1505,12 +1505,26 @@ a { color: var(--primary); text-decoration: none; }
   padding: clamp(0.25rem, 0.4vh, 0.5rem);
   display: flex;
   flex-direction: column;
-  gap: clamp(2px, 0.3vh, 4px);
+  gap: 0;
 }
 
-/* Week view sections */
+/* Week view sections - equal height */
 .fc-week-section {
-  margin-bottom: clamp(3px, 0.5vh, 8px);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: clamp(3px, 0.4vh, 6px);
+}
+.fc-week-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.fc-week-section-empty {
+  font-size: clamp(0.55rem, 0.85vh, 0.7rem);
+  color: var(--muted);
+  opacity: 0.5;
+  padding: clamp(0.15rem, 0.25vh, 0.25rem) 0;
 }
 .fc-week-section-label {
   font-size: clamp(0.55rem, 0.85vh, 0.7rem);
@@ -1574,17 +1588,17 @@ a { color: var(--primary); text-decoration: none; }
 /* Chore child groups in week view */
 .fc-week-child {
   margin-bottom: clamp(2px, 0.3vh, 5px);
+  border-radius: 4px;
+  padding: clamp(0.1rem, 0.2vh, 0.2rem) clamp(0.15rem, 0.25vh, 0.3rem);
+  transition: background 0.15s;
 }
+.fc-week-child--clickable { cursor: pointer; }
+.fc-week-child--clickable:hover { background: var(--glass-bg-strong); }
 .fc-week-child-header {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  padding: clamp(0.1rem, 0.2vh, 0.2rem) 0;
-  border-radius: 4px;
-  transition: background 0.15s;
 }
-.fc-week-child-header--clickable { cursor: pointer; }
-.fc-week-child-header--clickable:hover { background: var(--glass-bg-strong); }
 .fc-week-child-avatar { font-size: clamp(0.75rem, 1.1vh, 0.95rem); }
 .fc-week-child-name {
   flex: 1;
@@ -1601,34 +1615,23 @@ a { color: var(--primary); text-decoration: none; }
 }
 .fc-week-child-count.done { color: var(--success); }
 
-/* Individual chore items (completable) */
-.fc-week-chore-list {
-  padding-left: clamp(0.5rem, 0.8vh, 1rem);
-}
-.fc-week-chore-item {
-  display: flex;
-  align-items: center;
-  gap: clamp(0.15rem, 0.25vh, 0.3rem);
-  padding: clamp(0.1rem, 0.2vh, 0.2rem) clamp(0.15rem, 0.2vh, 0.25rem);
-  border: none;
-  background: none;
-  cursor: pointer;
-  width: 100%;
-  text-align: left;
-  border-radius: 4px;
-  transition: background 0.15s;
-  font-family: inherit;
-  color: inherit;
-}
-.fc-week-chore-item:hover { background: var(--glass-bg-strong); }
-.fc-week-chore-item--done { opacity: 0.5; }
-.fc-week-chore-check { font-size: clamp(0.6rem, 0.9vh, 0.78rem); flex-shrink: 0; }
-.fc-week-chore-emoji { font-size: clamp(0.6rem, 0.9vh, 0.78rem); flex-shrink: 0; }
-.fc-week-chore-text {
-  font-size: clamp(0.55rem, 0.85vh, 0.72rem);
+/* Progress bar */
+.fc-week-progress-bar {
+  height: clamp(3px, 0.4vh, 5px);
+  background: var(--border);
+  border-radius: 999px;
+  margin-top: clamp(2px, 0.2vh, 3px);
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+.fc-week-progress-fill {
+  height: 100%;
+  background: var(--secondary);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+  min-width: 0;
+}
+.fc-week-progress-fill--done {
+  background: var(--success);
 }
 
 .fc-week-empty {

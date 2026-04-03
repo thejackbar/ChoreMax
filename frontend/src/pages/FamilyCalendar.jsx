@@ -2,9 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { getAvatarEmoji } from '../data/avatars'
-import { formatTokens } from '../data/tokenIcons'
-import ConfettiAnimation from '../components/ConfettiAnimation'
-import PinModal from '../components/PinModal'
 
 const WEEKDAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTHS = [
@@ -53,7 +50,6 @@ export default function FamilyCalendar() {
   const [monthYear, setMonthYear] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() + 1 })
   const [days, setDays] = useState([])
   const [loading, setLoading] = useState(true)
-  const [confettiTrigger, setConfettiTrigger] = useState(0)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -87,8 +83,6 @@ export default function FamilyCalendar() {
 
   return (
     <div className="fc-page">
-      <ConfettiAnimation trigger={confettiTrigger} />
-
       <div className="fc-header">
         <button className="fc-nav-btn" onClick={view === 'week' ? prevWeek : prevMonth}>&lsaquo;</button>
         <div className="fc-header-center">
@@ -114,8 +108,6 @@ export default function FamilyCalendar() {
           days={days}
           todayStr={todayStr}
           weekStart={weekStart}
-          onRefresh={fetchData}
-          onConfetti={() => setConfettiTrigger(t => t + 1)}
         />
       ) : (
         <MonthView days={days} todayStr={todayStr} year={monthYear.year} month={monthYear.month} />
@@ -131,157 +123,100 @@ export default function FamilyCalendar() {
 
 function WeekView({ days, todayStr, weekStart, onRefresh, onConfetti }) {
   const navigate = useNavigate()
-  const [completing, setCompleting] = useState(null)
-  const [undoInfo, setUndoInfo] = useState(null)
-  const [pinError, setPinError] = useState(null)
-
-  const handleComplete = async (chore, childId, dateStr) => {
-    if (completing) return
-    if (chore.completed) {
-      setUndoInfo({ chore, childId })
-      setPinError(null)
-      return
-    }
-    setCompleting(`${childId}-${chore.id}`)
-    try {
-      const payload = { chore_id: chore.id, child_id: childId }
-      if (dateStr !== getToday()) payload.for_date = dateStr
-      await api.completions.complete(payload)
-      onConfetti()
-      await onRefresh()
-    } catch (e) {
-      alert(e.message)
-    } finally {
-      setCompleting(null)
-    }
-  }
-
-  const handleUndo = async (pin) => {
-    try {
-      await api.completions.undo(undoInfo.chore.completion_id, pin)
-      setUndoInfo(null)
-      setPinError(null)
-      await onRefresh()
-    } catch (e) {
-      setPinError(e.message)
-    }
-  }
 
   return (
-    <>
-      <div className="fc-week">
-        {days.map((dayData, i) => {
-          const dateStr = dayData.date
-          if (!dateStr) return null
-          const d = new Date(dateStr + 'T00:00:00')
-          const isToday = dateStr === todayStr
-          const isPast = dateStr < todayStr
-          const isFuture = dateStr > todayStr
-          const dayNum = d.getDate()
-          const monthShort = d.toLocaleDateString('en-AU', { month: 'short' })
+    <div className="fc-week">
+      {days.map((dayData, i) => {
+        const dateStr = dayData.date
+        if (!dateStr) return null
+        const d = new Date(dateStr + 'T00:00:00')
+        const isToday = dateStr === todayStr
+        const isPast = dateStr < todayStr
+        const dayNum = d.getDate()
+        const monthShort = d.toLocaleDateString('en-AU', { month: 'short' })
 
-          return (
-            <div key={dateStr} className={`fc-week-day ${isToday ? 'fc-week-day--today' : ''} ${isPast ? 'fc-week-day--past' : ''}`}>
-              <div className="fc-week-day-header">
-                <span className="fc-week-day-name">{WEEKDAYS_SHORT[i]}</span>
-                <span className={`fc-week-day-num ${isToday ? 'fc-week-day-num--today' : ''}`}>{dayNum} {monthShort}</span>
-              </div>
-              <div className="fc-week-day-body">
-
-                {/* Events section */}
-                {dayData.events.length > 0 && (
-                  <div className="fc-week-section">
-                    <div className="fc-week-section-label">Events</div>
-                    {dayData.events.map((ev, j) => (
-                      <div key={j} className="fc-week-event" style={{ borderLeftColor: ev.color }}>
-                        <div className="fc-week-event-title">{ev.title}</div>
-                        {!ev.is_all_day && ev.start_time && (
-                          <div className="fc-week-event-time">{ev.start_time}{ev.end_time ? ` - ${ev.end_time}` : ''}</div>
-                        )}
-                        {ev.is_all_day && <div className="fc-week-event-time">All day</div>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Meals section */}
-                {dayData.meals.length > 0 && (
-                  <div className="fc-week-section">
-                    <div
-                      className="fc-week-section-label fc-week-section-label--clickable"
-                      onClick={() => navigate('/meals/plan')}
-                    >
-                      Meals &#x203A;
-                    </div>
-                    {dayData.meals.map((m, j) => (
-                      <div
-                        key={`m${j}`}
-                        className="fc-week-meal fc-week-meal--clickable"
-                        onClick={() => navigate('/meals/plan')}
-                      >
-                        <span className="fc-week-meal-slot">{m.slot}</span>
-                        <span className="fc-week-meal-name">{m.meal_name}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Chores section - per child */}
-                {dayData.chores.length > 0 && (
-                  <div className="fc-week-section">
-                    <div className="fc-week-section-label">Chores</div>
-                    {dayData.chores.map((childData) => (
-                      <div key={childData.child_id} className="fc-week-child">
-                        <div
-                          className="fc-week-child-header fc-week-child-header--clickable"
-                          onClick={() => navigate(`/child/${childData.child_id}/daily`)}
-                        >
-                          <span className="fc-week-child-avatar">{getAvatarEmoji(childData.avatar_value)}</span>
-                          <span className="fc-week-child-name">{childData.child_name}</span>
-                          <span className={`fc-week-child-count ${childData.completed >= childData.total ? 'done' : ''}`}>
-                            {childData.completed}/{childData.total}
-                          </span>
-                        </div>
-                        {/* Individual chores - only show for today and past (completable) */}
-                        {childData.chores && (isToday || isPast) && (
-                          <div className="fc-week-chore-list">
-                            {childData.chores.map(chore => (
-                              <button
-                                key={chore.id}
-                                className={`fc-week-chore-item ${chore.completed ? 'fc-week-chore-item--done' : ''}`}
-                                onClick={() => handleComplete(chore, childData.child_id, dateStr)}
-                                disabled={completing === `${childData.child_id}-${chore.id}` || isFuture}
-                              >
-                                <span className="fc-week-chore-check">{chore.completed ? '\u2705' : '\u2B1C'}</span>
-                                <span className="fc-week-chore-emoji">{chore.emoji}</span>
-                                <span className="fc-week-chore-text">{chore.title}</span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {dayData.events.length === 0 && dayData.meals.length === 0 && dayData.chores.length === 0 && (
-                  <div className="fc-week-empty">-</div>
-                )}
-              </div>
+        return (
+          <div key={dateStr} className={`fc-week-day ${isToday ? 'fc-week-day--today' : ''} ${isPast ? 'fc-week-day--past' : ''}`}>
+            <div className="fc-week-day-header">
+              <span className="fc-week-day-name">{WEEKDAYS_SHORT[i]}</span>
+              <span className={`fc-week-day-num ${isToday ? 'fc-week-day-num--today' : ''}`}>{dayNum} {monthShort}</span>
             </div>
-          )
-        })}
-      </div>
+            <div className="fc-week-day-body">
 
-      {undoInfo && (
-        <PinModal
-          title={`Undo "${undoInfo.chore.title}"?`}
-          error={pinError}
-          onSubmit={handleUndo}
-          onCancel={() => { setUndoInfo(null); setPinError(null) }}
-        />
-      )}
-    </>
+              {/* Events section */}
+              <div className="fc-week-section">
+                <div className="fc-week-section-label">Events</div>
+                {dayData.events.length > 0 ? dayData.events.map((ev, j) => (
+                  <div key={j} className="fc-week-event" style={{ borderLeftColor: ev.color }}>
+                    <div className="fc-week-event-title">{ev.title}</div>
+                    {!ev.is_all_day && ev.start_time && (
+                      <div className="fc-week-event-time">{ev.start_time}{ev.end_time ? ` - ${ev.end_time}` : ''}</div>
+                    )}
+                    {ev.is_all_day && <div className="fc-week-event-time">All day</div>}
+                  </div>
+                )) : (
+                  <div className="fc-week-section-empty">No events</div>
+                )}
+              </div>
+
+              {/* Meals section */}
+              <div className="fc-week-section">
+                <div
+                  className="fc-week-section-label fc-week-section-label--clickable"
+                  onClick={() => navigate('/meals/plan')}
+                >
+                  Meals &#x203A;
+                </div>
+                {dayData.meals.length > 0 ? dayData.meals.map((m, j) => (
+                  <div
+                    key={`m${j}`}
+                    className="fc-week-meal fc-week-meal--clickable"
+                    onClick={() => navigate('/meals/plan')}
+                  >
+                    <span className="fc-week-meal-slot">{m.slot}</span>
+                    <span className="fc-week-meal-name">{m.meal_name}</span>
+                  </div>
+                )) : (
+                  <div className="fc-week-section-empty">No meals</div>
+                )}
+              </div>
+
+              {/* Chores section - daily progress per child */}
+              <div className="fc-week-section">
+                <div className="fc-week-section-label">Chores</div>
+                {dayData.chores.length > 0 ? dayData.chores.map((childData) => {
+                  const pct = childData.total > 0 ? Math.round((childData.completed / childData.total) * 100) : 0
+                  return (
+                    <div
+                      key={childData.child_id}
+                      className="fc-week-child fc-week-child--clickable"
+                      onClick={() => navigate(`/child/${childData.child_id}/dashboard`)}
+                    >
+                      <div className="fc-week-child-header">
+                        <span className="fc-week-child-avatar">{getAvatarEmoji(childData.avatar_value)}</span>
+                        <span className="fc-week-child-name">{childData.child_name}</span>
+                        <span className={`fc-week-child-count ${childData.completed >= childData.total ? 'done' : ''}`}>
+                          {childData.completed}/{childData.total}
+                        </span>
+                      </div>
+                      <div className="fc-week-progress-bar">
+                        <div
+                          className={`fc-week-progress-fill ${pct >= 100 ? 'fc-week-progress-fill--done' : ''}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  )
+                }) : (
+                  <div className="fc-week-section-empty">No chores</div>
+                )}
+              </div>
+
+            </div>
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
