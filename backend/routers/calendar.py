@@ -12,7 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from auth import get_current_user, require_pin
 from calendar_sync import (
     decrypt_token, encrypt_token, exchange_google_code,
-    get_google_auth_url, get_google_email, sync_connection,
+    get_google_auth_url, get_google_email, get_valid_google_token,
+    list_google_calendars, sync_connection,
 )
 from config import settings
 from database import get_db
@@ -182,46 +183,110 @@ async def google_callback(
     try:
         tokens = await exchange_google_code(code)
     except Exception as e:
-        # Redirect to frontend with error
         return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/settings?calendar_error=auth_failed")
 
     access_token = tokens["access_token"]
     refresh_token = tokens.get("refresh_token", "")
     expires_in = tokens.get("expires_in", 3600)
 
-    # Get email
     try:
         email = await get_google_email(access_token)
     except Exception:
         email = ""
 
-    # Create connection
+    # Create a pending connection (is_enabled=False, no calendar_id yet)
     conn = CalendarConnection(
         user_id=state,
         provider="google",
         name=f"Google ({email})" if email else "Google Calendar",
+        is_enabled=False,
         google_access_token=encrypt_token(access_token),
         google_refresh_token=encrypt_token(refresh_token) if refresh_token else None,
         google_token_expiry=datetime.now(ZoneInfo("UTC")) + timedelta(seconds=expires_in),
         google_email=email,
+        google_calendar_id=None,
     )
     db.add(conn)
-    await db.flush()
-
-    # Get user timezone for sync
-    from models import User as UserModel
-    result = await db.execute(select(UserModel).where(UserModel.id == state))
-    user = result.scalar_one_or_none()
-    tz = user.timezone if user else "UTC"
-
-    # Initial sync
-    try:
-        await sync_connection(conn, db, tz)
-    except Exception:
-        pass
-
     await db.commit()
-    return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/settings?calendar_success=1")
+
+    return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/settings?google_pending={conn.id}")
+
+
+@router.get("/google/{conn_id}/calendars")
+async def list_google_calendars_endpoint(
+    conn_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List available Google calendars for a pending connection."""
+    result = await db.execute(
+        select(CalendarConnection).where(
+            CalendarConnection.id == conn_id,
+            CalendarConnection.user_id == current_user.id,
+            CalendarConnection.provider == "google",
+        )
+    )
+    conn = result.scalar_one_or_none()
+    if not conn:
+        raise HTTPException(404, "Connection not found")
+
+    access_token = await get_valid_google_token(conn, db)
+    calendars = await list_google_calendars(access_token)
+    return {"calendars": calendars}
+
+
+@router.post("/google/{conn_id}/select-calendars")
+async def select_google_calendars(
+    conn_id: str,
+    data: dict,
+    current_user: User = Depends(require_pin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Select which Google calendars to sync. Creates one connection per calendar."""
+    result = await db.execute(
+        select(CalendarConnection).where(
+            CalendarConnection.id == conn_id,
+            CalendarConnection.user_id == current_user.id,
+            CalendarConnection.provider == "google",
+        )
+    )
+    pending = result.scalar_one_or_none()
+    if not pending:
+        raise HTTPException(404, "Connection not found")
+
+    selected = data.get("calendars", [])  # list of {id, name, color}
+    if not selected:
+        raise HTTPException(400, "Select at least one calendar")
+
+    created_conns = []
+    for cal in selected:
+        conn = CalendarConnection(
+            user_id=current_user.id,
+            provider="google",
+            name=cal.get("name", "Google Calendar"),
+            color=cal.get("color", "#3b82f6"),
+            google_access_token=pending.google_access_token,
+            google_refresh_token=pending.google_refresh_token,
+            google_token_expiry=pending.google_token_expiry,
+            google_email=pending.google_email,
+            google_calendar_id=cal["id"],
+            is_enabled=True,
+        )
+        db.add(conn)
+        await db.flush()
+
+        # Sync each calendar
+        try:
+            await sync_connection(conn, db, current_user.timezone)
+        except Exception:
+            pass
+
+        created_conns.append(CalendarConnectionResponse.model_validate(conn))
+
+    # Delete the pending connection
+    await db.delete(pending)
+
+    return [c.model_dump() for c in created_conns]
 
 
 # ---------------------------------------------------------------------------

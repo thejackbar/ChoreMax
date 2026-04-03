@@ -17,6 +17,15 @@ async def lifespan(app: FastAPI):
             await conn.run_sync(Base.metadata.create_all)
     except Exception:
         pass  # Tables may already exist or another worker is creating them
+    # Run migrations for new columns on existing tables
+    try:
+        from sqlalchemy import text
+        async with engine.begin() as conn:
+            await conn.execute(text(
+                "ALTER TABLE calendar_connections ADD COLUMN IF NOT EXISTS google_calendar_id TEXT"
+            ))
+    except Exception:
+        pass  # Column may already exist or table doesn't exist yet
     yield
     await engine.dispose()
 

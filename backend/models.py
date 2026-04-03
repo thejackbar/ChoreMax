@@ -281,6 +281,7 @@ class CalendarConnection(Base):
     google_refresh_token: Mapped[str | None] = mapped_column(Text, nullable=True)
     google_token_expiry: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     google_email: Mapped[str | None] = mapped_column(Text, nullable=True)
+    google_calendar_id: Mapped[str | None] = mapped_column(Text, nullable=True)  # Google calendar ID (e.g. "primary", "en.australian#holiday@group.v.calendar.google.com")
     # iCal fields
     ical_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

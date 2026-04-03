@@ -99,6 +99,28 @@ async def get_google_email(access_token: str) -> str:
         return resp.json().get("email", "")
 
 
+async def list_google_calendars(access_token: str) -> list[dict]:
+    """List all calendars for the authenticated Google user."""
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"{GOOGLE_CALENDAR_API}/users/me/calendarList",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        calendars = []
+        for item in data.get("items", []):
+            calendars.append({
+                "id": item["id"],
+                "summary": item.get("summary", item["id"]),
+                "description": item.get("description", ""),
+                "primary": item.get("primary", False),
+                "background_color": item.get("backgroundColor", "#3b82f6"),
+                "selected": item.get("selected", True),
+            })
+        return calendars
+
+
 async def _ensure_google_token(conn: CalendarConnection, db: AsyncSession) -> str:
     """Return a valid access token, refreshing if needed."""
     if conn.google_token_expiry and conn.google_token_expiry > datetime.now(ZoneInfo("UTC")):
@@ -116,13 +138,20 @@ async def _ensure_google_token(conn: CalendarConnection, db: AsyncSession) -> st
     return access
 
 
+async def get_valid_google_token(conn: CalendarConnection, db: AsyncSession) -> str:
+    """Public wrapper to get a valid access token for a connection."""
+    return await _ensure_google_token(conn, db)
+
+
 async def sync_google_connection(conn: CalendarConnection, db: AsyncSession, timezone: str = "UTC"):
     """Fetch events from Google Calendar and upsert into DB."""
+    from urllib.parse import quote
     access_token = await _ensure_google_token(conn, db)
     tz = ZoneInfo(timezone)
     now = datetime.now(tz)
     time_min = (now - timedelta(days=30)).isoformat()
     time_max = (now + timedelta(days=90)).isoformat()
+    cal_id = quote(conn.google_calendar_id or "primary", safe="")
 
     events = []
     page_token = None
@@ -140,7 +169,7 @@ async def sync_google_connection(conn: CalendarConnection, db: AsyncSession, tim
                 params["pageToken"] = page_token
 
             resp = await client.get(
-                f"{GOOGLE_CALENDAR_API}/calendars/primary/events",
+                f"{GOOGLE_CALENDAR_API}/calendars/{cal_id}/events",
                 headers={"Authorization": f"Bearer {access_token}"},
                 params=params,
             )
@@ -245,53 +274,62 @@ async def sync_ical_connection(conn: CalendarConnection, db: AsyncSession, timez
         if component.name != "VEVENT":
             continue
 
-        uid = str(component.get("uid", ""))
-        if not uid:
-            continue
+        try:
+            uid = str(component.get("uid", ""))
+            if not uid:
+                continue
 
-        dtstart = component.get("dtstart")
-        dtend = component.get("dtend")
-        if not dtstart:
-            continue
+            dtstart = component.get("dtstart")
+            dtend = component.get("dtend")
+            if not dtstart:
+                continue
 
-        dtstart_val = dtstart.dt
-        dtend_val = dtend.dt if dtend else dtstart_val
+            dtstart_val = dtstart.dt
+            dtend_val = dtend.dt if dtend else dtstart_val
 
-        # Handle date vs datetime
-        if hasattr(dtstart_val, "hour"):
-            # It's a datetime
-            if dtstart_val.tzinfo:
-                dtstart_val = dtstart_val.astimezone(tz)
-                if hasattr(dtend_val, "hour") and dtend_val.tzinfo:
-                    dtend_val = dtend_val.astimezone(tz)
-            s_date = dtstart_val.date()
-            s_time = dtstart_val.time().replace(tzinfo=None)
-            e_date = dtend_val.date() if hasattr(dtend_val, "hour") else dtend_val
-            e_time = dtend_val.time().replace(tzinfo=None) if hasattr(dtend_val, "hour") else None
-            is_all_day = False
-        else:
-            # It's a date (all-day)
-            s_date = dtstart_val
-            s_time = None
-            e_date = dtend_val
-            e_time = None
-            is_all_day = True
+            # Handle date vs datetime
+            if hasattr(dtstart_val, "hour"):
+                # It's a datetime
+                if dtstart_val.tzinfo:
+                    dtstart_val = dtstart_val.astimezone(tz)
+                    if hasattr(dtend_val, "hour") and dtend_val.tzinfo:
+                        dtend_val = dtend_val.astimezone(tz)
+                s_date = dtstart_val.date()
+                s_time = dtstart_val.time().replace(tzinfo=None)
+                e_date = dtend_val.date() if hasattr(dtend_val, "hour") else dtend_val
+                e_time = dtend_val.time().replace(tzinfo=None) if hasattr(dtend_val, "hour") else None
+                is_all_day = False
+            else:
+                # It's a date (all-day)
+                s_date = dtstart_val
+                s_time = None
+                e_date = dtend_val
+                e_time = None
+                is_all_day = True
 
-        # Filter to sync window
-        if s_date > window_end or e_date < window_start:
-            continue
+            # Normalize to date objects for comparison
+            if hasattr(s_date, 'date'):
+                s_date = s_date.date()
+            if hasattr(e_date, 'date'):
+                e_date = e_date.date()
 
-        events.append({
-            "uid": uid,
-            "title": str(component.get("summary", "(No title)")),
-            "description": str(component.get("description", "")) or None,
-            "start_date": s_date,
-            "start_time": s_time,
-            "end_date": e_date,
-            "end_time": e_time,
-            "is_all_day": is_all_day,
-            "location": str(component.get("location", "")) or None,
-        })
+            # Filter to sync window
+            if s_date > window_end or e_date < window_start:
+                continue
+
+            events.append({
+                "uid": uid,
+                "title": str(component.get("summary", "(No title)")),
+                "description": str(component.get("description", "")) or None,
+                "start_date": s_date,
+                "start_time": s_time,
+                "end_date": e_date,
+                "end_time": e_time,
+                "is_all_day": is_all_day,
+                "location": str(component.get("location", "")) or None,
+            })
+        except Exception:
+            continue  # Skip unparseable events
 
     # Delete events outside window, upsert new ones
     await _upsert_ical_events(conn.id, events, db)

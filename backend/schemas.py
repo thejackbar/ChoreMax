@@ -476,6 +476,7 @@ class CalendarConnectionResponse(OrmBase):
     color: str
     is_enabled: bool
     google_email: str | None = None
+    google_calendar_id: str | None = None
     ical_url: str | None = None
     last_synced_at: datetime | None = None
     created_at: datetime

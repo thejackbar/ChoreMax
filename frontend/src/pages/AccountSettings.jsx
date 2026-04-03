@@ -34,6 +34,12 @@ export default function AccountSettings() {
   const [icalColor, setIcalColor] = useState('#3b82f6')
   const [calLoading, setCalLoading] = useState(false)
 
+  // Google calendar picker
+  const [googlePending, setGooglePending] = useState(null)
+  const [googleCalendars, setGoogleCalendars] = useState([])
+  const [selectedGoogleCals, setSelectedGoogleCals] = useState(new Set())
+  const [googleLoading, setGoogleLoading] = useState(false)
+
   useEffect(() => {
     api.settings.getReminders().then(r => {
       setMorningEnabled(r.morning_enabled)
@@ -43,6 +49,30 @@ export default function AccountSettings() {
     }).catch(() => {})
     // Load calendar connections
     api.calendar.connections().then(setCalConns).catch(() => {})
+
+    // Handle Google OAuth redirect params
+    const params = new URLSearchParams(window.location.search)
+    const pendingId = params.get('google_pending')
+    if (pendingId) {
+      setGooglePending(pendingId)
+      window.history.replaceState({}, '', '/parent/settings')
+      api.calendar.googleCalendars(pendingId).then(data => {
+        setGoogleCalendars(data.calendars || [])
+        const preSelected = new Set(data.calendars.filter(c => c.selected).map(c => c.id))
+        setSelectedGoogleCals(preSelected)
+      }).catch(e => setError(e.message))
+    }
+    const success = params.get('calendar_success')
+    if (success) {
+      setMsg('Google Calendar connected!')
+      window.history.replaceState({}, '', '/parent/settings')
+      api.calendar.connections().then(setCalConns).catch(() => {})
+    }
+    const calError = params.get('calendar_error')
+    if (calError) {
+      setError('Google Calendar authorization failed. Please try again.')
+      window.history.replaceState({}, '', '/parent/settings')
+    }
   }, [])
 
   const TIMEZONES = [
@@ -407,6 +437,77 @@ export default function AccountSettings() {
             >
               Connect Google Calendar
             </button>
+          </div>
+        )}
+
+        {googlePending && googleCalendars.length > 0 && (
+          <div className="card mb-lg" style={{ marginTop: '1rem', border: '2px solid var(--primary)', padding: '1rem' }}>
+            <h4 style={{ marginBottom: '0.75rem' }}>Select Google Calendars</h4>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+              Choose which calendars to sync with your family calendar:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+              {googleCalendars.map(cal => (
+                <label
+                  key={cal.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                    padding: '0.5rem', borderRadius: '8px', cursor: 'pointer',
+                    background: selectedGoogleCals.has(cal.id) ? 'var(--primary-bg)' : 'transparent',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedGoogleCals.has(cal.id)}
+                    onChange={() => {
+                      setSelectedGoogleCals(prev => {
+                        const next = new Set(prev)
+                        if (next.has(cal.id)) next.delete(cal.id)
+                        else next.add(cal.id)
+                        return next
+                      })
+                    }}
+                  />
+                  <span
+                    style={{ width: '12px', height: '12px', borderRadius: '50%', background: cal.background_color, flexShrink: 0 }}
+                  />
+                  <span style={{ fontWeight: cal.primary ? 600 : 400 }}>
+                    {cal.summary}
+                    {cal.primary && <span style={{ color: 'var(--muted)', fontSize: '0.8rem', marginLeft: '0.5rem' }}>(Primary)</span>}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                className="btn btn-primary"
+                disabled={selectedGoogleCals.size === 0 || googleLoading}
+                onClick={async () => {
+                  setGoogleLoading(true)
+                  setError(null)
+                  try {
+                    const cals = googleCalendars
+                      .filter(c => selectedGoogleCals.has(c.id))
+                      .map(c => ({ id: c.id, name: c.summary, color: c.background_color }))
+                    await api.calendar.selectGoogleCalendars(googlePending, cals, pin)
+                    setGooglePending(null)
+                    setGoogleCalendars([])
+                    setMsg('Google calendars connected!')
+                    const conns = await api.calendar.connections()
+                    setCalConns(conns)
+                  } catch (e) {
+                    setError(e.message)
+                  } finally {
+                    setGoogleLoading(false)
+                  }
+                }}
+              >
+                {googleLoading ? 'Connecting...' : `Connect ${selectedGoogleCals.size} Calendar${selectedGoogleCals.size !== 1 ? 's' : ''}`}
+              </button>
+              <button className="btn btn-outline" onClick={() => { setGooglePending(null); setGoogleCalendars([]) }}>
+                Cancel
+              </button>
+            </div>
           </div>
         )}
       </div>
