@@ -496,6 +496,8 @@ class CalendarEventResponse(BaseModel):
     location: str | None = None
     color: str = "#3b82f6"
     source: str = ""  # connection name
+    assigned_children: list[str] = []
+    assigned_children_names: list[dict] = []  # [{id, name, avatar_value}]
 
 
 class CalendarDayResponse(BaseModel):

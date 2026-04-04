@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from database import Base, engine
 from chore_templates import get_templates
+from meal_templates import get_meal_templates
 
 
 @asynccontextmanager
@@ -23,6 +24,9 @@ async def lifespan(app: FastAPI):
         async with engine.begin() as conn:
             await conn.execute(text(
                 "ALTER TABLE calendar_connections ADD COLUMN IF NOT EXISTS google_calendar_id TEXT"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS assigned_children TEXT[]"
             ))
     except Exception:
         pass  # Column may already exist or table doesn't exist yet
@@ -143,3 +147,8 @@ async def health():
 @app.get("/api/chore-templates")
 async def chore_templates():
     return get_templates()
+
+
+@app.get("/api/meal-templates")
+async def meal_templates():
+    return get_meal_templates()

@@ -52,6 +52,7 @@ export default function FamilyCalendar() {
   const [days, setDays] = useState([])
   const [loading, setLoading] = useState(true)
   const [googleConns, setGoogleConns] = useState([])
+  const [familyChildren, setFamilyChildren] = useState([])
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -60,6 +61,7 @@ export default function FamilyCalendar() {
       if (view === 'week') {
         data = await api.calendar.week(weekStart)
         setGoogleConns(data.google_connections || [])
+        setFamilyChildren(data.children || [])
       } else {
         data = await api.calendar.month(monthYear.year, monthYear.month)
       }
@@ -113,6 +115,7 @@ export default function FamilyCalendar() {
           weekStart={weekStart}
           googleConns={googleConns}
           onRefresh={fetchData}
+          children={familyChildren}
         />
       ) : (
         <MonthView days={days} todayStr={todayStr} year={monthYear.year} month={monthYear.month} />
@@ -126,7 +129,7 @@ export default function FamilyCalendar() {
 // Week View - sectioned columns with chore completion
 // ============================================================
 
-function WeekView({ days, todayStr, weekStart, googleConns, onRefresh }) {
+function WeekView({ days, todayStr, weekStart, googleConns, onRefresh, children: familyChildren }) {
   const navigate = useNavigate()
   const pin = sessionStorage.getItem('parentPin')
 
@@ -139,6 +142,7 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh }) {
   const [eventCalendar, setEventCalendar] = useState('')
   const [eventSaving, setEventSaving] = useState(false)
   const [eventError, setEventError] = useState(null)
+  const [eventAssigned, setEventAssigned] = useState([])
 
   // Event detail / edit state
   const [selectedEvent, setSelectedEvent] = useState(null)
@@ -148,10 +152,54 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh }) {
   const [editStartTime, setEditStartTime] = useState('09:00')
   const [editEndTime, setEditEndTime] = useState('10:00')
   const [editLocation, setEditLocation] = useState('')
+  const [editAssigned, setEditAssigned] = useState([])
 
   // Delete state
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [pinError, setPinError] = useState(null)
+
+  const toggleAssign = (list, setList, childId) => {
+    setList(prev => prev.includes(childId) ? prev.filter(id => id !== childId) : [...prev, childId])
+  }
+
+  const toggleAllAssign = (list, setList) => {
+    if (list.length === familyChildren.length) {
+      setList([])
+    } else {
+      setList(familyChildren.map(c => c.id))
+    }
+  }
+
+  const AssignmentPicker = ({ assigned, setAssigned }) => {
+    if (!familyChildren || familyChildren.length === 0) return null
+    const allSelected = assigned.length === familyChildren.length
+    return (
+      <div className="field">
+        <label>Assign to</label>
+        <div className="assign-picker">
+          <label className="assign-option">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={() => toggleAllAssign(assigned, setAssigned)}
+            />
+            <span className="assign-label">Everyone</span>
+          </label>
+          {familyChildren.map(child => (
+            <label key={child.id} className="assign-option">
+              <input
+                type="checkbox"
+                checked={assigned.includes(child.id)}
+                onChange={() => toggleAssign(assigned, setAssigned, child.id)}
+              />
+              <span className="assign-avatar">{getAvatarEmoji(child.avatar_value)}</span>
+              <span className="assign-label">{child.name}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   // Set default calendar when conns load
   useEffect(() => {
@@ -172,10 +220,12 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh }) {
         is_all_day: eventAllDay,
         start_time: eventAllDay ? undefined : eventStartTime,
         end_time: eventAllDay ? undefined : eventEndTime,
+        assigned_children: eventAssigned.length > 0 ? eventAssigned : undefined,
       }, pin)
       setShowAddEvent(null)
       setEventTitle('')
       setEventAllDay(true)
+      setEventAssigned([])
       await onRefresh()
     } catch (e) {
       setEventError(e.message)
@@ -196,6 +246,7 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh }) {
     setEditStartTime(selectedEvent.start_time || '09:00')
     setEditEndTime(selectedEvent.end_time || '10:00')
     setEditLocation(selectedEvent.location || '')
+    setEditAssigned(selectedEvent.assigned_children || [])
     setEditing(true)
     setEventError(null)
   }
@@ -205,13 +256,20 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh }) {
     setEventSaving(true)
     setEventError(null)
     try {
-      await api.calendar.updateEvent(selectedEvent.id, {
-        title: editTitle.trim(),
-        is_all_day: editAllDay,
-        start_time: editAllDay ? null : editStartTime,
-        end_time: editAllDay ? null : editEndTime,
-        location: editLocation.trim() || null,
-      }, pin)
+      const isGoogle = selectedEvent.provider === 'google'
+      if (isGoogle) {
+        await api.calendar.updateEvent(selectedEvent.id, {
+          title: editTitle.trim(),
+          is_all_day: editAllDay,
+          start_time: editAllDay ? null : editStartTime,
+          end_time: editAllDay ? null : editEndTime,
+          location: editLocation.trim() || null,
+          assigned_children: editAssigned,
+        }, pin)
+      } else {
+        // For non-Google events, only update assignment
+        await api.calendar.assignEvent(selectedEvent.id, editAssigned, pin)
+      }
       setSelectedEvent(null)
       setEditing(false)
       await onRefresh()
@@ -278,6 +336,13 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh }) {
                         <div className="fc-week-event-time">{ev.start_time}{ev.end_time ? ` - ${ev.end_time}` : ''}</div>
                       )}
                       {ev.is_all_day && <div className="fc-week-event-time">All day</div>}
+                      {ev.assigned_children_names && ev.assigned_children_names.length > 0 && (
+                        <div className="fc-week-event-assigned">
+                          {ev.assigned_children_names.map(c => (
+                            <span key={c.id} className="fc-week-event-avatar" title={c.name}>{getAvatarEmoji(c.avatar_value)}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )) : (
                     <div className="fc-week-section-empty">No events</div>
@@ -392,6 +457,7 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh }) {
                 </div>
               </div>
             )}
+            <AssignmentPicker assigned={eventAssigned} setAssigned={setEventAssigned} />
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
               <button className="btn btn-primary" onClick={handleAddEvent} disabled={eventSaving || !eventTitle.trim()}>
                 {eventSaving ? 'Saving...' : 'Add Event'}
@@ -439,6 +505,18 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh }) {
                       <span>{selectedEvent.description}</span>
                     </div>
                   )}
+                  {selectedEvent.assigned_children_names && selectedEvent.assigned_children_names.length > 0 && (
+                    <div className="fc-event-detail-row">
+                      <span className="fc-event-detail-icon">&#x1F465;</span>
+                      <span className="fc-event-assigned">
+                        {selectedEvent.assigned_children_names.map(c => (
+                          <span key={c.id} className="fc-event-assigned-child">
+                            {getAvatarEmoji(c.avatar_value)} {c.name}
+                          </span>
+                        ))}
+                      </span>
+                    </div>
+                  )}
                   <div className="fc-event-detail-row" style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>
                     <span className="fc-event-detail-icon" style={{ borderLeftColor: selectedEvent.color }}>
                       <span style={{ width: 8, height: 8, borderRadius: '50%', background: selectedEvent.color, display: 'inline-block' }} />
@@ -446,51 +524,55 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh }) {
                     <span>{selectedEvent.source}</span>
                   </div>
                 </div>
-                {selectedEvent.provider === 'google' && (
-                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                    <button className="btn btn-primary btn-sm" onClick={startEditing}>Edit</button>
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                  <button className="btn btn-primary btn-sm" onClick={startEditing}>
+                    {selectedEvent.provider === 'google' ? 'Edit' : 'Assign'}
+                  </button>
+                  {selectedEvent.provider === 'google' && (
                     <button className="btn btn-danger btn-sm" onClick={() => { setDeleteTarget(selectedEvent) }}>Delete</button>
-                    <button className="btn btn-outline btn-sm" style={{ marginLeft: 'auto' }} onClick={() => setSelectedEvent(null)}>Close</button>
-                  </div>
-                )}
-                {selectedEvent.provider !== 'google' && (
-                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                    <button className="btn btn-outline btn-sm" style={{ marginLeft: 'auto' }} onClick={() => setSelectedEvent(null)}>Close</button>
-                  </div>
-                )}
+                  )}
+                  <button className="btn btn-outline btn-sm" style={{ marginLeft: 'auto' }} onClick={() => setSelectedEvent(null)}>Close</button>
+                </div>
               </>
             ) : (
               <>
-                <h3 style={{ marginBottom: '0.75rem' }}>Edit Event</h3>
+                <h3 style={{ marginBottom: '0.75rem' }}>
+                  {selectedEvent.provider === 'google' ? 'Edit Event' : `Assign: ${selectedEvent.title}`}
+                </h3>
                 {eventError && <div className="msg-error" style={{ marginBottom: '0.5rem', fontSize: '0.85rem' }}>{eventError}</div>}
-                <div className="field">
-                  <label>Title</label>
-                  <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} autoFocus />
-                </div>
-                <div className="field">
-                  <label>Location</label>
-                  <input type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="Optional" />
-                </div>
-                <div className="field">
-                  <label>
-                    <input type="checkbox" checked={editAllDay} onChange={e => setEditAllDay(e.target.checked)} style={{ marginRight: '0.5rem' }} />
-                    All day
-                  </label>
-                </div>
-                {!editAllDay && (
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <div className="field" style={{ flex: 1 }}>
-                      <label>Start</label>
-                      <input type="time" value={editStartTime} onChange={e => setEditStartTime(e.target.value)} />
+                {selectedEvent.provider === 'google' && (
+                  <>
+                    <div className="field">
+                      <label>Title</label>
+                      <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} autoFocus />
                     </div>
-                    <div className="field" style={{ flex: 1 }}>
-                      <label>End</label>
-                      <input type="time" value={editEndTime} onChange={e => setEditEndTime(e.target.value)} />
+                    <div className="field">
+                      <label>Location</label>
+                      <input type="text" value={editLocation} onChange={e => setEditLocation(e.target.value)} placeholder="Optional" />
                     </div>
-                  </div>
+                    <div className="field">
+                      <label>
+                        <input type="checkbox" checked={editAllDay} onChange={e => setEditAllDay(e.target.checked)} style={{ marginRight: '0.5rem' }} />
+                        All day
+                      </label>
+                    </div>
+                    {!editAllDay && (
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <div className="field" style={{ flex: 1 }}>
+                          <label>Start</label>
+                          <input type="time" value={editStartTime} onChange={e => setEditStartTime(e.target.value)} />
+                        </div>
+                        <div className="field" style={{ flex: 1 }}>
+                          <label>End</label>
+                          <input type="time" value={editEndTime} onChange={e => setEditEndTime(e.target.value)} />
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
+                <AssignmentPicker assigned={editAssigned} setAssigned={setEditAssigned} />
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                  <button className="btn btn-primary" onClick={handleSaveEdit} disabled={eventSaving || !editTitle.trim()}>
+                  <button className="btn btn-primary" onClick={handleSaveEdit} disabled={eventSaving || (selectedEvent.provider === 'google' && !editTitle.trim())}>
                     {eventSaving ? 'Saving...' : 'Save'}
                   </button>
                   <button className="btn btn-outline" onClick={() => setEditing(false)}>Cancel</button>

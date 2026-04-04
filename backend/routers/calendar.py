@@ -355,6 +355,9 @@ async def create_event(
             parts = data["end_time"].split(":")
             end_time_val = dt_time(int(parts[0]), int(parts[1]))
 
+    # assigned_children is ChoreMax-specific, not synced to Google
+    assigned_children = data.get("assigned_children")  # list of child IDs or None
+
     try:
         ev = await create_google_event(
             conn, db,
@@ -371,12 +374,18 @@ async def create_event(
     except Exception as e:
         raise HTTPException(500, f"Failed to create event: {str(e)}")
 
+    # Save assignment locally
+    if assigned_children is not None:
+        ev.assigned_children = assigned_children
+        await db.flush()
+
     return {
         "id": ev.id,
         "title": ev.title,
         "start_date": ev.start_date.isoformat(),
         "end_date": ev.end_date.isoformat() if ev.end_date else None,
         "is_all_day": ev.is_all_day,
+        "assigned_children": ev.assigned_children or [],
     }
 
 
@@ -404,6 +413,9 @@ async def update_event(
         select(CalendarConnection).where(CalendarConnection.id == event.connection_id)
     )
     conn = result.scalar_one_or_none()
+
+    # Handle assigned_children separately (ChoreMax-only, not synced)
+    assigned_children = data.pop("assigned_children", None)
 
     if conn and conn.provider == "google":
         from datetime import time as dt_time
@@ -437,8 +449,16 @@ async def update_event(
             )
         except Exception as e:
             raise HTTPException(500, f"Failed to update event: {str(e)}")
+    elif conn and conn.provider == "ical":
+        # iCal events can only have assignments updated, not the event itself
+        pass
     else:
-        raise HTTPException(400, "Can only edit Google calendar events")
+        raise HTTPException(400, "Cannot edit this event type")
+
+    # Save assignment locally regardless of provider
+    if assigned_children is not None:
+        event.assigned_children = assigned_children if assigned_children else None
+        await db.flush()
 
     return {
         "id": event.id,
@@ -446,6 +466,7 @@ async def update_event(
         "start_date": event.start_date.isoformat(),
         "end_date": event.end_date.isoformat() if event.end_date else None,
         "is_all_day": event.is_all_day,
+        "assigned_children": event.assigned_children or [],
     }
 
 
@@ -483,6 +504,40 @@ async def delete_event(
         await db.delete(event)
 
     return None
+
+
+# ---------------------------------------------------------------------------
+# Event assignment (ChoreMax-specific, works on any provider)
+# ---------------------------------------------------------------------------
+
+@router.put("/events/{event_id}/assign")
+async def assign_event(
+    event_id: str,
+    data: dict,
+    current_user: User = Depends(require_pin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Assign/unassign children to a calendar event. Works on any provider."""
+    result = await db.execute(
+        select(CalendarEvent)
+        .join(CalendarConnection, CalendarEvent.connection_id == CalendarConnection.id)
+        .where(
+            CalendarEvent.id == event_id,
+            CalendarConnection.user_id == current_user.id,
+        )
+    )
+    event = result.scalar_one_or_none()
+    if not event:
+        raise HTTPException(404, "Event not found")
+
+    assigned = data.get("assigned_children", [])
+    event.assigned_children = assigned if assigned else None
+    await db.flush()
+
+    return {
+        "id": event.id,
+        "assigned_children": event.assigned_children or [],
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -537,6 +592,7 @@ async def _build_calendar_days(
                 "provider": conn.provider if conn else "",
                 "color": conn.color if conn else "#3b82f6",
                 "source": conn.name if conn else "",
+                "assigned_children": ev.assigned_children or [],
             })
 
     # Fetch children
@@ -638,14 +694,20 @@ async def _build_calendar_days(
                 "meal_name": meal.name,
             })
 
+    # Build child lookup for assignments
+    child_lookup = {c.id: {"id": c.id, "name": c.name, "avatar_value": c.avatar_value} for c in children}
+
     # Build day-by-day
     days = []
     d = start
     while d <= end:
         day_events = []
+
         for ev_data in external_events:
             ev = ev_data["event"]
             if ev.start_date <= d and ev.end_date >= d:
+                assigned_ids = ev_data.get("assigned_children", [])
+                assigned_names = [child_lookup[cid] for cid in assigned_ids if cid in child_lookup]
                 day_events.append(CalendarEventResponse(
                     id=ev.id,
                     connection_id=ev_data.get("connection_id"),
@@ -660,6 +722,8 @@ async def _build_calendar_days(
                     location=ev.location,
                     color=ev_data["color"],
                     source=ev_data["source"],
+                    assigned_children=assigned_ids,
+                    assigned_children_names=assigned_names,
                 ))
 
         day_chores = []
@@ -760,12 +824,22 @@ async def calendar_week(
         for c in result.scalars().all()
     ]
 
+    # Fetch all children for assignment UI
+    result = await db.execute(
+        select(Child).where(Child.user_id == current_user.id).order_by(Child.display_order)
+    )
+    all_children = [
+        {"id": c.id, "name": c.name, "avatar_value": c.avatar_value}
+        for c in result.scalars().all()
+    ]
+
     return {
         "week_start": start.isoformat(),
         "week_end": end.isoformat(),
         "days": days,
         "google_available": google_available,
         "google_connections": google_conns,
+        "children": all_children,
     }
 
 

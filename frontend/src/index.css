@@ -4592,3 +4592,142 @@ a { color: var(--primary); text-decoration: none; }
   .pdash-grid { grid-template-columns: 1fr; }
   .pdash-stats { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ===== Ingredient Autocomplete ===== */
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 2px;
+}
+.autocomplete-item {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: var(--text);
+}
+.autocomplete-item:hover,
+.autocomplete-item--active {
+  background: var(--primary-alpha, rgba(99,102,241,0.1));
+}
+
+/* ===== Template Browser Modal ===== */
+.template-modal {
+  background: var(--bg-card);
+  border-radius: var(--r-lg);
+  padding: 1.5rem;
+  max-width: 640px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+}
+.template-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.template-modal-header h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+}
+.template-list {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+.template-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+  gap: 0.75rem;
+}
+.template-item:last-child { border-bottom: none; }
+.template-item-info { flex: 1; min-width: 0; }
+.template-item-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+.template-item-meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+.template-badge {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--r-full);
+  background: var(--success-alpha, rgba(34,197,94,0.15));
+  color: var(--success, #22c55e);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ===== Event Assignment Picker ===== */
+.assign-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+.assign-option {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-full);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.15s;
+  background: var(--bg);
+}
+.assign-option:has(input:checked) {
+  background: var(--primary-alpha, rgba(99,102,241,0.1));
+  border-color: var(--primary);
+}
+.assign-option input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--primary);
+}
+.assign-avatar { font-size: 1.1rem; }
+.assign-label { font-weight: 500; }
+
+/* Event assignment avatars on week cards */
+.fc-week-event-assigned {
+  display: flex;
+  gap: 0.15rem;
+  margin-top: 0.15rem;
+}
+.fc-week-event-avatar {
+  font-size: 0.75rem;
+}
+
+/* Event detail assigned children */
+.fc-event-assigned {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.fc-event-assigned-child {
+  font-size: 0.85rem;
+  padding: 0.15rem 0.5rem;
+  background: var(--primary-alpha, rgba(99,102,241,0.1));
+  border-radius: var(--r-full);
+  white-space: nowrap;
+}

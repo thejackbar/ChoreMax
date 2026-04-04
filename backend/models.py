@@ -309,6 +309,9 @@ class CalendarEvent(Base):
     location: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
+    # ChoreMax-specific assignment (not synced to external calendars)
+    assigned_children: Mapped[list[str] | None] = mapped_column(ARRAY(Text), nullable=True)
+
     connection = relationship("CalendarConnection", back_populates="events")
 
 

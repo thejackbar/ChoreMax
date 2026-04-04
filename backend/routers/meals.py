@@ -12,6 +12,8 @@ from database import get_db
 from models import Meal, MealIngredient, User
 from schemas import MealCreate, MealUpdate
 
+from meal_templates import get_meal_templates
+
 router = APIRouter(prefix="/api/meals", tags=["meals"])
 
 UPLOAD_DIR = Path("/uploads/meals")
@@ -42,6 +44,40 @@ def _meal_response(meal: Meal) -> dict:
         "ingredients": ingredients,
         "created_at": meal.created_at,
     }
+
+
+@router.get("/ingredients/autocomplete")
+async def ingredient_autocomplete(
+    q: str = Query(default="", min_length=0),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return distinct ingredient names for autocomplete.
+    Combines user's existing ingredients + template ingredients."""
+    from sqlalchemy import distinct, func
+
+    # Get user's existing ingredient names
+    result = await db.execute(
+        select(distinct(MealIngredient.name))
+        .join(Meal, MealIngredient.meal_id == Meal.id)
+        .where(Meal.user_id == current_user.id)
+        .order_by(MealIngredient.name)
+    )
+    user_names = {row[0] for row in result}
+
+    # Get template ingredient names
+    template_names = set()
+    for tmpl in get_meal_templates():
+        for ing in tmpl.get("ingredients", []):
+            template_names.add(ing["name"])
+
+    # Combine and filter
+    all_names = sorted(user_names | template_names)
+    if q:
+        q_lower = q.lower()
+        all_names = [n for n in all_names if q_lower in n.lower()]
+
+    return all_names[:50]
 
 
 @router.get("")

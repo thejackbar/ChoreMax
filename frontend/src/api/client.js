@@ -56,6 +56,7 @@ export const api = {
     update: (id, data, pin) => withPin('PUT', `/chores/${id}`, data, pin),
     delete: (id, pin) => withPin('DELETE', `/chores/${id}`, null, pin),
     templates: () => request('GET', '/chore-templates'),
+    mealTemplates: () => request('GET', '/meal-templates'),
     childDaily: (childId, forDate) => request('GET', `/chores/child/${childId}/daily` + (forDate ? `?for_date=${forDate}` : '')),
     childWeekly: (childId, forDate) => request('GET', `/chores/child/${childId}/weekly` + (forDate ? `?for_date=${forDate}` : '')),
   },
@@ -99,6 +100,7 @@ export const api = {
     get: (id) => request('GET', `/meals/${id}`),
     update: (id, data, pin) => withPin('PUT', `/meals/${id}`, data, pin),
     delete: (id, pin) => withPin('DELETE', `/meals/${id}`, null, pin),
+    ingredientAutocomplete: (q) => request('GET', `/meals/ingredients/autocomplete${q ? '?q=' + encodeURIComponent(q) : ''}`),
     uploadImage: (id, file, pin) => {
       const fd = new FormData()
       fd.append('file', file)
@@ -144,6 +146,7 @@ export const api = {
     selectGoogleCalendars: (connId, calendars, pin) => withPin('POST', `/calendar/google/${connId}/select-calendars`, { calendars }, pin),
     createEvent: (data, pin) => withPin('POST', '/calendar/events', data, pin),
     updateEvent: (id, data, pin) => withPin('PUT', `/calendar/events/${id}`, data, pin),
+    assignEvent: (id, childIds, pin) => withPin('PUT', `/calendar/events/${id}/assign`, { assigned_children: childIds }, pin),
     deleteEvent: (id, pin) => withPin('DELETE', `/calendar/events/${id}`, null, pin),
     week: (weekStart) => request('GET', `/calendar/week` + (weekStart ? `?week_start=${weekStart}` : '')),
     month: (year, month) => request('GET', `/calendar/month?year=${year}&month=${month}`),

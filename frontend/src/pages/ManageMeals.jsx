@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '../api/client'
 import EmptyState from '../components/EmptyState'
 
@@ -8,6 +8,90 @@ const MEAL_CATEGORIES = ['breakfast', 'lunch', 'dinner']
 
 const emptyIngredient = () => ({ name: '', quantity: '1', unit: 'piece', category: 'pantry' })
 
+function IngredientAutocomplete({ value, onChange, placeholder }) {
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const debounceRef = useRef(null)
+  const wrapperRef = useRef(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const fetchSuggestions = (q) => {
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      if (q.length < 1) { setSuggestions([]); return }
+      try {
+        const results = await api.meals.ingredientAutocomplete(q)
+        setSuggestions(results)
+        setShowSuggestions(results.length > 0)
+        setActiveIndex(-1)
+      } catch { setSuggestions([]) }
+    }, 200)
+  }
+
+  const handleChange = (e) => {
+    onChange(e.target.value)
+    fetchSuggestions(e.target.value)
+  }
+
+  const selectSuggestion = (name) => {
+    onChange(name)
+    setShowSuggestions(false)
+  }
+
+  const handleKeyDown = (e) => {
+    if (!showSuggestions) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActiveIndex(i => Math.min(i + 1, suggestions.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActiveIndex(i => Math.max(i - 1, 0))
+    } else if (e.key === 'Enter' && activeIndex >= 0) {
+      e.preventDefault()
+      selectSuggestion(suggestions[activeIndex])
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false)
+    }
+  }
+
+  return (
+    <div ref={wrapperRef} style={{ position: 'relative', flex: 2, minWidth: '120px' }}>
+      <input
+        type="text"
+        value={value}
+        onChange={handleChange}
+        onFocus={() => value && suggestions.length > 0 && setShowSuggestions(true)}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        style={{ width: '100%' }}
+      />
+      {showSuggestions && (
+        <div className="autocomplete-dropdown">
+          {suggestions.slice(0, 10).map((s, i) => (
+            <div
+              key={s}
+              className={`autocomplete-item ${i === activeIndex ? 'autocomplete-item--active' : ''}`}
+              onClick={() => selectSuggestion(s)}
+            >
+              {s}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ManageMeals() {
   const [meals, setMeals] = useState([])
   const [loading, setLoading] = useState(true)
@@ -15,6 +99,11 @@ export default function ManageMeals() {
   const [editing, setEditing] = useState(null)
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('')
+  const [showTemplates, setShowTemplates] = useState(false)
+  const [templates, setTemplates] = useState([])
+  const [templateFilter, setTemplateFilter] = useState('')
+  const [templateSearch, setTemplateSearch] = useState('')
+  const [addingTemplate, setAddingTemplate] = useState(null)
   const pin = sessionStorage.getItem('parentPin')
 
   // Form state
@@ -149,13 +238,62 @@ export default function ManageMeals() {
     }
   }
 
+  const openTemplates = async () => {
+    if (templates.length === 0) {
+      try {
+        const data = await api.chores.mealTemplates()
+        setTemplates(data)
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    setShowTemplates(true)
+    setTemplateFilter('')
+    setTemplateSearch('')
+  }
+
+  const addFromTemplate = async (tmpl) => {
+    setAddingTemplate(tmpl.name)
+    try {
+      await api.meals.create({
+        name: tmpl.name,
+        categories: tmpl.categories,
+        servings: tmpl.servings || 4,
+        max_per_week: null,
+        ingredients: tmpl.ingredients.map(i => ({
+          name: i.name,
+          quantity: i.quantity,
+          unit: i.unit,
+          category: i.category,
+        })),
+      }, pin)
+      await fetchMeals()
+    } catch (e) {
+      alert(e.message)
+    } finally {
+      setAddingTemplate(null)
+    }
+  }
+
+  const filteredTemplates = templates.filter(t => {
+    const matchCat = !templateFilter || t.categories.includes(templateFilter)
+    const matchSearch = !templateSearch || t.name.toLowerCase().includes(templateSearch.toLowerCase())
+    return matchCat && matchSearch
+  })
+
+  // Names of meals already added (to show "Added" badge)
+  const existingNames = new Set(meals.map(m => m.name.toLowerCase()))
+
   if (loading) return <div className="text-center mt-lg">Loading...</div>
 
   return (
     <div>
       <div className="flex-between mb-lg">
         <h1>Manage Meals</h1>
-        <button className="btn btn-primary" onClick={openAdd}>+ Add Meal</button>
+        <div className="flex gap-sm">
+          <button className="btn btn-outline" onClick={openTemplates}>Browse Templates</button>
+          <button className="btn btn-primary" onClick={openAdd}>+ Add Meal</button>
+        </div>
       </div>
 
       {/* Category filter */}
@@ -228,12 +366,10 @@ export default function ManageMeals() {
               <label>Ingredients</label>
               {ingredients.map((ing, idx) => (
                 <div key={idx} className="flex gap-sm mb-sm" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                  <input
-                    type="text"
+                  <IngredientAutocomplete
                     value={ing.name}
-                    onChange={e => updateIngredient(idx, 'name', e.target.value)}
+                    onChange={(val) => updateIngredient(idx, 'name', val)}
                     placeholder="Ingredient name"
-                    style={{ flex: 2, minWidth: '120px' }}
                   />
                   <input
                     type="number"
@@ -286,7 +422,12 @@ export default function ManageMeals() {
           icon="&#x1F35D;"
           title="No meals yet"
           message="Add meals to start planning your family's week"
-          action={<button className="btn btn-primary" onClick={openAdd}>+ Add Meal</button>}
+          action={
+            <div className="flex gap-sm">
+              <button className="btn btn-outline" onClick={openTemplates}>Browse Templates</button>
+              <button className="btn btn-primary" onClick={openAdd}>+ Add Meal</button>
+            </div>
+          }
         />
       ) : (
         meals.map(meal => (
@@ -317,6 +458,73 @@ export default function ManageMeals() {
             </div>
           </div>
         ))
+      )}
+
+      {/* Template Browser Modal */}
+      {showTemplates && (
+        <div className="fc-modal-overlay" onClick={() => setShowTemplates(false)}>
+          <div className="template-modal" onClick={e => e.stopPropagation()}>
+            <div className="template-modal-header">
+              <h2>Meal Templates</h2>
+              <button className="fc-detail-close" onClick={() => setShowTemplates(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--muted)' }}>&times;</button>
+            </div>
+            <p className="text-muted mb-md" style={{ fontSize: '0.85rem' }}>
+              {templates.length} recipes available. Click to add to your meals.
+            </p>
+            <div className="flex gap-sm mb-md" style={{ flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                value={templateSearch}
+                onChange={e => setTemplateSearch(e.target.value)}
+                placeholder="Search recipes..."
+                style={{ flex: 1, minWidth: '150px' }}
+              />
+              <button
+                className={`btn btn-sm ${!templateFilter ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => setTemplateFilter('')}
+              >All</button>
+              {MEAL_CATEGORIES.map(cat => (
+                <button
+                  key={cat}
+                  className={`btn btn-sm ${templateFilter === cat ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => setTemplateFilter(templateFilter === cat ? '' : cat)}
+                >{cat.charAt(0).toUpperCase() + cat.slice(1)}</button>
+              ))}
+            </div>
+            <div className="template-list">
+              {filteredTemplates.map(tmpl => {
+                const alreadyAdded = existingNames.has(tmpl.name.toLowerCase())
+                const isAdding = addingTemplate === tmpl.name
+                return (
+                  <div key={tmpl.name} className="template-item">
+                    <div className="template-item-info">
+                      <div className="template-item-name">{tmpl.name}</div>
+                      <div className="template-item-meta">
+                        {tmpl.categories.map(c => c.charAt(0).toUpperCase() + c.slice(1)).join(', ')}
+                        {' '}&middot; {tmpl.servings} servings
+                        {' '}&middot; {tmpl.ingredients.length} ingredients
+                      </div>
+                    </div>
+                    {alreadyAdded ? (
+                      <span className="template-badge">Added</span>
+                    ) : (
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => addFromTemplate(tmpl)}
+                        disabled={isAdding}
+                      >
+                        {isAdding ? 'Adding...' : '+ Add'}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+              {filteredTemplates.length === 0 && (
+                <div className="text-center text-muted" style={{ padding: '2rem' }}>No matching templates</div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
