@@ -180,16 +180,16 @@ async def google_callback(
 ):
     """OAuth2 callback from Google. state = user_id."""
     if error:
-        return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/settings?calendar_error={error}")
+        return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/calendar?calendar_error={error}")
     if not settings.GOOGLE_CLIENT_ID:
-        return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/settings?calendar_error=not_configured")
+        return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/calendar?calendar_error=not_configured")
 
     try:
         tokens = await exchange_google_code(code)
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/settings?calendar_error=auth_failed")
+        return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/calendar?calendar_error=auth_failed")
 
     access_token = tokens["access_token"]
     refresh_token = tokens.get("refresh_token", "")
@@ -218,9 +218,9 @@ async def google_callback(
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/settings?calendar_error=save_failed")
+        return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/calendar?calendar_error=save_failed")
 
-    return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/settings?google_pending={conn.id}")
+    return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/calendar?google_pending={conn.id}")
 
 
 @router.get("/google/{conn_id}/calendars")

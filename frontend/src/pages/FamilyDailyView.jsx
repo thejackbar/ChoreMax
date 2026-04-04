@@ -28,6 +28,27 @@ const getDayOfWeek = (dateStr) => {
   return d.toLocaleDateString('en-AU', { weekday: 'long' })
 }
 
+// Get Monday of the week for a given date
+const getWeekStart = (dateStr) => {
+  const d = new Date(dateStr + 'T00:00:00')
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+  const monday = new Date(d)
+  monday.setDate(diff)
+  return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`
+}
+
+const getDayName = (dateStr) => {
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('en-AU', { weekday: 'long' }).toLowerCase()
+}
+
+const MEAL_SLOTS = [
+  { key: 'breakfast', icon: '\u2615', label: 'Breakfast' },
+  { key: 'lunch', icon: '\uD83C\uDF5C', label: 'Lunch' },
+  { key: 'dinner', icon: '\uD83C\uDF7D\uFE0F', label: 'Dinner' },
+]
+
 export default function FamilyDailyView() {
   const navigate = useNavigate()
   const { setActiveChild } = useChild()
@@ -38,6 +59,8 @@ export default function FamilyDailyView() {
   const [confettiTrigger, setConfettiTrigger] = useState(0)
   const [undoInfo, setUndoInfo] = useState(null)
   const [pinError, setPinError] = useState(null)
+  const [meals, setMeals] = useState({})
+  const [events, setEvents] = useState([])
 
   const isToday = selectedDate === getToday()
 
@@ -51,6 +74,35 @@ export default function FamilyDailyView() {
     } finally {
       setLoading(false)
     }
+  }, [selectedDate])
+
+  // Fetch meals and events for the day
+  useEffect(() => {
+    const weekStart = getWeekStart(selectedDate)
+    const dayName = getDayName(selectedDate)
+
+    // Fetch meal plan for the week
+    api.mealPlans.getWeek(weekStart).then(plan => {
+      const dayMeals = {}
+      if (plan?.entries) {
+        plan.entries.forEach(entry => {
+          if (entry.day_of_week === dayName) {
+            dayMeals[entry.meal_type] = entry
+          }
+        })
+      }
+      setMeals(dayMeals)
+    }).catch(() => setMeals({}))
+
+    // Fetch calendar events for the week and filter to today
+    api.calendar.week(weekStart).then(week => {
+      if (week?.days) {
+        const dayData = week.days.find(d => d.date === selectedDate)
+        setEvents(dayData?.events || [])
+      } else {
+        setEvents([])
+      }
+    }).catch(() => setEvents([]))
   }, [selectedDate])
 
   useEffect(() => { fetchData() }, [fetchData])
@@ -127,6 +179,9 @@ export default function FamilyDailyView() {
     )
   }
 
+  const hasMeals = Object.keys(meals).length > 0
+  const hasEvents = events.length > 0
+
   return (
     <div className="family-view">
       <ConfettiAnimation trigger={confettiTrigger} />
@@ -152,21 +207,18 @@ export default function FamilyDailyView() {
           const allDone = member.total_count > 0 && member.completed_count === member.total_count
           const pct = member.total_count > 0 ? Math.round((member.completed_count / member.total_count) * 100) : 0
 
-          // Group by time_of_day
           const morning = member.chores.filter(c => c.time_of_day === 'morning')
           const evening = member.chores.filter(c => c.time_of_day === 'evening')
           const anytime = member.chores.filter(c => c.time_of_day === 'anytime')
 
           return (
             <div key={member.child_id} className={`family-column ${allDone ? 'family-column--done' : ''}`}>
-              {/* Column header */}
               <button className="family-column-header" onClick={() => goToChild(member)}>
                 <span className="family-avatar">{getAvatarEmoji(member.avatar_value)}</span>
                 <span className="family-name">{member.child_name}</span>
                 <span className="family-balance">{formatTokens(member.token_balance, member.token_icon)}</span>
               </button>
 
-              {/* Progress */}
               <div className="family-progress">
                 <div className="family-progress-bar">
                   <div
@@ -177,7 +229,6 @@ export default function FamilyDailyView() {
                 <span className="family-progress-text">{member.completed_count}/{member.total_count}</span>
               </div>
 
-              {/* Chore list */}
               <div className="family-chores">
                 {member.chores.length === 0 && (
                   <div className="family-empty">No chores assigned</div>
@@ -249,6 +300,58 @@ export default function FamilyDailyView() {
           )
         })}
       </div>
+
+      {/* Daily Glance: Meals & Events */}
+      {(hasMeals || hasEvents) && (
+        <div className="family-glance">
+          {hasMeals && (
+            <div className="family-glance-card" onClick={() => navigate('/meals/plan')}>
+              <h3 className="family-glance-title">&#x1F37D;&#xFE0F; Meals</h3>
+              <div className="family-glance-items">
+                {MEAL_SLOTS.map(slot => {
+                  const entry = meals[slot.key]
+                  return (
+                    <div key={slot.key} className="family-glance-meal">
+                      <span className="family-glance-meal-icon">{slot.icon}</span>
+                      <div>
+                        <div className="family-glance-meal-type">{slot.label}</div>
+                        <div className="family-glance-meal-name">
+                          {entry ? (entry.meal_name || entry.custom_text || 'Planned') : '—'}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {hasEvents && (
+            <div className="family-glance-card" onClick={() => navigate('/calendar')}>
+              <h3 className="family-glance-title">&#x1F4C5; Events</h3>
+              <div className="family-glance-items">
+                {events.slice(0, 5).map((ev, i) => (
+                  <div key={i} className="family-glance-event">
+                    <span className="family-glance-event-dot" style={{ background: ev.color || 'var(--primary)' }} />
+                    <div>
+                      <div className="family-glance-event-title">{ev.title}</div>
+                      {ev.start_time && (
+                        <div className="family-glance-event-time">
+                          {ev.start_time.slice(0, 5)}{ev.end_time ? ` - ${ev.end_time.slice(0, 5)}` : ''}
+                        </div>
+                      )}
+                      {ev.is_all_day && <div className="family-glance-event-time">All day</div>}
+                    </div>
+                  </div>
+                ))}
+                {events.length > 5 && (
+                  <div className="family-glance-more">+{events.length - 5} more</div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {undoInfo && (
         <PinModal

@@ -28,6 +28,7 @@ import MemberHub from './pages/MemberHub'
 import FamilyCalendar from './pages/FamilyCalendar'
 import Landing from './pages/Landing'
 import ManageSite from './pages/ManageSite'
+import ManageCalendar from './pages/ManageCalendar'
 import AdminLogin from './pages/AdminLogin'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import TermsOfService from './pages/TermsOfService'
@@ -162,6 +163,7 @@ export default function App() {
               <Route path="/parent/children" element={<ManageChildren />} />
               <Route path="/parent/meals" element={<ManageMeals />} />
               <Route path="/parent/goals" element={<ManageGoals />} />
+              <Route path="/parent/calendar" element={<ManageCalendar />} />
               <Route path="/parent/settings" element={<AccountSettings />} />
             </Route>
 

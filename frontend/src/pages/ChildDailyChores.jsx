@@ -70,9 +70,6 @@ export default function ChildDailyChores() {
       await api.completions.complete(payload)
       setConfettiTrigger(t => t + 1)
       await fetchChores()
-      if (isToday) {
-        setTimeout(() => navigate('/'), 1500)
-      }
     } catch (e) {
       alert(e.message)
     } finally {
@@ -143,6 +140,16 @@ export default function ChildDailyChores() {
   return (
     <div>
       <ConfettiAnimation trigger={confettiTrigger} />
+
+      {/* Navigation bar */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+        <button className="btn btn-outline btn-sm" onClick={() => navigate('/')}>
+          &#x1F46A; Family
+        </button>
+        <button className="btn btn-outline btn-sm" onClick={() => navigate('/calendar')}>
+          &#x1F4C5; Calendar
+        </button>
+      </div>
 
       {/* Progress header */}
       <div className="chore-progress-header">

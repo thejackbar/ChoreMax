@@ -7,7 +7,7 @@ import { getAvatarEmoji } from '../data/avatars'
 function useDateTime() {
   const [now, setNow] = useState(new Date())
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30000) // update every 30s
+    const id = setInterval(() => setNow(new Date()), 30000)
     return () => clearInterval(id)
   }, [])
   return now
@@ -55,6 +55,7 @@ export default function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebarCollapsed') === 'true')
   const now = useDateTime()
   const weather = useWeather()
 
@@ -64,24 +65,44 @@ export default function Layout() {
   const closeSidebar = () => setSidebarOpen(false)
   const navLinkClass = ({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`
 
+  const toggleCollapse = () => {
+    const next = !collapsed
+    setCollapsed(next)
+    localStorage.setItem('sidebarCollapsed', String(next))
+  }
+
   const timeStr = now.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true })
   const dateStr = now.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
-    <div className="app-layout" data-child-theme={isChildView ? themeIndex : undefined}>
+    <div className={`app-layout ${collapsed ? 'sidebar-collapsed' : ''}`} data-child-theme={isChildView ? themeIndex : undefined}>
       {/* Mobile overlay */}
       <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={closeSidebar} />
 
       {/* Left sidebar */}
-      <nav className={`app-sidebar ${sidebarOpen ? 'open' : ''}`}>
+      <nav className={`app-sidebar ${sidebarOpen ? 'open' : ''} ${collapsed ? 'collapsed' : ''}`}>
+        {/* Collapse toggle */}
+        <button className="sidebar-collapse-btn" onClick={toggleCollapse} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+          {collapsed ? '\u276F' : '\u276E'}
+        </button>
+
         {/* Date/time/weather header */}
         <div className="sidebar-datetime">
-          <div className="sidebar-time">{timeStr}</div>
-          <div className="sidebar-date">{dateStr}</div>
-          {weather && (
-            <div className="sidebar-weather">
-              {getWeatherEmoji(weather.code)} {weather.temp}°
-            </div>
+          {collapsed ? (
+            <>
+              <div className="sidebar-time-mini">{now.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: false })}</div>
+              {weather && <div className="sidebar-weather-mini">{getWeatherEmoji(weather.code)}{weather.temp}°</div>}
+            </>
+          ) : (
+            <>
+              <div className="sidebar-time">{timeStr}</div>
+              <div className="sidebar-date">{dateStr}</div>
+              {weather && (
+                <div className="sidebar-weather">
+                  {getWeatherEmoji(weather.code)} {weather.temp}°
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -89,11 +110,13 @@ export default function Layout() {
 
         {/* Main nav */}
         <div className="sidebar-section">
-          <NavLink to="/" end className={navLinkClass} onClick={closeSidebar}>
-            <span className="sidebar-icon">&#x1F46A;</span> Family
+          <NavLink to="/" end className={navLinkClass} onClick={closeSidebar} title="Family">
+            <span className="sidebar-icon">&#x1F46A;</span>
+            <span className="sidebar-label">Family</span>
           </NavLink>
-          <NavLink to="/meals/plan" className={navLinkClass} onClick={closeSidebar}>
-            <span className="sidebar-icon">&#x1F37D;&#xFE0F;</span> Meal Plan
+          <NavLink to="/meals/plan" className={navLinkClass} onClick={closeSidebar} title="Meal Plan">
+            <span className="sidebar-icon">&#x1F37D;&#xFE0F;</span>
+            <span className="sidebar-label">Meals</span>
           </NavLink>
         </div>
 
@@ -101,15 +124,18 @@ export default function Layout() {
 
         {/* Lists section */}
         <div className="sidebar-section">
-          <div className="sidebar-section-label">Lists</div>
-          <NavLink to="/lists/todos" className={navLinkClass} onClick={closeSidebar}>
-            <span className="sidebar-icon">&#x1F4CB;</span> To-Do
+          {!collapsed && <div className="sidebar-section-label">Lists</div>}
+          <NavLink to="/lists/todos" className={navLinkClass} onClick={closeSidebar} title="To-Do">
+            <span className="sidebar-icon">&#x1F4CB;</span>
+            <span className="sidebar-label">To-Do</span>
           </NavLink>
-          <NavLink to="/lists/shopping" className={navLinkClass} onClick={closeSidebar}>
-            <span className="sidebar-icon">&#x1F6D2;</span> Shopping
+          <NavLink to="/lists/shopping" className={navLinkClass} onClick={closeSidebar} title="Shopping">
+            <span className="sidebar-icon">&#x1F6D2;</span>
+            <span className="sidebar-label">Shopping</span>
           </NavLink>
-          <NavLink to="/lists/wishlist" className={navLinkClass} onClick={closeSidebar}>
-            <span className="sidebar-icon">&#x1F381;</span> Wishlists
+          <NavLink to="/lists/wishlist" className={navLinkClass} onClick={closeSidebar} title="Wishlists">
+            <span className="sidebar-icon">&#x1F381;</span>
+            <span className="sidebar-label">Wishlists</span>
           </NavLink>
         </div>
 
@@ -117,8 +143,9 @@ export default function Layout() {
 
         {/* Calendar */}
         <div className="sidebar-section">
-          <NavLink to="/calendar" className={navLinkClass} onClick={closeSidebar}>
-            <span className="sidebar-icon">&#x1F4C5;</span> Calendar
+          <NavLink to="/calendar" className={navLinkClass} onClick={closeSidebar} title="Calendar">
+            <span className="sidebar-icon">&#x1F4C5;</span>
+            <span className="sidebar-label">Calendar</span>
           </NavLink>
         </div>
 
@@ -127,10 +154,11 @@ export default function Layout() {
 
         <div className="sidebar-divider" />
 
-        {/* Settings at bottom - parent only */}
+        {/* Settings at bottom */}
         <div className="sidebar-section">
-          <button className="sidebar-link" onClick={() => { closeSidebar(); navigate('/parent') }}>
-            <span className="sidebar-icon">&#x2699;&#xFE0F;</span> Settings
+          <button className="sidebar-link" onClick={() => { closeSidebar(); navigate('/parent') }} title="Settings">
+            <span className="sidebar-icon">&#x2699;&#xFE0F;</span>
+            <span className="sidebar-label">Settings</span>
           </button>
         </div>
       </nav>

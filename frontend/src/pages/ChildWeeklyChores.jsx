@@ -88,6 +88,16 @@ export default function ChildWeeklyChores() {
     <div>
       <ConfettiAnimation trigger={confettiTrigger} />
 
+      {/* Navigation bar */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+        <button className="btn btn-outline btn-sm" onClick={() => navigate('/')}>
+          &#x1F46A; Family
+        </button>
+        <button className="btn btn-outline btn-sm" onClick={() => navigate('/calendar')}>
+          &#x1F4C5; Calendar
+        </button>
+      </div>
+
       <div className="chore-progress-header">
         <div className="chore-progress-top">
           <h2>Weekly Chores</h2>
