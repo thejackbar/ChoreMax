@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 
 const SECTION_LABELS = {
@@ -235,20 +236,23 @@ export default function ManageSite() {
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState(null)
   const [openSection, setOpenSection] = useState(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
-    api.cms.getAll()
+    // Verify admin session first
+    api.admin.verify()
+      .catch(() => { navigate('/admin', { replace: true }); return Promise.reject() })
+      .then(() => api.cms.getAll())
       .then(data => setContent(data))
-      .catch(() => setMsg('Failed to load site content'))
+      .catch(() => {})
       .finally(() => setLoading(false))
-  }, [])
+  }, [navigate])
 
   const handleSave = async (key, data) => {
     setSaving(true)
     setMsg(null)
     try {
-      const pin = sessionStorage.getItem('parentPin')
-      await api.cms.update(key, data, pin)
+      await api.cms.update(key, data)
       setContent(prev => ({ ...prev, [key]: data }))
       setMsg('Saved!')
       setTimeout(() => setMsg(null), 2000)
@@ -266,11 +270,19 @@ export default function ManageSite() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <h2 style={{ margin: 0 }}>Manage Landing Page</h2>
-        <a href="/welcome" target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ fontSize: '0.85rem' }}>
-          View Landing Page
-        </a>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <a href="/welcome" target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ fontSize: '0.85rem' }}>
+            View Site
+          </a>
+          <button className="btn btn-outline" style={{ fontSize: '0.85rem' }} onClick={async () => {
+            await api.admin.logout()
+            navigate('/admin')
+          }}>
+            Log Out
+          </button>
+        </div>
       </div>
 
       {msg && (

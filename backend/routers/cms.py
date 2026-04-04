@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from auth import require_user, require_pin
 from database import get_db
 from models import SiteContent
+from routers.admin import require_admin
 
 router = APIRouter(prefix="/api/cms", tags=["cms"])
 
@@ -109,11 +109,10 @@ async def get_all_content(db: AsyncSession = Depends(get_db)):
 async def update_content(
     key: str,
     request: Request,
-    user=Depends(require_user),
-    _pin=Depends(require_pin),
+    _admin=Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    """PIN-protected endpoint - update a content section."""
+    """Admin-only endpoint - update a content section."""
     body = await request.json()
     existing = await db.execute(select(SiteContent).where(SiteContent.key == key))
     row = existing.scalar_one_or_none()

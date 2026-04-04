@@ -148,9 +148,14 @@ export const api = {
     week: (weekStart) => request('GET', `/calendar/week` + (weekStart ? `?week_start=${weekStart}` : '')),
     month: (year, month) => request('GET', `/calendar/month?year=${year}&month=${month}`),
   },
+  admin: {
+    login: (data) => request('POST', '/admin/login', data),
+    logout: () => request('POST', '/admin/logout'),
+    verify: () => request('GET', '/admin/verify'),
+  },
   cms: {
     getAll: () => request('GET', '/cms'),
-    update: (key, data, pin) => withPin('PUT', `/cms/${key}`, data, pin),
+    update: (key, data) => request('PUT', `/cms/${key}`, data),
   },
   shoppingList: {
     get: (weekStart) => request('GET', `/shopping-list?week_start=${weekStart}`),

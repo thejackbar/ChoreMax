@@ -113,6 +113,7 @@ from routers.todos import router as todos_router
 from routers.wishlists import router as wishlists_router
 from routers.calendar import router as calendar_router
 from routers.waitlist import router as waitlist_router
+from routers.admin import router as admin_router
 from routers.cms import router as cms_router
 
 app.include_router(auth_router)
@@ -130,6 +131,7 @@ app.include_router(todos_router)
 app.include_router(wishlists_router)
 app.include_router(calendar_router)
 app.include_router(waitlist_router)
+app.include_router(admin_router)
 app.include_router(cms_router)
 
 

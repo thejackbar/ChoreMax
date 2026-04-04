@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     GOOGLE_REDIRECT_URI: str = ""
     CALENDAR_ENCRYPTION_KEY: str = ""  # Fernet key for encrypting OAuth tokens
 
+    # Admin CMS credentials
+    ADMIN_EMAIL: str = ""
+    ADMIN_PASSWORD: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
