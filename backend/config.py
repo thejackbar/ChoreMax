@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     ADMIN_EMAIL: str = ""
     ADMIN_PASSWORD: str = ""
 
+    # SMTP for notifications
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASS: str = ""
+    NOTIFY_EMAIL: str = ""  # Where to send notifications
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

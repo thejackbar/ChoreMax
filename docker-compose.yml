@@ -30,6 +30,11 @@ services:
       CALENDAR_ENCRYPTION_KEY: ${CALENDAR_ENCRYPTION_KEY:-}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      NOTIFY_EMAIL: ${NOTIFY_EMAIL:-}
     volumes:
       - uploads_data:/uploads
     depends_on:
