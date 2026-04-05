@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '../api/client'
 
 function toLocalDateStr(d) {
@@ -58,12 +58,25 @@ export default function ShoppingList() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [collapsed, setCollapsed] = useState({})
+  const [pendingRemoval, setPendingRemoval] = useState({}) // key -> timeout id
+  const removalTimers = useRef({})
   const pin = sessionStorage.getItem('parentPin')
+
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(removalTimers.current).forEach(clearTimeout)
+    }
+  }, [])
 
   const fetchList = useCallback(async () => {
     try {
       const result = await api.shoppingList.get(weekStart)
       setData(result)
+      // Clear pending removals on fresh fetch
+      Object.values(removalTimers.current).forEach(clearTimeout)
+      removalTimers.current = {}
+      setPendingRemoval({})
     } catch (e) {
       console.error(e)
     } finally {
@@ -73,23 +86,53 @@ export default function ShoppingList() {
 
   useEffect(() => { fetchList() }, [fetchList])
 
+  const itemKey = (item) => `${item.ingredient_name}::${item.ingredient_unit}`
+
   const handleCheck = async (item) => {
+    const key = itemKey(item)
+    const wasChecked = item.checked
+
+    // If unchecking (undo), cancel the pending removal
+    if (wasChecked) {
+      if (removalTimers.current[key]) {
+        clearTimeout(removalTimers.current[key])
+        delete removalTimers.current[key]
+      }
+      setPendingRemoval(prev => { const n = { ...prev }; delete n[key]; return n })
+    }
+
     try {
       await api.shoppingList.check({
         week_start: weekStart,
         ingredient_name: item.ingredient_name,
         ingredient_unit: item.ingredient_unit,
-        checked: !item.checked,
+        checked: !wasChecked,
       })
       // Optimistic update
       setData(prev => ({
         ...prev,
         items: prev.items.map(i =>
           i.ingredient_name === item.ingredient_name && i.ingredient_unit === item.ingredient_unit
-            ? { ...i, checked: !i.checked }
+            ? { ...i, checked: !wasChecked }
             : i
         ),
       }))
+
+      // If checking off, schedule removal after 3 seconds
+      if (!wasChecked) {
+        setPendingRemoval(prev => ({ ...prev, [key]: true }))
+        removalTimers.current[key] = setTimeout(() => {
+          setData(prev => {
+            if (!prev) return prev
+            return {
+              ...prev,
+              items: prev.items.filter(i => itemKey(i) !== key || !i.checked),
+            }
+          })
+          setPendingRemoval(prev => { const n = { ...prev }; delete n[key]; return n })
+          delete removalTimers.current[key]
+        }, 3000)
+      }
     } catch (e) {
       console.error(e)
     }
@@ -186,34 +229,51 @@ export default function ShoppingList() {
 
               {!collapsed[category] && (
                 <div style={{ marginTop: '0.5rem' }}>
-                  {items.map(item => (
-                    <label
-                      key={`${item.ingredient_name}-${item.ingredient_unit}`}
-                      className="shopping-item"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem',
-                        padding: '0.5rem 0',
-                        cursor: 'pointer',
-                        textDecoration: item.checked ? 'line-through' : 'none',
-                        opacity: item.checked ? 0.5 : 1,
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={item.checked}
-                        onChange={() => handleCheck(item)}
-                        style={{ width: '1.25rem', height: '1.25rem', flexShrink: 0 }}
-                      />
-                      <span style={{ flex: 1 }}>
-                        {item.ingredient_name.charAt(0).toUpperCase() + item.ingredient_name.slice(1)}
-                      </span>
-                      <span style={{ fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                        {Number(item.total_quantity)} {item.ingredient_unit}
-                      </span>
-                    </label>
-                  ))}
+                  {items.map(item => {
+                    const key = itemKey(item)
+                    const isPending = pendingRemoval[key]
+                    return (
+                      <div
+                        key={`${item.ingredient_name}-${item.ingredient_unit}`}
+                        className={`shopping-item-row ${isPending ? 'shopping-item-row--removing' : ''}`}
+                      >
+                        <label
+                          className="shopping-item"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            padding: '0.5rem 0',
+                            cursor: 'pointer',
+                            textDecoration: item.checked ? 'line-through' : 'none',
+                            opacity: item.checked ? 0.5 : 1,
+                            flex: 1,
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={item.checked}
+                            onChange={() => handleCheck(item)}
+                            style={{ width: '1.25rem', height: '1.25rem', flexShrink: 0 }}
+                          />
+                          <span style={{ flex: 1 }}>
+                            {item.ingredient_name.charAt(0).toUpperCase() + item.ingredient_name.slice(1)}
+                          </span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                            {Number(item.total_quantity)} {item.ingredient_unit}
+                          </span>
+                        </label>
+                        {isPending && (
+                          <button
+                            className="shopping-undo-btn"
+                            onClick={() => handleCheck(item)}
+                          >
+                            Undo
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </div>
