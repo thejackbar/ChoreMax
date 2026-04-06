@@ -69,11 +69,18 @@ def decode_access_token(token: str) -> dict:
 
 async def get_current_user(
     access_token: str | None = Cookie(default=None),
+    authorization: str | None = Header(default=None),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    if not access_token:
+    # Prefer Authorization header (used by Capacitor/iOS), fall back to cookie (web)
+    token = None
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]
+    elif access_token:
+        token = access_token
+    if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    payload = decode_access_token(access_token)
+    payload = decode_access_token(token)
     user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token payload")

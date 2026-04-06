@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
-import { useState } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ChildProvider } from './context/ChildContext'
 import { api } from './api/client'
@@ -127,11 +128,34 @@ function PinSetup({ onComplete }) {
   )
 }
 
+// Listen for Capacitor deep links (e.g. choremax://parent/calendar?google_pending=...)
+function DeepLinkListener() {
+  const navigate = useNavigate()
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    let listener
+    import('@capacitor/app').then(({ App }) => {
+      listener = App.addListener('appUrlOpen', ({ url }) => {
+        // url like "choremax://parent/calendar?google_pending=abc"
+        try {
+          const parsed = new URL(url)
+          const path = parsed.pathname || parsed.host + (parsed.pathname || '')
+          const search = parsed.search || ''
+          navigate(`/${path}${search}`.replace(/\/+/g, '/'))
+        } catch { /* ignore malformed URLs */ }
+      })
+    })
+    return () => { listener?.then(l => l.remove()) }
+  }, [navigate])
+  return null
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <ChildProvider>
         <BrowserRouter>
+          <DeepLinkListener />
           <Routes>
             {/* Public - no auth required */}
             <Route path="/welcome" element={<Landing />} />

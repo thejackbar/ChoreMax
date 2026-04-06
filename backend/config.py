@@ -43,7 +43,12 @@ class Settings(BaseSettings):
 
     @property
     def frontend_origins(self) -> list[str]:
-        return [o.strip() for o in self.FRONTEND_ORIGIN.split(",") if o.strip()]
+        origins = [o.strip() for o in self.FRONTEND_ORIGIN.split(",") if o.strip()]
+        # Always allow Capacitor iOS origin for native app
+        cap_origin = "capacitor://localhost"
+        if cap_origin not in origins:
+            origins.append(cap_origin)
+        return origins
 
     @property
     def is_production(self) -> bool:

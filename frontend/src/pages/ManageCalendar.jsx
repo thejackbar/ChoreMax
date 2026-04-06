@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { api } from '../api/client'
 
 const FEED_COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316']
@@ -216,7 +217,12 @@ export default function ManageCalendar() {
               onClick={async () => {
                 try {
                   const { url } = await api.calendar.googleAuthUrl(pin)
-                  window.location.href = url
+                  // On iOS, open in system browser so choremax:// redirect works
+                  if (Capacitor.isNativePlatform()) {
+                    window.open(url, '_system')
+                  } else {
+                    window.location.href = url
+                  }
                 } catch (e) {
                   if (e.message.includes('not configured')) {
                     setError('Google Calendar is not configured on this server yet')

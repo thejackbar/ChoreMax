@@ -59,7 +59,9 @@ async def register(data: UserCreate, response: Response, db: AsyncSession = Depe
 
     token = create_access_token(subject=user.id)
     _set_auth_cookie(response, token)
-    return _user_response(user)
+    resp = _user_response(user)
+    resp["token"] = token  # Returned for Capacitor/iOS token-based auth
+    return resp
 
 
 @router.post("/login")
@@ -71,7 +73,9 @@ async def login(data: LoginRequest, response: Response, db: AsyncSession = Depen
 
     token = create_access_token(subject=user.id)
     _set_auth_cookie(response, token)
-    return _user_response(user)
+    resp = _user_response(user)
+    resp["token"] = token  # Returned for Capacitor/iOS token-based auth
+    return resp
 
 
 @router.post("/logout", status_code=204)

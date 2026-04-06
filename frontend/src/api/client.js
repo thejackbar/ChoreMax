@@ -1,13 +1,44 @@
-const BASE = '/api'
+// Detect Capacitor native environment (iOS/Android)
+import { Capacitor } from '@capacitor/core'
+const isNative = Capacitor.isNativePlatform()
+
+// On web, '/api' is proxied by nginx/Vite. On native, hit the backend directly.
+const BASE = isNative
+  ? (import.meta.env.VITE_API_BASE || 'https://choremax.bltbox.com/api')
+  : '/api'
+
+// --- Token storage for native auth (cookies don't work in Capacitor) ---
+const TOKEN_KEY = 'choremax_auth_token'
+
+function getStoredToken() {
+  return localStorage.getItem(TOKEN_KEY)
+}
+
+function setStoredToken(token) {
+  if (token) localStorage.setItem(TOKEN_KEY, token)
+}
+
+function clearStoredToken() {
+  localStorage.removeItem(TOKEN_KEY)
+}
 
 async function request(method, path, body, extraHeaders = {}) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...extraHeaders,
+  }
+
+  // On native, attach Bearer token instead of relying on cookies
+  if (isNative) {
+    const token = getStoredToken()
+    if (token) headers['Authorization'] = `Bearer ${token}`
+  }
+
   const opts = {
     method,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...extraHeaders,
-    },
+    headers,
+    // Cookies only relevant on web; harmless but explicit
+    ...(!isNative && { credentials: 'include' }),
   }
   if (body !== undefined && body !== null) {
     opts.body = JSON.stringify(body)
@@ -21,11 +52,18 @@ async function request(method, path, body, extraHeaders = {}) {
   if (!res.ok) {
     // For 401 on non-auth endpoints, dispatch unauthorized event (session expired)
     if (res.status === 401 && !path.startsWith('/auth/login') && !path.startsWith('/auth/register')) {
+      if (isNative) clearStoredToken()
       window.dispatchEvent(new CustomEvent('auth:unauthorized'))
     }
     const msg = data?.detail || `Request failed (${res.status})`
     throw new Error(msg)
   }
+
+  // Capture token from login/register responses on native
+  if (isNative && data?.token) {
+    setStoredToken(data.token)
+  }
+
   return data
 }
 
@@ -38,7 +76,10 @@ export const api = {
   auth: {
     register: (data) => request('POST', '/auth/register', data),
     login: (data) => request('POST', '/auth/login', data),
-    logout: () => request('POST', '/auth/logout'),
+    logout: () => {
+      if (isNative) clearStoredToken()
+      return request('POST', '/auth/logout')
+    },
     me: () => request('GET', '/auth/me'),
   },
   children: {
@@ -104,10 +145,17 @@ export const api = {
     uploadImage: (id, file, pin) => {
       const fd = new FormData()
       fd.append('file', file)
+      const headers = pin ? { 'X-Parent-PIN': pin } : {}
+      // On native, attach Bearer token for image uploads too
+      if (isNative) {
+        const token = getStoredToken()
+        if (token) headers['Authorization'] = `Bearer ${token}`
+      }
       return fetch(`${BASE}/meals/${id}/image`, {
         method: 'POST',
-        credentials: 'include',
-        headers: pin ? { 'X-Parent-PIN': pin } : {},
+        headers,
+        // Cookies only on web
+        ...(!isNative && { credentials: 'include' }),
         body: fd,
       }).then(async (res) => {
         const data = await res.json().catch(() => null)
@@ -141,7 +189,10 @@ export const api = {
     updateConnection: (id, data, pin) => withPin('PUT', `/calendar/connections/${id}`, data, pin),
     deleteConnection: (id, pin) => withPin('DELETE', `/calendar/connections/${id}`, null, pin),
     syncConnection: (id, pin) => withPin('POST', `/calendar/connections/${id}/sync`, null, pin),
-    googleAuthUrl: (pin) => withPin('GET', '/calendar/google/auth-url', null, pin),
+    googleAuthUrl: (pin) => {
+      const platform = isNative ? 'ios' : 'web'
+      return withPin('GET', `/calendar/google/auth-url?platform=${platform}`, null, pin)
+    },
     googleCalendars: (connId) => request('GET', `/calendar/google/${connId}/calendars`),
     selectGoogleCalendars: (connId, calendars, pin) => withPin('POST', `/calendar/google/${connId}/select-calendars`, { calendars }, pin),
     createEvent: (data, pin) => withPin('POST', '/calendar/events', data, pin),

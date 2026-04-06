@@ -164,10 +164,15 @@ async def force_sync(
 # ---------------------------------------------------------------------------
 
 @router.get("/google/auth-url")
-async def google_auth_url(current_user: User = Depends(require_pin)):
+async def google_auth_url(
+    platform: str = Query(default="web"),
+    current_user: User = Depends(require_pin),
+):
     if not settings.GOOGLE_CLIENT_ID:
         raise HTTPException(501, "Google Calendar integration is not configured")
-    url = get_google_auth_url(state=current_user.id)
+    # Encode platform in state so the callback knows where to redirect
+    state = f"{current_user.id}|{platform}"
+    url = get_google_auth_url(state=state)
     return {"url": url}
 
 
@@ -178,18 +183,27 @@ async def google_callback(
     error: str = Query(default=""),
     db: AsyncSession = Depends(get_db),
 ):
-    """OAuth2 callback from Google. state = user_id."""
+    """OAuth2 callback from Google. state = 'user_id' or 'user_id|platform'."""
+    # Parse platform from state (format: "user_id|platform" or legacy "user_id")
+    if "|" in state:
+        user_id, platform = state.rsplit("|", 1)
+    else:
+        user_id, platform = state, "web"
+
+    # Build redirect base: custom scheme for iOS, normal origin for web
+    redirect_base = "choremax://parent/calendar" if platform == "ios" else f"{settings.FRONTEND_ORIGIN}/parent/calendar"
+
     if error:
-        return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/calendar?calendar_error={error}")
+        return RedirectResponse(f"{redirect_base}?calendar_error={error}")
     if not settings.GOOGLE_CLIENT_ID:
-        return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/calendar?calendar_error=not_configured")
+        return RedirectResponse(f"{redirect_base}?calendar_error=not_configured")
 
     try:
         tokens = await exchange_google_code(code)
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/calendar?calendar_error=auth_failed")
+        return RedirectResponse(f"{redirect_base}?calendar_error=auth_failed")
 
     access_token = tokens["access_token"]
     refresh_token = tokens.get("refresh_token", "")
@@ -203,7 +217,7 @@ async def google_callback(
     try:
         # Create a pending connection (is_enabled=False, no calendar_id yet)
         conn = CalendarConnection(
-            user_id=state,
+            user_id=user_id,
             provider="google",
             name=f"Google ({email})" if email else "Google Calendar",
             is_enabled=False,
@@ -218,9 +232,9 @@ async def google_callback(
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/calendar?calendar_error=save_failed")
+        return RedirectResponse(f"{redirect_base}?calendar_error=save_failed")
 
-    return RedirectResponse(f"{settings.FRONTEND_ORIGIN}/parent/calendar?google_pending={conn.id}")
+    return RedirectResponse(f"{redirect_base}?google_pending={conn.id}")
 
 
 @router.get("/google/{conn_id}/calendars")
