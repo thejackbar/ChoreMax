@@ -487,7 +487,7 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh, children:
                       <div
                         key={childData.child_id}
                         className="fc-week-child fc-week-child--clickable"
-                        onClick={() => navigate(`/child/${childData.child_id}/dashboard`)}
+                        onClick={() => navigate(`/child/${childData.child_id}`)}
                       >
                         <div className="fc-week-child-header">
                           <span className="fc-week-child-avatar">{getAvatarEmoji(childData.avatar_value)}</span>
@@ -828,7 +828,7 @@ function DayDetail({ dateStr, data, onClose, navigate }) {
             <div
               key={i}
               className="fc-chore-card fc-chore-card--clickable"
-              onClick={() => ch.child_id ? navigate(`/child/${ch.child_id}/daily`) : null}
+              onClick={() => ch.child_id ? navigate(`/child/${ch.child_id}`) : null}
             >
               <span className="fc-chore-avatar">{getAvatarEmoji(ch.avatar_value)}</span>
               <span className="fc-chore-name">{ch.child_name}</span>

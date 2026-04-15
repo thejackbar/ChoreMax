@@ -925,7 +925,7 @@ a { color: var(--primary); text-decoration: none; }
 .tab.active { background: var(--primary); color: white; }
 
 /* Parent Sidebar */
-.parent-layout { display: flex; min-height: 100vh; }
+.parent-layout { display: flex; height: 100vh; overflow: hidden; }
 .parent-sidebar {
   width: 180px;
   background: var(--glass-bg-strong);
@@ -974,11 +974,12 @@ a { color: var(--primary); text-decoration: none; }
 .parent-content {
   flex: 1;
   padding: 0;
-  overflow-y: auto;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
-.parent-content-inner { flex: 1; padding: 1rem 2rem 2rem; }
+.parent-content-inner { flex: 1; padding: 1rem 2rem 2rem; overflow-y: auto; min-height: 0; }
 .app-back-bar {
   display: flex;
   align-items: center;
@@ -1011,8 +1012,7 @@ a { color: var(--primary); text-decoration: none; }
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  position: sticky;
-  top: 0;
+  flex-shrink: 0;
   z-index: 5;
 }
 .parent-back-btn {
@@ -1027,8 +1027,8 @@ a { color: var(--primary); text-decoration: none; }
 }
 .parent-back-btn:hover { background: var(--primary-bg); color: var(--primary); }
 .parent-settings-footer {
-  position: sticky;
-  bottom: 0;
+  position: relative;
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   gap: 0.5rem;

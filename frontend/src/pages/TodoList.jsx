@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client'
 import { useChild } from '../context/ChildContext'
 import PinModal from '../components/PinModal'
+import { Reminders, isRemindersSupported } from '../native/reminders'
+import { getRemindersSettings } from '../native/remindersSettings'
 
 const CATEGORIES = [
   { id: 'general', label: 'General', emoji: '\uD83D\uDCCB' },
@@ -24,6 +26,9 @@ export default function TodoList() {
   const [editItem, setEditItem] = useState(null)
   const [deleteItem, setDeleteItem] = useState(null)
   const [pinError, setPinError] = useState(null)
+  // Apple Reminders: lists the user selected, plus their current reminders
+  const [appleLists, setAppleLists] = useState([])       // [{id, title}]
+  const [appleReminders, setAppleReminders] = useState({}) // {listId: [{id, title, ...}]}
 
   // Form state
   const [title, setTitle] = useState('')
@@ -50,6 +55,43 @@ export default function TodoList() {
   }, [showCompleted, filterCat])
 
   useEffect(() => { fetchTodos() }, [fetchTodos])
+
+  // Load Apple Reminders from the lists the user selected in settings.
+  useEffect(() => {
+    if (!isRemindersSupported()) return
+    const prefs = getRemindersSettings()
+    if (!prefs.enabled || !prefs.todoListIds || prefs.todoListIds.length === 0) return
+    ;(async () => {
+      try {
+        const { lists } = await Reminders.getLists()
+        const selected = (lists || []).filter(l => prefs.todoListIds.includes(l.id))
+        setAppleLists(selected)
+        const byList = {}
+        for (const l of selected) {
+          const { reminders } = await Reminders.getReminders({
+            listIds: [l.id],
+            includeCompleted: false,
+          })
+          byList[l.id] = reminders || []
+        }
+        setAppleReminders(byList)
+      } catch (e) {
+        console.warn('Reminders load failed:', e)
+      }
+    })()
+  }, [])
+
+  const handleToggleAppleReminder = async (listId, reminder) => {
+    try {
+      await Reminders.completeReminder({ id: reminder.id, completed: true })
+      setAppleReminders(prev => ({
+        ...prev,
+        [listId]: (prev[listId] || []).filter(r => r.id !== reminder.id),
+      }))
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   const resetForm = () => {
     setTitle('')
@@ -179,6 +221,33 @@ export default function TodoList() {
           <p className="text-muted">No tasks to do. Add one to get started.</p>
         </div>
       )}
+
+      {appleLists.map(list => {
+        const items = appleReminders[list.id] || []
+        if (items.length === 0) return null
+        return (
+          <div key={`apple-${list.id}`} className="todo-group mb-md">
+            <h3 className="todo-group-title">&#x1F34E; {list.title} <span style={{ fontWeight: 400, color: 'var(--text-secondary)' }}>(Apple Reminders)</span></h3>
+            <div className="todo-list">
+              {items.map(r => (
+                <div key={r.id} className="todo-item">
+                  <button className="todo-check" onClick={() => handleToggleAppleReminder(list.id, r)}>
+                    {'\u2B1C'}
+                  </button>
+                  <div className="todo-content">
+                    <span className="todo-title">{r.title}</span>
+                    {r.dueDate && (
+                      <div className="todo-meta">
+                        <span className="todo-due">&#x1F4C5; {new Date(r.dueDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })}
 
       {Object.entries(grouped).map(([cat, items]) => (
         <div key={cat} className="todo-group mb-md">
