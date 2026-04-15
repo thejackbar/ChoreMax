@@ -214,6 +214,6 @@ export const api = {
   shoppingList: {
     get: (weekStart) => request('GET', `/shopping-list?week_start=${weekStart}`),
     check: (data) => request('POST', '/shopping-list/check', data),
-    clearChecks: (weekStart, pin) => withPin('DELETE', `/shopping-list/checks?week_start=${weekStart}`, null, pin),
+    removeAll: (weekStart, pin) => withPin('POST', `/shopping-list/remove-all?week_start=${weekStart}`, null, pin),
   },
 }

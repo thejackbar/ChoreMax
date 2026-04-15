@@ -138,10 +138,10 @@ export default function ShoppingList() {
     }
   }
 
-  const handleClearAll = async () => {
-    if (!confirm('Clear all checked items?')) return
+  const handleRemoveAll = async () => {
+    if (!confirm('Remove all items from this week\'s shopping list? They will not come back until you re-plan meals or reset.')) return
     try {
-      await api.shoppingList.clearChecks(weekStart, pin)
+      await api.shoppingList.removeAll(weekStart, pin)
       await fetchList()
     } catch (e) {
       alert(e.message)
@@ -201,13 +201,11 @@ export default function ShoppingList() {
         </div>
       ) : (
         <>
-          {checkedItems > 0 && (
-            <div className="mb-md">
-              <button className="btn btn-sm btn-danger" onClick={handleClearAll}>
-                Clear Checked Items
-              </button>
-            </div>
-          )}
+          <div className="mb-md">
+            <button className="btn btn-sm btn-danger" onClick={handleRemoveAll}>
+              Remove All Items
+            </button>
+          </div>
 
           {Object.entries(grouped).map(([category, items]) => (
             <div key={category} className="card mb-sm">

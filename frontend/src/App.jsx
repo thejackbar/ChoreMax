@@ -41,6 +41,18 @@ function ProtectedRoute({ children }) {
   return children || <Outlet />
 }
 
+function DefaultHomeRedirect() {
+  const { user } = useAuth()
+  const pref = user?.default_home_page || 'family'
+  if (pref === 'calendar') return <Navigate to="/calendar" replace />
+  if (pref === 'meals') return <Navigate to="/meals/plan" replace />
+  if (pref.startsWith('child:')) {
+    const id = pref.slice('child:'.length)
+    return <Navigate to={`/child/${id}`} replace />
+  }
+  return <FamilyDailyView />
+}
+
 function PublicRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return <div className="flex-center" style={{ minHeight: '100vh' }}>Loading...</div>
@@ -167,7 +179,7 @@ export default function App() {
 
             {/* Kid-facing (no PIN) */}
             <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-              <Route path="/" element={<FamilyDailyView />} />
+              <Route path="/" element={<DefaultHomeRedirect />} />
               <Route path="/family" element={<FamilyDailyView />} />
               <Route path="/child/:childId" element={<MemberHub />} />
               <Route path="/child/:childId/daily" element={<ChildDailyChores />} />

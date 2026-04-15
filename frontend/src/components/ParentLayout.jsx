@@ -15,6 +15,17 @@ export default function ParentLayout() {
 
   const linkClass = ({ isActive }) => `parent-sidebar-link ${isActive ? 'active' : ''}`
 
+  const handleBack = () => {
+    if (window.history.length > 1) window.history.back()
+    else navigate('/')
+  }
+
+  const handleLogout = async () => {
+    sessionStorage.removeItem('parentPin')
+    await logout()
+    navigate('/login')
+  }
+
   return (
     <div className={`parent-layout ${collapsed ? 'parent-sidebar-collapsed' : ''}`}>
       <nav className={`parent-sidebar ${collapsed ? 'collapsed' : ''}`}>
@@ -57,13 +68,34 @@ export default function ParentLayout() {
           <span className="sidebar-icon">&#x1F46A;</span>
           <span className="sidebar-label">Family</span>
         </button>
-        <button className="parent-sidebar-link" onClick={logout} title="Logout">
+        <button className="parent-sidebar-link" onClick={handleLogout} title="Logout">
           <span className="sidebar-icon">&#x1F6AA;</span>
           <span className="sidebar-label">Logout</span>
         </button>
       </nav>
       <div className="parent-content">
-        <Outlet />
+        {/* Top bar with back button - available on every settings page */}
+        <div className="parent-topbar">
+          <button className="parent-back-btn" onClick={handleBack} title="Go back" aria-label="Go back">
+            &lsaquo; Back
+          </button>
+        </div>
+
+        <div className="parent-content-inner">
+          <Outlet />
+        </div>
+
+        {/* Sticky footer - always visible on every settings page */}
+        <div className="parent-settings-footer">
+          <button className="btn btn-outline btn-sm" onClick={() => navigate('/')}>
+            <span style={{ marginRight: '0.35rem' }}>&#x1F46A;</span>
+            Return to Family View
+          </button>
+          <button className="btn btn-danger btn-sm" onClick={handleLogout}>
+            <span style={{ marginRight: '0.35rem' }}>&#x1F6AA;</span>
+            Log Out
+          </button>
+        </div>
       </div>
     </div>
   )

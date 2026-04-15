@@ -60,6 +60,11 @@ export default function Layout() {
   const weather = useWeather()
 
   const isChildView = location.pathname.startsWith('/child/')
+  const isHome = location.pathname === '/' || location.pathname === '/family'
+  const handleBack = () => {
+    if (window.history.length > 1) window.history.back()
+    else navigate('/')
+  }
   const themeIndex = activeChild?.display_order != null ? activeChild.display_order % 6 : 0
 
   const closeSidebar = () => setSidebarOpen(false)
@@ -182,6 +187,14 @@ export default function Layout() {
             <div style={{ width: '2rem' }} />
           )}
         </nav>
+
+        {!isHome && (
+          <div className="app-back-bar">
+            <button className="app-back-btn" onClick={handleBack} aria-label="Go back">
+              &lsaquo; Back
+            </button>
+          </div>
+        )}
 
         <main className="page">
           <Outlet />
