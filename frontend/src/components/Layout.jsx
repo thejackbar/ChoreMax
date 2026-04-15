@@ -61,6 +61,8 @@ export default function Layout() {
 
   const isChildView = location.pathname.startsWith('/child/')
   const isHome = location.pathname === '/' || location.pathname === '/family'
+  const isCalendar = location.pathname === '/calendar'
+  const isMeals = location.pathname.startsWith('/meals')
   const handleBack = () => {
     if (window.history.length > 1) window.history.back()
     else navigate('/')
@@ -115,7 +117,7 @@ export default function Layout() {
 
         {/* Main nav */}
         <div className="sidebar-section">
-          <NavLink to="/" end className={navLinkClass} onClick={closeSidebar} title="Family">
+          <NavLink to="/family" className={navLinkClass} onClick={closeSidebar} title="Family">
             <span className="sidebar-icon">&#x1F46A;</span>
             <span className="sidebar-label">Family</span>
           </NavLink>

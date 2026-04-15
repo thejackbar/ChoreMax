@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '../api/client'
+import { Reminders, isRemindersSupported } from '../native/reminders'
+import { getRemindersSettings } from '../native/remindersSettings'
 
 function toLocalDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -59,8 +61,18 @@ export default function ShoppingList() {
   const [loading, setLoading] = useState(true)
   const [collapsed, setCollapsed] = useState({})
   const [pendingRemoval, setPendingRemoval] = useState({}) // key -> timeout id
+  const [extraItems, setExtraItems] = useState([]) // items pulled from Apple Reminders
   const removalTimers = useRef({})
+  // Map of itemKey -> Reminder id (so we can update/delete the matching reminder)
+  const reminderIdMap = useRef({})
   const pin = sessionStorage.getItem('parentPin')
+
+  // Check once per mount whether Apple Reminders sync is turned on + configured.
+  const remindersSyncActive = () => {
+    if (!isRemindersSupported()) return false
+    const s = getRemindersSettings()
+    return s.enabled && !!s.shoppingListId
+  }
 
   // Clean up timers on unmount
   useEffect(() => {
@@ -77,6 +89,70 @@ export default function ShoppingList() {
       Object.values(removalTimers.current).forEach(clearTimeout)
       removalTimers.current = {}
       setPendingRemoval({})
+
+      // If Reminders sync is active, pull extra items that were added natively
+      // and push any ingredients that aren't yet in the Reminders list.
+      if (remindersSyncActive()) {
+        try {
+          const { shoppingListId } = getRemindersSettings()
+          const { reminders } = await Reminders.getReminders({
+            listIds: [shoppingListId],
+            includeCompleted: false,
+          })
+
+          // Build a set of existing titles so we only show native items the
+          // meal-plan aggregation didn't already cover.
+          const planned = new Set(
+            (result.items || []).map(i => i.ingredient_name.toLowerCase())
+          )
+          const extras = []
+          const idMap = {}
+          for (const r of reminders) {
+            const title = (r.title || '').trim()
+            if (!title) continue
+            const key = `${title.toLowerCase()}::`
+            idMap[key] = r.id
+            if (!planned.has(title.toLowerCase())) {
+              extras.push({
+                ingredient_name: title,
+                ingredient_unit: '',
+                ingredient_category: 'other',
+                total_quantity: '',
+                checked: false,
+                _remindersOnly: true,
+              })
+            }
+          }
+          // Also remember reminder ids for planned items so we can tick them
+          for (const i of (result.items || [])) {
+            const match = reminders.find(r =>
+              (r.title || '').trim().toLowerCase() === i.ingredient_name.toLowerCase()
+            )
+            if (match) idMap[`${i.ingredient_name}::${i.ingredient_unit}`] = match.id
+          }
+          reminderIdMap.current = idMap
+          setExtraItems(extras)
+
+          // Push planned items that are missing from the Reminders list
+          for (const i of (result.items || [])) {
+            const k = `${i.ingredient_name}::${i.ingredient_unit}`
+            if (!idMap[k]) {
+              try {
+                const created = await Reminders.createReminder({
+                  title: i.ingredient_name.charAt(0).toUpperCase() + i.ingredient_name.slice(1),
+                  listId: shoppingListId,
+                  notes: i.total_quantity ? `${i.total_quantity} ${i.ingredient_unit}` : undefined,
+                })
+                reminderIdMap.current[k] = created.id
+              } catch {}
+            }
+          }
+        } catch (e) {
+          console.warn('Reminders sync failed:', e)
+        }
+      } else {
+        setExtraItems([])
+      }
     } catch (e) {
       console.error(e)
     } finally {
@@ -101,6 +177,16 @@ export default function ShoppingList() {
       setPendingRemoval(prev => { const n = { ...prev }; delete n[key]; return n })
     }
 
+    // If this is a Reminders-only item, just tick it off natively
+    if (item._remindersOnly) {
+      const rid = reminderIdMap.current[key]
+      if (rid) {
+        try { await Reminders.completeReminder({ id: rid, completed: !wasChecked }) } catch {}
+      }
+      setExtraItems(prev => prev.filter(i => itemKey(i) !== key))
+      return
+    }
+
     try {
       await api.shoppingList.check({
         week_start: weekStart,
@@ -108,6 +194,14 @@ export default function ShoppingList() {
         ingredient_unit: item.ingredient_unit,
         checked: !wasChecked,
       })
+
+      // Mirror state into Apple Reminders if a matching reminder exists
+      if (remindersSyncActive()) {
+        const rid = reminderIdMap.current[key]
+        if (rid) {
+          try { await Reminders.completeReminder({ id: rid, completed: !wasChecked }) } catch {}
+        }
+      }
       // Optimistic update
       setData(prev => ({
         ...prev,
@@ -156,18 +250,17 @@ export default function ShoppingList() {
 
   if (loading) return <div className="text-center mt-lg">Loading...</div>
 
-  // Group items by category
+  // Group items by category (planned + extras from Apple Reminders)
   const grouped = {}
-  if (data?.items) {
-    for (const item of data.items) {
-      const cat = item.ingredient_category
-      if (!grouped[cat]) grouped[cat] = []
-      grouped[cat].push(item)
-    }
+  const combined = [...(data?.items || []), ...extraItems]
+  for (const item of combined) {
+    const cat = item.ingredient_category
+    if (!grouped[cat]) grouped[cat] = []
+    grouped[cat].push(item)
   }
 
-  const totalItems = data?.items?.length || 0
-  const checkedItems = data?.items?.filter(i => i.checked).length || 0
+  const totalItems = combined.length
+  const checkedItems = combined.filter(i => i.checked).length
 
   return (
     <div>
@@ -257,9 +350,11 @@ export default function ShoppingList() {
                           <span style={{ flex: 1 }}>
                             {item.ingredient_name.charAt(0).toUpperCase() + item.ingredient_name.slice(1)}
                           </span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                            {Number(item.total_quantity)} {item.ingredient_unit}
-                          </span>
+                          {item.total_quantity !== '' && item.total_quantity != null && (
+                            <span style={{ fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                              {Number(item.total_quantity)} {item.ingredient_unit}
+                            </span>
+                          )}
                         </label>
                         {isPending && (
                           <button

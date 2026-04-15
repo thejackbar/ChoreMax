@@ -58,5 +58,9 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSRemindersUsageDescription</key>
+	<string>ChoreMax syncs your shopping list and to-dos with Apple Reminders so your family lists stay in sync across devices.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>ChoreMax syncs your shopping list and to-dos with Apple Reminders so your family lists stay in sync across devices.</string>
 </dict>
 </plist>

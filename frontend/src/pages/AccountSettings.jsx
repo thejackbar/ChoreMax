@@ -3,6 +3,12 @@ import { api } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import { CURRENCIES } from '../data/currencies'
 import ThemeSelector, { getStoredTheme, applyTheme } from '../components/ThemeSelector'
+import { Reminders, isRemindersSupported } from '../native/reminders'
+import {
+  getRemindersSettings,
+  setRemindersSettings,
+  REMINDERS_SETTINGS_KEY,
+} from '../native/remindersSettings'
 
 export default function AccountSettings() {
   const { user, refreshUser } = useAuth()
@@ -32,7 +38,62 @@ export default function AccountSettings() {
     api.children.list().then(setChildren).catch(() => {})
   }, [])
 
-  // Reminders
+  // Apple Reminders integration (iOS only, device-local settings)
+  const remindersSupported = isRemindersSupported()
+  const [remindersPermission, setRemindersPermission] = useState('notDetermined')
+  const [remindersLists, setRemindersLists] = useState([])
+  const [remindersPrefs, setRemindersPrefs] = useState(getRemindersSettings())
+  const [remindersBusy, setRemindersBusy] = useState(false)
+
+  useEffect(() => {
+    if (!remindersSupported) return
+    Reminders.checkPermission()
+      .then(r => {
+        setRemindersPermission(r.status)
+        if (r.status === 'authorized' || r.status === 'fullAccess') {
+          return Reminders.getLists().then(({ lists }) => setRemindersLists(lists || []))
+        }
+      })
+      .catch(() => {})
+  }, [remindersSupported])
+
+  const handleRequestRemindersAccess = async () => {
+    setRemindersBusy(true)
+    try {
+      const res = await Reminders.requestPermission()
+      setRemindersPermission(res.status)
+      if (res.granted) {
+        const { lists } = await Reminders.getLists()
+        setRemindersLists(lists || [])
+      }
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setRemindersBusy(false)
+    }
+  }
+
+  const handleSaveReminders2 = (patch) => {
+    const next = setRemindersSettings(patch)
+    setRemindersPrefs(next)
+    setMsg('Apple Reminders settings saved!')
+  }
+
+  const handleCreateGroceriesList = async () => {
+    setRemindersBusy(true)
+    try {
+      const res = await Reminders.createList('ChoreMax Shopping')
+      const { lists } = await Reminders.getLists()
+      setRemindersLists(lists || [])
+      handleSaveReminders2({ enabled: true, shoppingListId: res.id })
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setRemindersBusy(false)
+    }
+  }
+
+  // Daily reminders (backend)
   const [morningEnabled, setMorningEnabled] = useState(true)
   const [morningTime, setMorningTime] = useState('06:00')
   const [eveningEnabled, setEveningEnabled] = useState(true)
@@ -274,6 +335,121 @@ export default function AccountSettings() {
           <button className="btn btn-primary" type="submit">Save List Settings</button>
         </form>
       </div>
+
+      {/* Apple Reminders (iOS only) */}
+      {remindersSupported && (
+        <div className="card mb-lg">
+          <h3 className="mb-md">Apple Reminders Sync</h3>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+            Sync your shopping list and to-do lists with Apple Reminders so they appear on
+            iPhone, iPad, Mac and shared family devices.
+          </p>
+
+          {(remindersPermission === 'notDetermined' || remindersPermission === 'unknown') && (
+            <button
+              className="btn btn-primary"
+              type="button"
+              disabled={remindersBusy}
+              onClick={handleRequestRemindersAccess}
+            >
+              {remindersBusy ? 'Requesting\u2026' : 'Allow ChoreMax to access Reminders'}
+            </button>
+          )}
+
+          {(remindersPermission === 'denied' || remindersPermission === 'restricted') && (
+            <p className="msg-error">
+              Reminders access is blocked. Open Settings &gt; Privacy &amp; Security &gt; Reminders
+              and allow ChoreMax.
+            </p>
+          )}
+
+          {(remindersPermission === 'authorized' || remindersPermission === 'fullAccess') && (
+            <>
+              <div className="field">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={remindersPrefs.enabled}
+                    onChange={e => handleSaveReminders2({ enabled: e.target.checked })}
+                    style={{ marginRight: '0.5rem' }}
+                  />
+                  Enable Apple Reminders sync
+                </label>
+              </div>
+
+              <div className="field">
+                <label>Shopping list target (Reminders list)</label>
+                <select
+                  value={remindersPrefs.shoppingListId}
+                  onChange={e => handleSaveReminders2({ shoppingListId: e.target.value })}
+                  disabled={!remindersPrefs.enabled}
+                >
+                  <option value="">\u2014 None \u2014</option>
+                  {remindersLists.map(l => (
+                    <option key={l.id} value={l.id}>{l.title}</option>
+                  ))}
+                </select>
+                <small style={{ color: 'var(--text-secondary)', display: 'block', marginTop: '0.25rem' }}>
+                  New shopping list items will be added to this Reminders list and ticked off
+                  when you check them here.
+                </small>
+              </div>
+
+              <div className="field">
+                <label>Show these Reminders lists on the To-Do page</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  {remindersLists.length === 0 && (
+                    <small style={{ color: 'var(--text-secondary)' }}>No lists found.</small>
+                  )}
+                  {remindersLists.map(l => {
+                    const checked = remindersPrefs.todoListIds.includes(l.id)
+                    return (
+                      <label key={l.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={!remindersPrefs.enabled}
+                          onChange={e => {
+                            const ids = new Set(remindersPrefs.todoListIds)
+                            if (e.target.checked) ids.add(l.id); else ids.delete(l.id)
+                            handleSaveReminders2({ todoListIds: Array.from(ids) })
+                          }}
+                        />
+                        {l.title}
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="flex gap-sm" style={{ flexWrap: 'wrap' }}>
+                <button
+                  className="btn btn-outline btn-sm"
+                  type="button"
+                  onClick={handleCreateGroceriesList}
+                  disabled={remindersBusy}
+                >
+                  Create &ldquo;ChoreMax Shopping&rdquo; list
+                </button>
+                <button
+                  className="btn btn-outline btn-sm"
+                  type="button"
+                  onClick={async () => {
+                    setRemindersBusy(true)
+                    try {
+                      const { lists } = await Reminders.getLists()
+                      setRemindersLists(lists || [])
+                    } finally { setRemindersBusy(false) }
+                  }}
+                  disabled={remindersBusy}
+                >
+                  Refresh lists
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Reminders */}
       <div className="card mb-lg">
