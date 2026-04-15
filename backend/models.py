@@ -26,6 +26,8 @@ class User(Base):
     currency: Mapped[str] = mapped_column(Text, nullable=False, server_default="AUD")
     timezone: Mapped[str] = mapped_column(Text, nullable=False, server_default="Australia/Sydney")
     family_size: Mapped[int] = mapped_column(Integer, nullable=False, server_default="4")
+    auto_add_ingredients_to_list: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+    default_home_page: Mapped[str] = mapped_column(Text, nullable=False, server_default="family")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

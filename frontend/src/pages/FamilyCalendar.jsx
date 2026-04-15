@@ -46,32 +46,53 @@ function formatWeekRange(weekStart) {
 }
 
 export default function FamilyCalendar() {
-  const [view, setView] = useState('week')
+  const [view, setView] = useState('week') // 'day' | '3day' | 'week' | 'month'
   const [weekStart, setWeekStart] = useState(getMonday())
+  const [dayStart, setDayStart] = useState(() => toDateStr(new Date()))
   const [monthYear, setMonthYear] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() + 1 })
   const [days, setDays] = useState([])
   const [loading, setLoading] = useState(true)
   const [googleConns, setGoogleConns] = useState([])
   const [familyChildren, setFamilyChildren] = useState([])
 
+  const dayWindowSize = view === 'day' ? 1 : view === '3day' ? 3 : 7
+
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
       let data
-      if (view === 'week') {
+      if (view === 'month') {
+        data = await api.calendar.month(monthYear.year, monthYear.month)
+        setDays(data.days || [])
+      } else if (view === 'day' || view === '3day') {
+        // Fetch the containing week and slice out the visible days
+        const containingMonday = getMonday(dayStart)
+        data = await api.calendar.week(containingMonday)
+        setGoogleConns(data.google_connections || [])
+        setFamilyChildren(data.children || [])
+        const all = data.days || []
+        const startIdx = all.findIndex(d => d.date === dayStart)
+        const slice = startIdx >= 0 ? all.slice(startIdx, startIdx + dayWindowSize) : []
+        if (slice.length < dayWindowSize) {
+          // Spans into next week - fetch next week too
+          const nextMonday = addDays(containingMonday, 7)
+          const next = await api.calendar.week(nextMonday)
+          setDays([...slice, ...(next.days || []).slice(0, dayWindowSize - slice.length)])
+        } else {
+          setDays(slice)
+        }
+      } else {
         data = await api.calendar.week(weekStart)
         setGoogleConns(data.google_connections || [])
         setFamilyChildren(data.children || [])
-      } else {
-        data = await api.calendar.month(monthYear.year, monthYear.month)
+        setDays(data.days || [])
       }
-      setDays(data.days || [])
     } catch (e) {
       console.error('Calendar fetch error:', e)
     } finally {
       setLoading(false)
     }
-  }, [view, weekStart, monthYear])
+  }, [view, weekStart, monthYear, dayStart, dayWindowSize])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -81,44 +102,88 @@ export default function FamilyCalendar() {
   const prevMonth = () => setMonthYear(p => p.month === 1 ? { year: p.year - 1, month: 12 } : { ...p, month: p.month - 1 })
   const nextMonth = () => setMonthYear(p => p.month === 12 ? { year: p.year + 1, month: 1 } : { ...p, month: p.month + 1 })
   const goThisMonth = () => { const t = new Date(); setMonthYear({ year: t.getFullYear(), month: t.getMonth() + 1 }) }
+  const prevDays = () => setDayStart(addDays(dayStart, -dayWindowSize))
+  const nextDays = () => setDayStart(addDays(dayStart, dayWindowSize))
+  const goToday = () => setDayStart(toDateStr(new Date()))
 
   const todayStr = getToday()
   const isCurrentWeek = weekStart === getMonday()
   const isCurrentMonth = monthYear.year === new Date().getFullYear() && monthYear.month === new Date().getMonth() + 1
+  const isToday = dayStart === todayStr
+
+  const formatDayRange = () => {
+    if (view === 'day') {
+      const d = new Date(dayStart + 'T00:00:00')
+      return d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    }
+    const s = new Date(dayStart + 'T00:00:00')
+    const e = new Date(dayStart + 'T00:00:00'); e.setDate(e.getDate() + dayWindowSize - 1)
+    const sMonth = s.toLocaleDateString('en-AU', { month: 'short' })
+    const eMonth = e.toLocaleDateString('en-AU', { month: 'short' })
+    if (sMonth === eMonth) return `${s.getDate()} - ${e.getDate()} ${sMonth} ${s.getFullYear()}`
+    return `${s.getDate()} ${sMonth} - ${e.getDate()} ${eMonth} ${s.getFullYear()}`
+  }
+
+  const handlePrev = () => {
+    if (view === 'week') prevWeek()
+    else if (view === 'month') prevMonth()
+    else prevDays()
+  }
+  const handleNext = () => {
+    if (view === 'week') nextWeek()
+    else if (view === 'month') nextMonth()
+    else nextDays()
+  }
+  const handleToday = () => {
+    if (view === 'week') goThisWeek()
+    else if (view === 'month') goThisMonth()
+    else goToday()
+  }
+
+  const showTodayBtn = (view === 'week' && !isCurrentWeek)
+    || (view === 'month' && !isCurrentMonth)
+    || ((view === 'day' || view === '3day') && !isToday)
 
   return (
     <div className="fc-page">
       <div className="fc-header">
-        <button className="fc-nav-btn" onClick={view === 'week' ? prevWeek : prevMonth}>&lsaquo;</button>
+        <button className="fc-nav-btn" onClick={handlePrev}>&lsaquo;</button>
         <div className="fc-header-center">
           <h2 className="fc-title">
-            {view === 'week' ? formatWeekRange(weekStart) : `${MONTHS[monthYear.month - 1]} ${monthYear.year}`}
+            {view === 'week'
+              ? formatWeekRange(weekStart)
+              : view === 'month'
+                ? `${MONTHS[monthYear.month - 1]} ${monthYear.year}`
+                : formatDayRange()}
           </h2>
-          {((view === 'week' && !isCurrentWeek) || (view === 'month' && !isCurrentMonth)) && (
-            <button className="fc-today-btn" onClick={view === 'week' ? goThisWeek : goThisMonth}>Today</button>
+          {showTodayBtn && (
+            <button className="fc-today-btn" onClick={handleToday}>Today</button>
           )}
         </div>
-        <button className="fc-nav-btn" onClick={view === 'week' ? nextWeek : nextMonth}>&rsaquo;</button>
+        <button className="fc-nav-btn" onClick={handleNext}>&rsaquo;</button>
       </div>
 
       <div className="fc-view-toggle">
+        <button className={`fc-view-btn ${view === 'day' ? 'active' : ''}`} onClick={() => setView('day')}>Day</button>
+        <button className={`fc-view-btn ${view === '3day' ? 'active' : ''}`} onClick={() => setView('3day')}>3 Day</button>
         <button className={`fc-view-btn ${view === 'week' ? 'active' : ''}`} onClick={() => setView('week')}>Week</button>
         <button className={`fc-view-btn ${view === 'month' ? 'active' : ''}`} onClick={() => setView('month')}>Month</button>
       </div>
 
       {loading ? (
         <div className="fc-loading">Loading calendar...</div>
-      ) : view === 'week' ? (
+      ) : view === 'month' ? (
+        <MonthView days={days} todayStr={todayStr} year={monthYear.year} month={monthYear.month} />
+      ) : (
         <WeekView
           days={days}
           todayStr={todayStr}
-          weekStart={weekStart}
+          weekStart={view === 'week' ? weekStart : dayStart}
           googleConns={googleConns}
           onRefresh={fetchData}
           children={familyChildren}
+          windowSize={dayWindowSize}
         />
-      ) : (
-        <MonthView days={days} todayStr={todayStr} year={monthYear.year} month={monthYear.month} />
       )}
     </div>
   )
@@ -129,9 +194,40 @@ export default function FamilyCalendar() {
 // Week View - sectioned columns with chore completion
 // ============================================================
 
-function WeekView({ days, todayStr, weekStart, googleConns, onRefresh, children: familyChildren }) {
+function WeekView({ days, todayStr, weekStart, googleConns, onRefresh, children: familyChildren, windowSize = 7 }) {
   const navigate = useNavigate()
-  const pin = sessionStorage.getItem('parentPin')
+  const [pin, setPin] = useState(() => sessionStorage.getItem('parentPin'))
+  const [pendingPinAction, setPendingPinAction] = useState(null) // () => Promise
+  const [pinPromptError, setPinPromptError] = useState(null)
+
+  // If a PIN-requiring action fails with "PIN required", prompt inline and retry
+  const withPinPrompt = (action) => async () => {
+    try {
+      await action(pin)
+    } catch (e) {
+      const msg = (e?.message || '').toLowerCase()
+      if (msg.includes('pin required') || msg.includes('pin not set') || msg.includes('invalid pin')) {
+        setPinPromptError(msg.includes('invalid') ? 'Incorrect PIN' : null)
+        setPendingPinAction(() => action)
+      } else {
+        throw e
+      }
+    }
+  }
+
+  const handlePinSubmitted = async (enteredPin) => {
+    try {
+      await api.settings.verifyPin({ pin: enteredPin })
+      sessionStorage.setItem('parentPin', enteredPin)
+      setPin(enteredPin)
+      const action = pendingPinAction
+      setPendingPinAction(null)
+      setPinPromptError(null)
+      if (action) await action(enteredPin)
+    } catch {
+      setPinPromptError('Incorrect PIN')
+    }
+  }
 
   // Add event state
   const [showAddEvent, setShowAddEvent] = useState(null) // date string or null
@@ -212,7 +308,7 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh, children:
     if (!eventTitle.trim() || !eventCalendar) return
     setEventSaving(true)
     setEventError(null)
-    try {
+    const doCreate = async (usePin) => {
       await api.calendar.createEvent({
         connection_id: eventCalendar,
         title: eventTitle.trim(),
@@ -221,12 +317,15 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh, children:
         start_time: eventAllDay ? undefined : eventStartTime,
         end_time: eventAllDay ? undefined : eventEndTime,
         assigned_children: eventAssigned.length > 0 ? eventAssigned : undefined,
-      }, pin)
+      }, usePin)
       setShowAddEvent(null)
       setEventTitle('')
       setEventAllDay(true)
       setEventAssigned([])
       await onRefresh()
+    }
+    try {
+      await withPinPrompt(doCreate)()
     } catch (e) {
       setEventError(e.message)
     } finally {
@@ -255,7 +354,7 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh, children:
     if (!editTitle.trim()) return
     setEventSaving(true)
     setEventError(null)
-    try {
+    const doSave = async (usePin) => {
       const isGoogle = selectedEvent.provider === 'google'
       if (isGoogle) {
         await api.calendar.updateEvent(selectedEvent.id, {
@@ -265,14 +364,17 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh, children:
           end_time: editAllDay ? null : editEndTime,
           location: editLocation.trim() || null,
           assigned_children: editAssigned,
-        }, pin)
+        }, usePin)
       } else {
         // For non-Google events, only update assignment
-        await api.calendar.assignEvent(selectedEvent.id, editAssigned, pin)
+        await api.calendar.assignEvent(selectedEvent.id, editAssigned, usePin)
       }
       setSelectedEvent(null)
       setEditing(false)
       await onRefresh()
+    }
+    try {
+      await withPinPrompt(doSave)()
     } catch (e) {
       setEventError(e.message)
     } finally {
@@ -286,6 +388,8 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh, children:
       setDeleteTarget(null)
       setSelectedEvent(null)
       setPinError(null)
+      sessionStorage.setItem('parentPin', pinVal)
+      setPin(pinVal)
       await onRefresh()
     } catch (e) {
       setPinError(e.message)
@@ -294,8 +398,8 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh, children:
 
   return (
     <>
-      <div className="fc-week">
-        {days.map((dayData, i) => {
+      <div className={`fc-week fc-week--cols-${Math.min(days.length || windowSize, 7)}`}>
+        {days.map((dayData) => {
           const dateStr = dayData.date
           if (!dateStr) return null
           const d = new Date(dateStr + 'T00:00:00')
@@ -303,11 +407,14 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh, children:
           const isPast = dateStr < todayStr
           const dayNum = d.getDate()
           const monthShort = d.toLocaleDateString('en-AU', { month: 'short' })
+          // JS getDay(): 0=Sun..6=Sat. Our WEEKDAYS_SHORT starts Mon.
+          const jsDow = d.getDay()
+          const dayName = WEEKDAYS_SHORT[jsDow === 0 ? 6 : jsDow - 1]
 
           return (
             <div key={dateStr} className={`fc-week-day ${isToday ? 'fc-week-day--today' : ''} ${isPast ? 'fc-week-day--past' : ''}`}>
               <div className="fc-week-day-header">
-                <span className="fc-week-day-name">{WEEKDAYS_SHORT[i]}</span>
+                <span className="fc-week-day-name">{dayName}</span>
                 <span className={`fc-week-day-num ${isToday ? 'fc-week-day-num--today' : ''}`}>{dayNum} {monthShort}</span>
               </div>
               <div className="fc-week-day-body">
@@ -590,6 +697,16 @@ function WeekView({ days, todayStr, weekStart, googleConns, onRefresh, children:
           error={pinError}
           onSubmit={handleDeleteEvent}
           onCancel={() => { setDeleteTarget(null); setPinError(null) }}
+        />
+      )}
+
+      {/* Inline PIN prompt (triggered when a PIN-required action is invoked without a stored PIN) */}
+      {pendingPinAction && (
+        <PinModal
+          title="Enter Parent PIN"
+          error={pinPromptError}
+          onSubmit={handlePinSubmitted}
+          onCancel={() => { setPendingPinAction(null); setPinPromptError(null) }}
         />
       )}
     </>

@@ -53,6 +53,9 @@ async def update_account(
         display_name=current_user.display_name,
         currency=current_user.currency,
         timezone=current_user.timezone,
+        family_size=current_user.family_size,
+        auto_add_ingredients_to_list=current_user.auto_add_ingredients_to_list,
+        default_home_page=current_user.default_home_page,
         has_pin=current_user.pin_hash is not None,
         created_at=current_user.created_at,
     )

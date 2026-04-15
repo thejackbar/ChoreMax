@@ -33,6 +33,8 @@ def _user_response(user: User) -> dict:
         "currency": user.currency,
         "timezone": user.timezone,
         "family_size": user.family_size,
+        "auto_add_ingredients_to_list": user.auto_add_ingredients_to_list,
+        "default_home_page": user.default_home_page,
         "has_pin": user.pin_hash is not None,
         "created_at": user.created_at,
     }

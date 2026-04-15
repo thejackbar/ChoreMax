@@ -31,6 +31,8 @@ class UserResponse(OrmBase):
     currency: str
     timezone: str
     family_size: int = 4
+    auto_add_ingredients_to_list: bool = True
+    default_home_page: str = "family"
     has_pin: bool = False
     created_at: datetime
 
@@ -263,6 +265,12 @@ class SettingsUpdate(BaseModel):
     timezone: str | None = None
     display_name: str | None = None
     family_size: int | None = Field(default=None, ge=1, le=20)
+    auto_add_ingredients_to_list: bool | None = None
+    default_home_page: str | None = Field(
+        default=None,
+        max_length=100,
+        description="'family', 'calendar', 'meals', or 'child:<uuid>'",
+    )
 
 
 class ReminderSettingsUpdate(BaseModel):

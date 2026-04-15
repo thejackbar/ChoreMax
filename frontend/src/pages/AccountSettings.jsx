@@ -18,6 +18,20 @@ export default function AccountSettings() {
   const [msg, setMsg] = useState(null)
   const [error, setError] = useState(null)
 
+  // Lists settings
+  const [autoAddIngredients, setAutoAddIngredients] = useState(
+    user?.auto_add_ingredients_to_list ?? true
+  )
+
+  // Default home page
+  const [defaultHomePage, setDefaultHomePage] = useState(user?.default_home_page || 'family')
+  const [children, setChildren] = useState([])
+
+  useEffect(() => {
+    // Load children for the default-home-page picker
+    api.children.list().then(setChildren).catch(() => {})
+  }, [])
+
   // Reminders
   const [morningEnabled, setMorningEnabled] = useState(true)
   const [morningTime, setMorningTime] = useState('06:00')
@@ -49,6 +63,32 @@ export default function AccountSettings() {
       await api.settings.updateAccount({ currency, timezone, display_name: displayName, family_size: familySize }, pin)
       await refreshUser()
       setMsg('Account updated!')
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  const handleSaveLists = async (e) => {
+    e.preventDefault()
+    setMsg(null)
+    setError(null)
+    try {
+      await api.settings.updateAccount({ auto_add_ingredients_to_list: autoAddIngredients }, pin)
+      await refreshUser()
+      setMsg('List settings saved!')
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  const handleSaveHome = async (e) => {
+    e.preventDefault()
+    setMsg(null)
+    setError(null)
+    try {
+      await api.settings.updateAccount({ default_home_page: defaultHomePage }, pin)
+      await refreshUser()
+      setMsg('Default home page saved!')
     } catch (e) {
       setError(e.message)
     }
@@ -191,6 +231,47 @@ export default function AccountSettings() {
             <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} minLength={8} required />
           </div>
           <button className="btn btn-primary" type="submit">Change Password</button>
+        </form>
+      </div>
+
+      {/* Default Home Page */}
+      <div className="card mb-lg">
+        <h3 className="mb-md">Default Home Page</h3>
+        <form onSubmit={handleSaveHome}>
+          <div className="field">
+            <label>When you open ChoreMax, start on</label>
+            <select value={defaultHomePage} onChange={e => setDefaultHomePage(e.target.value)}>
+              <option value="family">Family View</option>
+              <option value="calendar">Calendar</option>
+              <option value="meals">Meal Plan</option>
+              {children.map(c => (
+                <option key={c.id} value={`child:${c.id}`}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <button className="btn btn-primary" type="submit">Save</button>
+        </form>
+      </div>
+
+      {/* Lists */}
+      <div className="card mb-lg">
+        <h3 className="mb-md">Lists</h3>
+        <form onSubmit={handleSaveLists}>
+          <div className="field">
+            <label>
+              <input
+                type="checkbox"
+                checked={autoAddIngredients}
+                onChange={e => setAutoAddIngredients(e.target.checked)}
+                style={{ marginRight: '0.5rem' }}
+              />
+              Automatically add meal ingredients to the shopping list
+            </label>
+            <small style={{ color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'block' }}>
+              When off, your shopping list stays empty until you add items manually. Meal plans still work as usual.
+            </small>
+          </div>
+          <button className="btn btn-primary" type="submit">Save List Settings</button>
         </form>
       </div>
 
