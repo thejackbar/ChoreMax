@@ -2005,7 +2005,9 @@ a { color: var(--primary); text-decoration: none; }
   .parent-sidebar {
     width: 100%;
     display: flex;
+    flex-direction: row;
     overflow-x: auto;
+    overflow-y: visible;
     padding: 0.5rem;
     /* Push below iOS notch/status bar */
     padding-top: calc(0.5rem + env(safe-area-inset-top));
@@ -2014,7 +2016,14 @@ a { color: var(--primary); text-decoration: none; }
     position: sticky;
     top: 0;
     z-index: 100;
+    /* Hide scrollbar but keep scrollable */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
+  .parent-sidebar::-webkit-scrollbar { display: none; }
+  /* Hide collapse toggle and flex spacer in horizontal mode */
+  .parent-sidebar .sidebar-collapse-btn { display: none; }
+  .parent-sidebar > div[style] { display: none; }
   .parent-sidebar-link { padding: 0.625rem 1.25rem; white-space: nowrap; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
   .chore-grid { grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
