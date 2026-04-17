@@ -2007,8 +2007,13 @@ a { color: var(--primary); text-decoration: none; }
     display: flex;
     overflow-x: auto;
     padding: 0.5rem;
+    /* Push below iOS notch/status bar */
+    padding-top: calc(0.5rem + env(safe-area-inset-top));
     border-right: none;
     border-bottom: 1px solid var(--glass-border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
   }
   .parent-sidebar-link { padding: 0.625rem 1.25rem; white-space: nowrap; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
@@ -2808,6 +2813,8 @@ a { color: var(--primary); text-decoration: none; }
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 1rem;
+    /* Push content below the iOS notch/status bar */
+    padding-top: calc(0.75rem + env(safe-area-inset-top));
     background: var(--glass-bg-strong);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);

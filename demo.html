@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChoreMax Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #e8eeff;
+  --bg-gradient: linear-gradient(135deg, #e8eeff 0%, #f0e6ff 30%, #e8eeff 60%, #dbeafe 100%);
+  --text: #1a1d2e;
+  --text-secondary: #5a6078;
+  --muted: #8b90a8;
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --primary-bg: #eef2ff;
+  --secondary: #f59e0b;
+  --success: #10b981;
+  --danger: #ef4444;
+  --pink: #ec4899;
+  --purple: #8b5cf6;
+  --orange: #f97316;
+  --piggy: #f472b6;
+  --r: 20px;
+  --r-lg: 28px;
+  --r-full: 9999px;
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-bg-strong: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --glass-blur: blur(24px);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.1);
+  --border: rgba(0, 0, 0, 0.06);
+  --border2: rgba(0, 0, 0, 0.1);
+  --font-heading: 'Fredoka', sans-serif;
+  --font-body: 'Nunito', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-body); background: var(--bg-gradient); background-attachment: fixed; color: var(--text); -webkit-font-smoothing: antialiased; min-height: 100vh; overflow-x: hidden; }
+h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 600; }
+
+/* Screens */
+.screen { display: none; min-height: 100vh; padding-bottom: 80px; }
+.screen.active { display: block; }
+
+/* Top Nav */
+.topnav { background: var(--glass-bg-strong); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border-bottom: 1px solid var(--glass-border); padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+.topnav-title { font-family: var(--font-heading); font-size: 1.35rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 0.5rem; }
+.topnav-left { display: flex; align-items: center; gap: 0.75rem; }
+.burger-btn { background: none; border: none; cursor: pointer; padding: 0.5rem; display: flex; flex-direction: column; gap: 5px; }
+.burger-btn span { display: block; width: 26px; height: 3px; background: var(--text); border-radius: 3px; }
+.home-btn { background: none; border: none; font-size: 1.75rem; cursor: pointer; }
+
+/* Page content */
+.page { flex: 1; padding: 1.5rem; max-width: 960px; margin: 0 auto; width: 100%; }
+
+/* Avatar Grid */
+.avatar-grid { display: flex; flex-wrap: wrap; gap: 2rem; padding: 1rem 0; justify-content: center; }
+.avatar-btn { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 2rem 2.5rem; border-radius: var(--r-lg); border: 2px solid var(--glass-border); background: var(--glass-bg-strong); backdrop-filter: var(--glass-blur); cursor: pointer; transition: all 0.3s; box-shadow: var(--glass-shadow), var(--glass-highlight); min-width: 200px; }
+.avatar-btn:hover { border-color: var(--primary); transform: translateY(-6px); box-shadow: var(--shadow-lg), var(--glass-highlight); }
+.avatar-btn .avatar-emoji { font-size: 5rem; line-height: 1; }
+.avatar-btn .avatar-name { font-family: var(--font-heading); font-size: 1.35rem; font-weight: 600; color: var(--text); }
+.child-summary { display: flex; gap: 1rem; margin-top: 0.5rem; width: 100%; justify-content: center; }
+.child-summary-item { display: flex; flex-direction: column; align-items: center; font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+.child-summary-item .summary-value { font-family: var(--font-heading); font-size: 1rem; font-weight: 700; color: var(--text); }
+.child-summary-item .summary-value.money { color: var(--secondary); }
+
+/* Chore Progress Header */
+.chore-progress-header { background: var(--glass-bg); backdrop-filter: var(--glass-blur); border-radius: var(--r); padding: 1.25rem 1.5rem; margin-bottom: 1rem; border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); }
+.chore-progress-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+
+/* Progress Bar */
+.progress-bar { height: 28px; background: rgba(0, 0, 0, 0.06); border-radius: var(--r-full); overflow: hidden; position: relative; border: 1px solid var(--glass-border); }
+.progress-fill { height: 100%; border-radius: var(--r-full); background: linear-gradient(90deg, var(--secondary) 0%, var(--orange) 100%); transition: width 0.8s; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3); }
+.progress-fill.green { background: linear-gradient(90deg, var(--success) 0%, #34d399 100%); box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3); }
+.progress-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--font-heading); font-size: 0.8rem; font-weight: 700; color: var(--text); }
+
+/* Filter bar */
+.filter-bar { display: flex; gap: 0.625rem; padding: 0.5rem 0; }
+.filter-btn { padding: 0.625rem 1.5rem; border-radius: var(--r-full); border: 2px solid var(--glass-border); background: var(--glass-bg); font-family: var(--font-heading); font-size: 0.95rem; font-weight: 500; cursor: pointer; color: var(--text-secondary); }
+.filter-btn.active { background: linear-gradient(135deg, var(--primary), var(--primary-light)); border-color: var(--primary); color: white; }
+
+/* Chore Grid */
+.chore-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.25rem; padding: 1rem 0; }
+.chore-card { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 1.5rem 1.25rem; border-radius: var(--r); border: 2px solid var(--glass-border); background: var(--glass-bg-strong); backdrop-filter: var(--glass-blur); cursor: pointer; transition: all 0.25s; box-shadow: var(--glass-shadow), var(--glass-highlight); position: relative; }
+.chore-card:hover:not(.chore-card--done) { border-color: var(--primary); transform: translateY(-4px); }
+.chore-card--done { opacity: 0.55; background: rgba(236, 253, 245, 0.6); border-color: rgba(16, 185, 129, 0.3); }
+.chore-card--done::after { content: '\2714'; position: absolute; top: 0.75rem; right: 0.75rem; font-size: 1.5rem; color: var(--success); }
+.chore-card .chore-emoji { font-size: 3.5rem; line-height: 1; }
+.chore-card .chore-title { font-family: var(--font-heading); font-size: 1rem; font-weight: 500; text-align: center; }
+.chore-card .chore-value { font-family: var(--font-heading); font-size: 1.1rem; font-weight: 700; color: var(--secondary); }
+
+/* Bottom nav */
+.bottomnav { background: var(--glass-bg-strong); backdrop-filter: var(--glass-blur); border-top: 1px solid var(--glass-border); display: flex; justify-content: space-around; padding: 0.625rem; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; }
+.bottomnav-item { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; padding: 0.625rem 1rem; border-radius: var(--r); font-size: 0.8rem; font-weight: 600; color: var(--muted); background: none; border: none; cursor: pointer; text-decoration: none; }
+.bottomnav-item.active { color: var(--primary); }
+.bottomnav-item .nav-icon { font-size: 1.5rem; }
+
+/* Piggy Bank */
+.piggy-bank { display: flex; flex-direction: column; align-items: center; padding: 2.5rem; background: linear-gradient(135deg, var(--pink) 0%, var(--piggy) 50%, var(--purple) 100%); border-radius: var(--r-lg); color: white; text-align: center; box-shadow: 0 8px 32px rgba(236, 72, 153, 0.3); }
+.piggy-bank .piggy-icon { font-size: 4.5rem; margin-bottom: 0.75rem; }
+.piggy-bank .piggy-amount { font-family: var(--font-heading); font-size: 3rem; font-weight: 700; }
+.piggy-bank .piggy-label { font-size: 1rem; opacity: 0.9; margin-top: 0.25rem; }
+
+/* Stat cards */
+.stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 1.5rem; }
+.stat-card { background: var(--glass-bg-strong); backdrop-filter: var(--glass-blur); border-radius: var(--r); padding: 1.25rem; text-align: center; box-shadow: var(--glass-shadow), var(--glass-highlight); border: 1px solid var(--glass-border); }
+.stat-card .stat-value { font-family: var(--font-heading); font-size: 2rem; font-weight: 700; color: var(--primary); }
+.stat-card .stat-label { font-size: 0.8rem; color: var(--muted); font-weight: 600; margin-top: 0.25rem; }
+
+/* Calendar */
+.calendar-container { background: var(--glass-bg-strong); backdrop-filter: var(--glass-blur); border-radius: var(--r); padding: 1.5rem; border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); margin-top: 1.5rem; }
+.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.calendar-header h3 { font-family: var(--font-heading); font-size: 1.1rem; }
+.calendar-nav { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--primary); padding: 0.25rem 0.75rem; border-radius: var(--r); }
+.calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 4px; }
+.calendar-weekday { text-align: center; font-size: 0.7rem; font-weight: 700; color: var(--muted); padding: 0.25rem; text-transform: uppercase; }
+.calendar-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.calendar-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; font-size: 0.85rem; font-weight: 600; }
+.calendar-day.empty { visibility: hidden; }
+.calendar-day.future { color: var(--muted); opacity: 0.5; }
+.calendar-day.today { border: 2px solid var(--primary); }
+.calendar-day.all-done { background: rgba(16, 185, 129, 0.12); }
+.calendar-day.some-done { background: rgba(245, 158, 11, 0.1); }
+.day-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 3px; }
+.day-dot.green { background: var(--success); }
+.day-dot.orange { background: var(--secondary); }
+.day-dot.red { background: var(--danger); opacity: 0.5; }
+
+/* Confetti */
+.confetti-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2000; overflow: hidden; }
+.confetti-piece { position: absolute; width: 12px; height: 12px; border-radius: 3px; animation: confetti-fall 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+@keyframes confetti-fall { 0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; } 100% { transform: translateY(500px) rotate(720deg) scale(0); opacity: 0; } }
+
+/* Responsive */
+@media (max-width: 480px) {
+  .avatar-btn { min-width: 140px; padding: 1.25rem 1.5rem; }
+  .avatar-btn .avatar-emoji { font-size: 3.5rem; }
+  .chore-card .chore-emoji { font-size: 2.75rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== HOME SCREEN ==================== -->
+<div id="screen-home" class="screen active">
+  <nav class="topnav">
+    <div class="topnav-left">
+      <button class="burger-btn"><span></span><span></span><span></span></button>
+      <span class="topnav-title">ChoreMax</span>
+    </div>
+  </nav>
+  <div class="page">
+    <div style="text-align:center; margin: 2rem 0 1rem;">
+      <h1>Who are you?</h1>
+      <p style="color:var(--muted); font-size:1.1rem; margin-top:0.5rem;">Tap your picture to start!</p>
+    </div>
+    <div class="avatar-grid">
+      <button class="avatar-btn" onclick="showScreen('daily', 'Alfie', '&#x1F435;')">
+        <span class="avatar-emoji">&#x1F435;</span>
+        <span class="avatar-name">Alfie</span>
+        <div class="child-summary">
+          <div class="child-summary-item"><span class="summary-value">3/4</span>Daily</div>
+          <div class="child-summary-item"><span class="summary-value">1/2</span>Weekly</div>
+          <div class="child-summary-item"><span class="summary-value money">$2.45</span>Balance</div>
+        </div>
+      </button>
+      <button class="avatar-btn" onclick="showScreen('daily', 'Lola', '&#x1F984;')">
+        <span class="avatar-emoji">&#x1F984;</span>
+        <span class="avatar-name">Lola</span>
+        <div class="child-summary">
+          <div class="child-summary-item"><span class="summary-value">2/4</span>Daily</div>
+          <div class="child-summary-item"><span class="summary-value">0/2</span>Weekly</div>
+          <div class="child-summary-item"><span class="summary-value money">$1.20</span>Balance</div>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DAILY CHORES SCREEN ==================== -->
+<div id="screen-daily" class="screen">
+  <nav class="topnav">
+    <div class="topnav-left">
+      <button class="burger-btn"><span></span><span></span><span></span></button>
+      <span class="topnav-title"><span id="daily-avatar"></span> <span id="daily-name"></span></span>
+    </div>
+    <button class="home-btn" onclick="showScreen('home')">&#x1F3E0;</button>
+  </nav>
+  <div class="page">
+    <div class="chore-progress-header">
+      <div class="chore-progress-top">
+        <h2>Daily Chores</h2>
+        <span style="color:var(--muted); font-family:var(--font-heading); font-size:1.1rem;" id="daily-count">3/4 done</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="daily-progress" style="width:75%"></div>
+        <div class="progress-text">3 / 4</div>
+      </div>
+    </div>
+    <div class="filter-bar">
+      <button class="filter-btn active">All</button>
+      <button class="filter-btn">To Do</button>
+      <button class="filter-btn">Done</button>
+    </div>
+    <div class="chore-grid" id="daily-chores">
+      <button class="chore-card chore-card--done" onclick="undoChore(this)">
+        <span class="chore-emoji">&#x1F9F7;</span>
+        <span class="chore-title">Brush Teeth</span>
+        <span class="chore-value">$0.05</span>
+      </button>
+      <button class="chore-card chore-card--done" onclick="undoChore(this)">
+        <span class="chore-emoji">&#x1F6CF;</span>
+        <span class="chore-title">Make Bed</span>
+        <span class="chore-value">$0.10</span>
+      </button>
+      <button class="chore-card chore-card--done" onclick="undoChore(this)">
+        <span class="chore-emoji">&#x1F4DA;</span>
+        <span class="chore-title">Pack Bag</span>
+        <span class="chore-value">$0.10</span>
+      </button>
+      <button class="chore-card" onclick="completeChore(this)">
+        <span class="chore-emoji">&#x1F3B5;</span>
+        <span class="chore-title">Practice Piano</span>
+        <span class="chore-value">$0.25</span>
+      </button>
+    </div>
+  </div>
+  <nav class="bottomnav">
+    <a class="bottomnav-item active" onclick="showScreen('daily')"><span class="nav-icon">&#x1F4CB;</span>Daily</a>
+    <a class="bottomnav-item" onclick="showScreen('weekly')"><span class="nav-icon">&#x1F4C5;</span>Weekly</a>
+    <a class="bottomnav-item" onclick="showScreen('mystuff')"><span class="nav-icon">&#x1F3C6;</span>My Stuff</a>
+  </nav>
+</div>
+
+<!-- ==================== WEEKLY CHORES SCREEN ==================== -->
+<div id="screen-weekly" class="screen">
+  <nav class="topnav">
+    <div class="topnav-left">
+      <button class="burger-btn"><span></span><span></span><span></span></button>
+      <span class="topnav-title"><span id="weekly-avatar"></span> <span id="weekly-name"></span></span>
+    </div>
+    <button class="home-btn" onclick="showScreen('home')">&#x1F3E0;</button>
+  </nav>
+  <div class="page">
+    <div class="chore-progress-header">
+      <div class="chore-progress-top">
+        <h2>Weekly Chores</h2>
+        <span style="color:var(--muted); font-family:var(--font-heading); font-size:1.1rem;">1/2 done</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:50%"></div>
+        <div class="progress-text">1 / 2</div>
+      </div>
+    </div>
+    <div class="filter-bar">
+      <button class="filter-btn active">All</button>
+      <button class="filter-btn">To Do</button>
+      <button class="filter-btn">Done</button>
+    </div>
+    <div class="chore-grid">
+      <button class="chore-card chore-card--done">
+        <span class="chore-emoji">&#x1F9F9;</span>
+        <span class="chore-title">Clean Room</span>
+        <span class="chore-value">$1.00</span>
+      </button>
+      <button class="chore-card" onclick="completeChore(this)">
+        <span class="chore-emoji">&#x1F33F;</span>
+        <span class="chore-title">Water Plants</span>
+        <span class="chore-value">$0.50</span>
+      </button>
+    </div>
+  </div>
+  <nav class="bottomnav">
+    <a class="bottomnav-item" onclick="showScreen('daily')"><span class="nav-icon">&#x1F4CB;</span>Daily</a>
+    <a class="bottomnav-item active" onclick="showScreen('weekly')"><span class="nav-icon">&#x1F4C5;</span>Weekly</a>
+    <a class="bottomnav-item" onclick="showScreen('mystuff')"><span class="nav-icon">&#x1F3C6;</span>My Stuff</a>
+  </nav>
+</div>
+
+<!-- ==================== MY STUFF / DASHBOARD ==================== -->
+<div id="screen-mystuff" class="screen">
+  <nav class="topnav">
+    <div class="topnav-left">
+      <button class="burger-btn"><span></span><span></span><span></span></button>
+      <span class="topnav-title"><span id="stuff-avatar"></span> <span id="stuff-name"></span></span>
+    </div>
+    <button class="home-btn" onclick="showScreen('home')">&#x1F3E0;</button>
+  </nav>
+  <div class="page">
+    <div class="piggy-bank">
+      <div class="piggy-icon">&#x1F437;</div>
+      <div class="piggy-amount">$2.45</div>
+      <div class="piggy-label">My Piggy Bank</div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-value">3/4</div>
+        <div class="stat-label">Daily Chores</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">1/2</div>
+        <div class="stat-label">Weekly Chores</div>
+      </div>
+    </div>
+
+    <div style="margin-top:1.5rem;">
+      <h3 style="margin-bottom:0.5rem;">&#x1F31F; Today's Progress</h3>
+      <div class="progress-bar">
+        <div class="progress-fill green" style="width:75%"></div>
+        <div class="progress-text">75%</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:2rem;">Chore Calendar</h3>
+    <div class="calendar-container" style="margin-top:0.75rem;">
+      <div class="calendar-header">
+        <button class="calendar-nav">&#x2039;</button>
+        <h3>March 2026</h3>
+        <button class="calendar-nav">&#x203A;</button>
+      </div>
+      <div class="calendar-weekdays">
+        <div class="calendar-weekday">Sun</div>
+        <div class="calendar-weekday">Mon</div>
+        <div class="calendar-weekday">Tue</div>
+        <div class="calendar-weekday">Wed</div>
+        <div class="calendar-weekday">Thu</div>
+        <div class="calendar-weekday">Fri</div>
+        <div class="calendar-weekday">Sat</div>
+      </div>
+      <div class="calendar-days" id="calendar-grid"></div>
+    </div>
+  </div>
+  <nav class="bottomnav">
+    <a class="bottomnav-item" onclick="showScreen('daily')"><span class="nav-icon">&#x1F4CB;</span>Daily</a>
+    <a class="bottomnav-item" onclick="showScreen('weekly')"><span class="nav-icon">&#x1F4C5;</span>Weekly</a>
+    <a class="bottomnav-item active" onclick="showScreen('mystuff')"><span class="nav-icon">&#x1F3C6;</span>My Stuff</a>
+  </nav>
+</div>
+
+<div id="confetti-container" class="confetti-container"></div>
+
+<script>
+let currentChild = { name: 'Alfie', avatar: '\u{1F435}' };
+
+function showScreen(screen, name, avatar) {
+  if (name) currentChild = { name, avatar };
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + screen).classList.add('active');
+  // Update child name/avatar in headers
+  ['daily', 'weekly', 'stuff'].forEach(prefix => {
+    const nameEl = document.getElementById(prefix + '-name');
+    const avatarEl = document.getElementById(prefix + '-avatar');
+    if (nameEl) nameEl.textContent = currentChild.name;
+    if (avatarEl) avatarEl.textContent = currentChild.avatar;
+  });
+  window.scrollTo(0, 0);
+}
+
+function completeChore(el) {
+  el.classList.add('chore-card--done');
+  el.onclick = function() { undoChore(el); };
+  fireConfetti();
+  // Navigate home after delay
+  setTimeout(() => showScreen('home'), 1500);
+}
+
+function undoChore(el) {
+  // Simulate PIN requirement
+  if (confirm('Undo this chore? (Parent PIN required in real app)')) {
+    el.classList.remove('chore-card--done');
+    el.onclick = function() { completeChore(el); };
+  }
+}
+
+function fireConfetti() {
+  const container = document.getElementById('confetti-container');
+  const colors = ['#6366f1', '#f59e0b', '#10b981', '#ec4899', '#8b5cf6', '#f97316', '#06b6d4'];
+  for (let i = 0; i < 50; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.top = '-10px';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDelay = Math.random() * 0.5 + 's';
+    piece.style.animationDuration = (1 + Math.random()) + 's';
+    container.appendChild(piece);
+  }
+  setTimeout(() => { container.innerHTML = ''; }, 2500);
+}
+
+// Build calendar
+function buildCalendar() {
+  const grid = document.getElementById('calendar-grid');
+  const today = 4; // March 4
+  const firstDay = 0; // March 1, 2026 is Sunday
+  const daysInMonth = 31;
+  // Sample completion data
+  const completions = {1:4,2:4,3:3,4:3,5:0,6:0,7:0,8:0,9:0,10:0};
+  const total = 4;
+
+  for (let i = 0; i < firstDay; i++) {
+    grid.innerHTML += '<div class="calendar-day empty"></div>';
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    let cls = 'calendar-day';
+    let dotCls = '';
+    if (d === today) cls += ' today';
+    if (d > today) {
+      cls += ' future';
+    } else if (d <= today) {
+      const done = completions[d] || 0;
+      if (done >= total) { cls += ' all-done'; dotCls = 'green'; }
+      else if (done > 0) { cls += ' some-done'; dotCls = 'orange'; }
+      else { dotCls = 'red'; }
+    }
+    grid.innerHTML += '<div class="' + cls + '"><span class="day-num">' + d + '</span>' + (d <= today ? '<span class="day-dot ' + dotCls + '"></span>' : '') + '</div>';
+  }
+}
+buildCalendar();
+</script>
+</body>
+</html>

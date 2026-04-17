@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEO Audit Report — maxgeo.com — March 2026</title>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --surface2: #334155;
+    --text: #f1f5f9; --muted: #94a3b8; --accent: #38bdf8;
+    --green: #22c55e; --yellow: #eab308; --red: #ef4444; --orange: #f97316;
+    --border: #475569;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; padding: 2rem; }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 2.2rem; margin-bottom: 0.5rem; }
+  h2 { font-size: 1.5rem; margin: 2rem 0 1rem; color: var(--accent); border-bottom: 2px solid var(--surface2); padding-bottom: 0.5rem; }
+  h3 { font-size: 1.15rem; margin: 1.5rem 0 0.75rem; color: var(--text); }
+  .subtitle { color: var(--muted); font-size: 1rem; margin-bottom: 2rem; }
+  .score-hero { display: flex; align-items: center; gap: 3rem; background: var(--surface); border-radius: 16px; padding: 2.5rem; margin: 2rem 0; }
+  .score-circle { position: relative; width: 160px; height: 160px; flex-shrink: 0; }
+  .score-circle svg { transform: rotate(-90deg); }
+  .score-circle .track { fill: none; stroke: var(--surface2); stroke-width: 10; }
+  .score-circle .fill { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+  .score-value { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 3rem; font-weight: 800; }
+  .score-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .score-meta { flex: 1; }
+  .score-meta h3 { margin-top: 0; }
+  .score-meta p { color: var(--muted); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+  @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } .score-hero { flex-direction: column; text-align: center; } }
+  .card { background: var(--surface); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--surface2); }
+  .card h4 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 0.5rem; }
+  .card .value { font-size: 2rem; font-weight: 700; }
+  .card .detail { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
+  .cat-bar { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--surface2); }
+  .cat-bar:last-child { border-bottom: none; }
+  .cat-name { width: 200px; font-weight: 600; font-size: 0.9rem; }
+  .cat-score { width: 50px; text-align: right; font-weight: 700; font-size: 0.9rem; }
+  .cat-track { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .cat-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+  .tag { display: inline-block; padding: 0.2rem 0.65rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+  .tag-critical { background: #7f1d1d; color: #fca5a5; }
+  .tag-high { background: #7c2d12; color: #fdba74; }
+  .tag-medium { background: #713f12; color: #fde047; }
+  .tag-low { background: #14532d; color: #86efac; }
+  .tag-pass { background: #14532d; color: #86efac; }
+  .tag-fail { background: #7f1d1d; color: #fca5a5; }
+  .tag-warn { background: #713f12; color: #fde047; }
+  .issue-list { list-style: none; }
+  .issue-item { padding: 1rem 0; border-bottom: 1px solid var(--surface2); }
+  .issue-item:last-child { border-bottom: none; }
+  .issue-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.35rem; }
+  .issue-title { font-weight: 600; }
+  .issue-detail { color: var(--muted); font-size: 0.9rem; }
+  .issue-detail code { background: var(--surface2); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.8rem; color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  th { text-align: left; padding: 0.75rem; background: var(--surface2); color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td { padding: 0.75rem; border-bottom: 1px solid var(--surface2); }
+  tr:hover td { background: var(--surface); }
+  .url { color: var(--accent); word-break: break-all; font-size: 0.85rem; }
+  .pass { color: var(--green); }
+  .fail { color: var(--red); }
+  .warn { color: var(--yellow); }
+  .info-box { background: var(--surface); border-left: 4px solid var(--accent); padding: 1rem 1.25rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+  .info-box.critical { border-left-color: var(--red); }
+  .info-box.warning { border-left-color: var(--yellow); }
+  .summary-stats { display: flex; gap: 2rem; flex-wrap: wrap; margin: 1.5rem 0; }
+  .stat { text-align: center; }
+  .stat .num { font-size: 2.5rem; font-weight: 800; }
+  .stat .label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>SEO Audit Report</h1>
+<p class="subtitle">maxgeo.com &mdash; Audited 13 March 2026 &mdash; 50 sitemap URLs &mdash; Next.js on Cloudflare</p>
+
+<!-- ===== SCORE HERO ===== -->
+<div class="score-hero">
+  <div class="score-circle">
+    <svg viewBox="0 0 160 160">
+      <circle class="track" cx="80" cy="80" r="70"/>
+      <circle class="fill" cx="80" cy="80" r="70" stroke="#ef4444"
+        stroke-dasharray="439.8" stroke-dashoffset="264"/>
+    </svg>
+    <div class="score-value">
+      40<span class="score-label">/ 100</span>
+    </div>
+  </div>
+  <div class="score-meta">
+    <h3>Overall SEO Health: Poor</h3>
+    <p>maxgeo.com has critical indexing issues (double-slash canonicals on every page), 48% of pages missing meta descriptions, 5 dead URLs in the sitemap, hero image lazy-loading killing LCP, and zero schema markup on core pages. The site has a solid content foundation but significant technical debt blocking search visibility.</p>
+  </div>
+</div>
+
+<!-- ===== QUICK STATS ===== -->
+<div class="summary-stats">
+  <div class="stat"><div class="num fail">50</div><div class="label">Sitemap URLs</div></div>
+  <div class="stat"><div class="num fail">5</div><div class="label">Dead 404s</div></div>
+  <div class="stat"><div class="num fail">24</div><div class="label">Missing Descriptions</div></div>
+  <div class="stat"><div class="num fail">50</div><div class="label">Double-Slash Canonicals</div></div>
+  <div class="stat"><div class="num fail">0</div><div class="label">Schema on Core Pages</div></div>
+  <div class="stat"><div class="num warn">34</div><div class="label">Rocket Loader Scripts</div></div>
+</div>
+
+<!-- ===== CATEGORY SCORES ===== -->
+<h2>Category Scores</h2>
+<div class="card">
+  <div class="cat-bar">
+    <span class="cat-name">Technical SEO</span>
+    <div class="cat-track"><div class="cat-fill" style="width:35%;background:var(--red)"></div></div>
+    <span class="cat-score fail">35</span>
+  </div>
+  <div class="cat-bar">
+    <span class="cat-name">Content Quality</span>
+    <div class="cat-track"><div class="cat-fill" style="width:45%;background:var(--yellow)"></div></div>
+    <span class="cat-score warn">45</span>
+  </div>
+  <div class="cat-bar">
+    <span class="cat-name">On-Page SEO</span>
+    <div class="cat-track"><div class="cat-fill" style="width:32%;background:var(--red)"></div></div>
+    <span class="cat-score fail">32</span>
+  </div>
+  <div class="cat-bar">
+    <span class="cat-name">Schema / Structured Data</span>
+    <div class="cat-track"><div class="cat-fill" style="width:15%;background:var(--red)"></div></div>
+    <span class="cat-score fail">15</span>
+  </div>
+  <div class="cat-bar">
+    <span class="cat-name">Performance (CWV)</span>
+    <div class="cat-track"><div class="cat-fill" style="width:50%;background:var(--yellow)"></div></div>
+    <span class="cat-score warn">50</span>
+  </div>
+  <div class="cat-bar">
+    <span class="cat-name">Images</span>
+    <div class="cat-track"><div class="cat-fill" style="width:45%;background:var(--yellow)"></div></div>
+    <span class="cat-score warn">45</span>
+  </div>
+  <div class="cat-bar">
+    <span class="cat-name">AI Search Readiness</span>
+    <div class="cat-track"><div class="cat-fill" style="width:20%;background:var(--red)"></div></div>
+    <span class="cat-score fail">20</span>
+  </div>
+</div>
+
+<!-- ===== TOP 5 CRITICAL ISSUES ===== -->
+<h2>Top 5 Critical Issues</h2>
+<div class="card">
+<ul class="issue-list">
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-critical">Critical</span><span class="issue-title">Double-Slash Canonical URLs on ALL 50 Pages</span></div>
+    <div class="issue-detail">Every page has a canonical like <code>https://maxgeo.com//exploration</code> instead of <code>https://maxgeo.com/exploration</code>. This is caused by the Next.js <code>metadataBase</code> having a trailing slash. Google may treat these as different URLs, splitting link equity and causing indexing confusion across the entire site.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-critical">Critical</span><span class="issue-title">5 Dead URLs (404) in Sitemap</span></div>
+    <div class="issue-detail">Sitemap includes 5 URLs returning 404: <code>/datashed-training</code>, <code>/assay-management</code>, <code>/drilling-management</code>, <code>/logchief-training</code>, <code>/logchief-lite-training</code>. These waste crawl budget and signal poor site maintenance to search engines.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-critical">Critical</span><span class="issue-title">24 of 50 Pages (48%) Missing Meta Descriptions</span></div>
+    <div class="issue-detail">Homepage, /exploration, /grade-control, /training, /legal, /software/datashed, /software/logchief, 1 insight article, and all 18 event pages have no meta description. Google will auto-generate snippets that may not represent your content well.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-critical">Critical</span><span class="issue-title">Hero Image loading="lazy" Kills LCP</span></div>
+    <div class="issue-detail">The first visible image (hero: 1920x1080 JPG) has <code>loading="lazy"</code>, which delays the Largest Contentful Paint. The hero image should use <code>loading="eager"</code> or <code>priority</code> in Next.js Image component.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-critical">Critical</span><span class="issue-title">HSTS max-age=0 (Security Effectively Disabled)</span></div>
+    <div class="issue-detail">The <code>Strict-Transport-Security</code> header has <code>max-age=0</code>, which effectively disables HSTS protection. Should be at least <code>max-age=31536000</code> (1 year). Also missing: Content-Security-Policy, X-Frame-Options, Permissions-Policy, Referrer-Policy.</div>
+  </li>
+</ul>
+</div>
+
+<!-- ===== TOP 5 QUICK WINS ===== -->
+<h2>Top 5 Quick Wins</h2>
+<div class="card">
+<ul class="issue-list">
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-pass">Quick</span><span class="issue-title">Fix metadataBase Trailing Slash</span></div>
+    <div class="issue-detail">Change <code>metadataBase: new URL('https://maxgeo.com/')</code> to <code>metadataBase: new URL('https://maxgeo.com')</code> in your root layout. This single change fixes all 50 double-slash canonicals instantly.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-pass">Quick</span><span class="issue-title">Remove 5 Dead URLs from Sitemap</span></div>
+    <div class="issue-detail">Delete the 5 pages returning 404 from the sitemap generation logic. If using next-sitemap or a custom sitemap route, exclude these paths.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-pass">Quick</span><span class="issue-title">Add priority={true} to Hero Image</span></div>
+    <div class="issue-detail">In the homepage hero component, add <code>priority</code> prop to the Next.js Image component. This removes <code>loading="lazy"</code> and adds <code>fetchpriority="high"</code>, fixing LCP.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-pass">Quick</span><span class="issue-title">Add 3 Software Pages to Sitemap</span></div>
+    <div class="issue-detail"><code>/software/datashed</code>, <code>/software/logchief</code>, and <code>/software/logchief-lite</code> all return 200 but are missing from the sitemap. Add them.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-pass">Quick</span><span class="issue-title">Add Meta Descriptions to Core Pages</span></div>
+    <div class="issue-detail">The homepage, /exploration, /grade-control, and /training are high-value pages missing descriptions. Add unique, keyword-rich descriptions in the Sanity CMS metadata fields.</div>
+  </li>
+</ul>
+</div>
+
+<!-- ===== TECHNICAL SEO ===== -->
+<h2>1. Technical SEO <span class="tag tag-critical">35/100</span></h2>
+
+<h3>Crawlability</h3>
+<div class="grid-3">
+  <div class="card"><h4>Robots.txt</h4><div class="value pass">OK</div><div class="detail">Allows all crawlers, references sitemap</div></div>
+  <div class="card"><h4>Sitemap</h4><div class="value warn">Issues</div><div class="detail">50 URLs, 5 return 404, 3 live pages missing</div></div>
+  <div class="card"><h4>www Redirect</h4><div class="value pass">301</div><div class="detail">www &rarr; non-www correctly configured</div></div>
+</div>
+
+<h3>Indexability Issues</h3>
+<div class="card">
+<table>
+  <tr><th>Issue</th><th>Scope</th><th>Severity</th></tr>
+  <tr><td>Double-slash canonical URLs</td><td>All 50 pages</td><td><span class="tag tag-critical">Critical</span></td></tr>
+  <tr><td>/book-a-demo duplicates /contact title &amp; description</td><td>2 pages</td><td><span class="tag tag-high">High</span></td></tr>
+  <tr><td>5 sitemap URLs return 404</td><td>5 pages</td><td><span class="tag tag-critical">Critical</span></td></tr>
+  <tr><td>3 software pages not in sitemap</td><td>3 pages</td><td><span class="tag tag-high">High</span></td></tr>
+  <tr><td>Homepage canonical has trailing slash inconsistency</td><td>1 page</td><td><span class="tag tag-medium">Medium</span></td></tr>
+</table>
+</div>
+
+<h3>Security Headers</h3>
+<div class="card">
+<table>
+  <tr><th>Header</th><th>Status</th><th>Value</th></tr>
+  <tr><td>Strict-Transport-Security</td><td><span class="fail">FAIL</span></td><td>max-age=0 (effectively disabled)</td></tr>
+  <tr><td>Content-Security-Policy</td><td><span class="fail">MISSING</span></td><td>&mdash;</td></tr>
+  <tr><td>X-Frame-Options</td><td><span class="fail">MISSING</span></td><td>&mdash;</td></tr>
+  <tr><td>X-Content-Type-Options</td><td><span class="pass">PASS</span></td><td>nosniff</td></tr>
+  <tr><td>Permissions-Policy</td><td><span class="fail">MISSING</span></td><td>&mdash;</td></tr>
+  <tr><td>Referrer-Policy</td><td><span class="fail">MISSING</span></td><td>&mdash;</td></tr>
+</table>
+</div>
+
+<h3>JavaScript Rendering</h3>
+<div class="info-box warning">
+  <strong>Cloudflare Rocket Loader Active:</strong> 34 script tags have been rewritten with Rocket Loader custom type attributes (e.g., <code>type="737750968f...-text/javascript"</code>). Rocket Loader defers all JavaScript loading, which can interfere with Next.js hydration and cause layout shifts. Consider disabling Rocket Loader for this domain in Cloudflare settings &mdash; Next.js already handles code splitting and lazy loading.
+</div>
+
+<h3>URL Structure</h3>
+<div class="card">
+<table>
+  <tr><th>Check</th><th>Status</th><th>Details</th></tr>
+  <tr><td>HTTPS enforcement</td><td><span class="pass">PASS</span></td><td>All pages served over HTTPS</td></tr>
+  <tr><td>www redirect</td><td><span class="pass">PASS</span></td><td>301 from www to non-www</td></tr>
+  <tr><td>Trailing slash consistency</td><td><span class="warn">WARN</span></td><td>Internal links use no trailing slash, canonicals have double-slash bug</td></tr>
+  <tr><td>Clean URLs</td><td><span class="pass">PASS</span></td><td>Human-readable, semantic slugs</td></tr>
+  <tr><td>Language / hreflang</td><td><span class="fail">FAIL</span></td><td>No hreflang tags despite 4 global office locations</td></tr>
+</table>
+</div>
+
+<!-- ===== CONTENT QUALITY ===== -->
+<h2>2. Content Quality <span class="tag tag-medium">45/100</span></h2>
+
+<h3>E-E-A-T Assessment</h3>
+<div class="grid-2">
+  <div class="card">
+    <h4>Experience</h4>
+    <div class="value warn">Medium</div>
+    <div class="detail">350+ client statistic shown, but no case studies, testimonials, or named client logos on homepage</div>
+  </div>
+  <div class="card">
+    <h4>Expertise</h4>
+    <div class="value warn">Medium</div>
+    <div class="detail">Insight articles demonstrate domain knowledge. No author attribution, no bios, no credentials shown</div>
+  </div>
+  <div class="card">
+    <h4>Authoritativeness</h4>
+    <div class="value warn">Medium</div>
+    <div class="detail">Industry presence via events (PDAC, Mining Indaba). No press mentions, awards, or partner logos</div>
+  </div>
+  <div class="card">
+    <h4>Trustworthiness</h4>
+    <div class="value fail">Low</div>
+    <div class="detail">HSTS disabled, 5 dead URLs in sitemap, missing security headers undermine technical trust</div>
+  </div>
+</div>
+
+<h3>Content Issues</h3>
+<div class="card">
+<ul class="issue-list">
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-high">High</span><span class="issue-title">No Author Attribution on Insight Articles</span></div>
+    <div class="issue-detail">15 insight articles have no visible author name, bio, or credentials. Google's E-E-A-T guidelines strongly favour attributed expert content, especially in B2B/YMYL-adjacent industries.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-high">High</span><span class="issue-title">Duplicate Page: /book-a-demo = /contact</span></div>
+    <div class="issue-detail">Both pages share identical title ("Contact Us: Mining Data Management Worldwide | Maxgeo") and description. One should be the canonical and the other should redirect or have unique content.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-medium">Medium</span><span class="issue-title">Thin Content: Solution Pages</span></div>
+    <div class="issue-detail">/exploration (~350 words), /grade-control, and /mining are primarily feature card listings with minimal explanatory prose. Competitors typically have 800-1500 word solution pages with use cases, benefits, and technical details.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-medium">Medium</span><span class="issue-title">18 Event Pages Missing Descriptions</span></div>
+    <div class="issue-detail">Every event page lacks a meta description. These pages are indexed but will show auto-generated snippets in search results.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-low">Low</span><span class="issue-title">No Blog Category/Tag Taxonomy</span></div>
+    <div class="issue-detail">The /insights page lists all articles flat. Adding categories (e.g., "QAQC", "Cloud Migration", "Data Management") would improve internal linking and topical authority.</div>
+  </li>
+</ul>
+</div>
+
+<!-- ===== ON-PAGE SEO ===== -->
+<h2>3. On-Page SEO <span class="tag tag-critical">32/100</span></h2>
+
+<h3>Meta Titles</h3>
+<div class="card">
+<table>
+  <tr><th>Page</th><th>Title</th><th>Issue</th></tr>
+  <tr><td class="url">/</td><td>Geological &amp; Mining Data Management | maxgeo | Maxgeo</td><td><span class="warn">Redundant brand: "maxgeo | Maxgeo"</span></td></tr>
+  <tr><td class="url">/exploration</td><td>Exploration Data Management Software | maxgeo | Maxgeo</td><td><span class="warn">Redundant brand suffix</span></td></tr>
+  <tr><td class="url">/book-a-demo</td><td>Contact Us: Mining Data Management Worldwide | Maxgeo</td><td><span class="fail">Duplicate of /contact</span></td></tr>
+  <tr><td class="url">/training</td><td>maxgeo Training &amp; Certification | maxgeo | Maxgeo</td><td><span class="warn">Triple brand mention</span></td></tr>
+  <tr><td class="url">/software/logchief-lite</td><td>LogChief Lite: Simplified Geological Logging Software | Maxgeo</td><td><span class="warn">Inconsistent casing: "LogChief Lite"</span></td></tr>
+  <tr><td class="url">/insights/*</td><td>e.g. "Streamlining Large File Imports in DataShed5"</td><td><span class="warn">Some use "DataShed5" vs "datashed5"</span></td></tr>
+</table>
+</div>
+
+<h3>Meta Descriptions</h3>
+<div class="card">
+  <div class="grid-3">
+    <div class="card"><h4>Present</h4><div class="value pass">26</div><div class="detail">of 50 pages</div></div>
+    <div class="card"><h4>Missing</h4><div class="value fail">24</div><div class="detail">48% missing</div></div>
+    <div class="card"><h4>Duplicates</h4><div class="value warn">1 pair</div><div class="detail">/book-a-demo = /contact</div></div>
+  </div>
+</div>
+
+<h3>Heading Structure</h3>
+<div class="card">
+<table>
+  <tr><th>Page</th><th>H1</th><th>Issue</th></tr>
+  <tr><td class="url">/</td><td>Collaborative Data Solutions for Geology and Mining</td><td><span class="pass">Good</span></td></tr>
+  <tr><td class="url">/exploration</td><td>Exploration</td><td><span class="warn">Too generic &mdash; should include keywords</span></td></tr>
+  <tr><td class="url">/grade-control</td><td>Grade Control</td><td><span class="warn">Too generic</span></td></tr>
+  <tr><td class="url">/mining</td><td>Mining</td><td><span class="warn">Too generic</span></td></tr>
+  <tr><td class="url">/training</td><td>Get the most out of your maxgeo solutions</td><td><span class="pass">Good</span></td></tr>
+  <tr><td class="url">/contact</td><td>Contact us</td><td><span class="pass">OK</span></td></tr>
+  <tr><td class="url">/book-a-demo</td><td>Book a Demo</td><td><span class="pass">OK</span></td></tr>
+</table>
+</div>
+
+<h3>Pages Missing from Sitemap</h3>
+<div class="card">
+<table>
+  <tr><th>URL</th><th>HTTP Status</th><th>In Sitemap</th></tr>
+  <tr><td class="url">/software/datashed</td><td><span class="pass">200</span></td><td><span class="fail">No</span></td></tr>
+  <tr><td class="url">/software/logchief</td><td><span class="pass">200</span></td><td><span class="fail">No</span></td></tr>
+  <tr><td class="url">/software/logchief-lite</td><td><span class="pass">200</span></td><td><span class="fail">No</span></td></tr>
+</table>
+</div>
+
+<h3>Dead Sitemap URLs</h3>
+<div class="card">
+<table>
+  <tr><th>URL</th><th>Status</th><th>Action</th></tr>
+  <tr><td class="url">/datashed-training</td><td><span class="fail">404</span></td><td>Remove from sitemap, redirect to /training</td></tr>
+  <tr><td class="url">/assay-management</td><td><span class="fail">404</span></td><td>Remove from sitemap, redirect to /exploration</td></tr>
+  <tr><td class="url">/drilling-management</td><td><span class="fail">404</span></td><td>Remove from sitemap, redirect to /exploration</td></tr>
+  <tr><td class="url">/logchief-training</td><td><span class="fail">404</span></td><td>Remove from sitemap, redirect to /training</td></tr>
+  <tr><td class="url">/logchief-lite-training</td><td><span class="fail">404</span></td><td>Remove from sitemap, redirect to /training</td></tr>
+</table>
+</div>
+
+<!-- ===== SCHEMA ===== -->
+<h2>4. Schema / Structured Data <span class="tag tag-critical">15/100</span></h2>
+
+<div class="card">
+<table>
+  <tr><th>Page Type</th><th>Schema Present</th><th>Type</th><th>Status</th></tr>
+  <tr><td>Homepage</td><td><span class="fail">No</span></td><td>&mdash;</td><td><span class="tag tag-critical">Critical</span> &mdash; Missing Organization, WebSite, SiteNavigationElement</td></tr>
+  <tr><td>Software Pages (3)</td><td><span class="fail">No</span></td><td>&mdash;</td><td><span class="tag tag-high">High</span> &mdash; Missing SoftwareApplication</td></tr>
+  <tr><td>Insight Articles (15)</td><td><span class="pass">Yes</span></td><td>JSON-LD (2 blocks)</td><td><span class="tag tag-pass">Pass</span> &mdash; Article schema detected</td></tr>
+  <tr><td>Event Pages (18)</td><td><span class="fail">No</span></td><td>&mdash;</td><td><span class="tag tag-high">High</span> &mdash; Missing Event schema (rich results eligible)</td></tr>
+  <tr><td>Contact Page</td><td><span class="fail">No</span></td><td>&mdash;</td><td><span class="tag tag-medium">Medium</span> &mdash; Missing LocalBusiness/ContactPoint</td></tr>
+  <tr><td>Training Page</td><td><span class="fail">No</span></td><td>&mdash;</td><td><span class="tag tag-medium">Medium</span> &mdash; Missing Course schema</td></tr>
+</table>
+</div>
+
+<div class="info-box">
+  <strong>Rich Results Opportunity:</strong> Event pages are eligible for Google's event rich results carousel but have no Event schema. Adding structured data with dates, locations, and registration URLs could significantly boost CTR for event-related searches.
+</div>
+
+<!-- ===== PERFORMANCE ===== -->
+<h2>5. Performance (Core Web Vitals) <span class="tag tag-medium">50/100</span></h2>
+
+<h3>LCP Analysis</h3>
+<div class="card">
+<ul class="issue-list">
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-critical">Critical</span><span class="issue-title">Hero Image: loading="lazy" on LCP Element</span></div>
+    <div class="issue-detail">The hero image (<code>1920x1080 JPG, ~90 KB</code>) uses <code>loading="lazy"</code> which delays browser fetching until the image is near viewport. For the LCP element, this can add 500-2000ms to LCP. Fix: add <code>priority</code> prop to Next.js Image component.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-high">High</span><span class="issue-title">Image Format: JPEG Only (No WebP/AVIF)</span></div>
+    <div class="issue-detail">Next.js Image optimization endpoint returns <code>image/jpeg</code> (content-type confirmed). On Cloudflare, the built-in image optimizer may not be configured. The response headers show no <code>Accept</code> negotiation for modern formats. Configure Cloudflare Image Resizing or use Sanity's image transform API with format=webp.</div>
+  </li>
+</ul>
+</div>
+
+<h3>JavaScript Bundle</h3>
+<div class="card">
+<table>
+  <tr><th>Metric</th><th>Value</th><th>Impact</th></tr>
+  <tr><td>Total JS Chunks</td><td>28 files</td><td><span class="warn">High chunk count increases HTTP overhead</span></td></tr>
+  <tr><td>Rocket Loader Scripts</td><td>34 rewritten</td><td><span class="fail">Defers ALL JS including critical hydration code</span></td></tr>
+  <tr><td>Font Files</td><td>3 (TTHoves: Regular, Medium, DemiBold)</td><td><span class="pass">Properly preloaded with WOFF2</span></td></tr>
+  <tr><td>Sanity Preconnect</td><td>Present</td><td><span class="pass">dns-prefetch + preconnect configured</span></td></tr>
+</table>
+</div>
+
+<h3>Caching</h3>
+<div class="card">
+<table>
+  <tr><th>Resource</th><th>Cache-Control</th><th>Status</th></tr>
+  <tr><td>HTML Pages</td><td><code>public, s-maxage=2592000, stale-while-revalidate=2592000</code></td><td><span class="pass">Good CDN caching</span></td></tr>
+  <tr><td>Images (/_next/image)</td><td>No cache headers, cf-cache-status: EXPIRED</td><td><span class="warn">Images not cached effectively</span></td></tr>
+  <tr><td>Static Assets</td><td>Fingerprinted filenames</td><td><span class="pass">Good &mdash; immutable-safe</span></td></tr>
+</table>
+</div>
+
+<!-- ===== IMAGES ===== -->
+<h2>6. Images <span class="tag tag-medium">45/100</span></h2>
+
+<div class="card">
+<ul class="issue-list">
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-critical">Critical</span><span class="issue-title">Hero Image Lazy Loaded</span></div>
+    <div class="issue-detail">First visible image uses <code>loading="lazy"</code> &mdash; must be eager/priority for LCP.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-high">High</span><span class="issue-title">No WebP/AVIF Serving</span></div>
+    <div class="issue-detail">All images served as JPEG via Next.js Image API. Modern formats would reduce payload by 25-50%.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-medium">Medium</span><span class="issue-title">Images Use fill Layout Without Explicit Dimensions</span></div>
+    <div class="issue-detail">Images use <code>data-nimg="fill"</code> with absolute positioning. While this works, explicit width/height attributes better prevent CLS.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-pass">Pass</span><span class="issue-title">Responsive srcSet Present</span></div>
+    <div class="issue-detail">Images include multiple breakpoint widths (640, 750, 828, 1080, 1200, 1920, 2048, 3840). Good responsive image implementation.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-pass">Pass</span><span class="issue-title">SVG Icons and Logos</span></div>
+    <div class="issue-detail">Logo and decorative elements use SVG format. Good for scalability and small file size.</div>
+  </li>
+</ul>
+</div>
+
+<!-- ===== AI SEARCH ===== -->
+<h2>7. AI Search Readiness <span class="tag tag-critical">20/100</span></h2>
+
+<div class="card">
+<ul class="issue-list">
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-critical">Critical</span><span class="issue-title">No llms.txt File</span></div>
+    <div class="issue-detail">No <code>/llms.txt</code> file exists to help AI crawlers understand the site's purpose, products, and content structure. This is increasingly important for AI search visibility.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-high">High</span><span class="issue-title">No Organization Schema for AI Knowledge Graphs</span></div>
+    <div class="issue-detail">AI search engines rely heavily on structured data to build knowledge graph entries. Without Organization, SoftwareApplication, and FAQPage schema, the site is invisible to AI-powered search citation.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-high">High</span><span class="issue-title">No FAQ Content for Conversational Search</span></div>
+    <div class="issue-detail">No FAQ sections exist on product or solution pages. FAQ content structured with <code>FAQPage</code> schema is prime citation material for AI search engines like Perplexity and ChatGPT.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-medium">Medium</span><span class="issue-title">robots.txt Allows All AI Crawlers</span></div>
+    <div class="issue-detail">The robots.txt allows all crawlers including GPTBot, ClaudeBot, and PerplexityBot. This is correct for AI search visibility &mdash; no action needed unless you want to restrict AI training.</div>
+  </li>
+  <li class="issue-item">
+    <div class="issue-header"><span class="tag tag-medium">Medium</span><span class="issue-title">Insight Articles Have Good Citation Potential</span></div>
+    <div class="issue-detail">The 15 insight articles contain domain-specific expert content that AI search engines can cite. However, lack of author attribution and expertise signals weakens citation authority.</div>
+  </li>
+</ul>
+</div>
+
+<!-- ===== FULL PAGE AUDIT TABLE ===== -->
+<h2>Full Page-by-Page Audit</h2>
+<div class="card" style="overflow-x:auto">
+<table>
+  <tr><th>URL</th><th>Status</th><th>Title</th><th>Description</th><th>Canonical</th><th>Schema</th></tr>
+  <tr><td class="url">/</td><td><span class="pass">200</span></td><td>Geological &amp; Mining Data Management | maxgeo | Maxgeo</td><td><span class="fail">MISSING</span></td><td><span class="fail">//</span></td><td><span class="fail">None</span></td></tr>
+  <tr><td class="url">/exploration</td><td><span class="pass">200</span></td><td>Exploration Data Management Software | maxgeo | Maxgeo</td><td><span class="fail">MISSING</span></td><td><span class="fail">//</span></td><td><span class="fail">None</span></td></tr>
+  <tr><td class="url">/grade-control</td><td><span class="pass">200</span></td><td>Grade Control Data Management Software | maxgeo | Maxgeo</td><td><span class="fail">MISSING</span></td><td><span class="fail">//</span></td><td><span class="fail">None</span></td></tr>
+  <tr><td class="url">/mining</td><td><span class="pass">200</span></td><td>Mining Data Management &amp; Intelligence | maxgeo | Maxgeo</td><td><span class="pass">Present</span></td><td><span class="fail">//</span></td><td><span class="fail">None</span></td></tr>
+  <tr><td class="url">/contact</td><td><span class="pass">200</span></td><td>Contact Us: Mining Data Management Worldwide | Maxgeo</td><td><span class="pass">Present</span></td><td><span class="fail">//</span></td><td><span class="fail">None</span></td></tr>
+  <tr><td class="url">/book-a-demo</td><td><span class="pass">200</span></td><td>Contact Us: Mining Data Management Worldwide | Maxgeo</td><td><span class="warn">Duplicate</span></td><td><span class="fail">//</span></td><td><span class="fail">None</span></td></tr>
+  <tr><td class="url">/training</td><td><span class="pass">200</span></td><td>maxgeo Training &amp; Certification | maxgeo | Maxgeo</td><td><span class="fail">MISSING</span></td><td><span class="fail">//</span></td><td><span class="fail">None</span></td></tr>
+  <tr><td class="url">/insights</td><td><span class="pass">200</span></td><td>Mining &amp; Geology Insights | Articles &amp; Guides | maxgeo | Maxgeo</td><td><span class="pass">Present</span></td><td><span class="fail">//</span></td><td><span class="fail">None</span></td></tr>
+  <tr><td class="url">/events</td><td><span class="pass">200</span></td><td>Global Events &amp; Networking Opportunities | Maxgeo</td><td><span class="pass">Present</span></td><td><span class="fail">//</span></td><td><span class="fail">None</span></td></tr>
+  <tr><td class="url">/legal</td><td><span class="pass">200</span></td><td>Legal | maxgeo | Collaborative Data Solutions | Maxgeo</td><td><span class="fail">MISSING</span></td><td><span class="fail">//</span></td><td><span class="fail">None</span></td></tr>
+  <tr><td class="url">/updates</td><td><span class="pass">200</span></td><td>Software Updates | Maxgeo</td><td><span class="pass">Present</span></td><td><span class="fail">//</span></td><td><span class="fail">None</span></td></tr>
+  <tr><td class="url">/software/datashed</td><td><span class="pass">200</span></td><td>datashed: Geological Data Management Software | maxgeo</td><td><span class="fail">MISSING</span></td><td><span class="fail">//</span></td><td><span class="fail">None</span></td></tr>
+  <tr><td class="url">/software/logchief</td><td><span class="pass">200</span></td><td>logchief: Cloud Geological Logging Software | maxgeo</td><td><span class="fail">MISSING</span></td><td><span class="fail">//</span></td><td><span class="fail">None</span></td></tr>
+  <tr><td class="url">/software/logchief-lite</td><td><span class="pass">200</span></td><td>LogChief Lite: Simplified Geological Logging Software</td><td><span class="pass">Present</span></td><td><span class="fail">//</span></td><td><span class="fail">None</span></td></tr>
+  <tr><td class="url">/insights/* (15 articles)</td><td><span class="pass">200</span></td><td>Individual titles</td><td><span class="warn">1 missing, 14 present</span></td><td><span class="fail">//</span></td><td><span class="pass">JSON-LD</span></td></tr>
+  <tr><td class="url">/events/* (18 events)</td><td><span class="pass">200</span></td><td>Individual titles</td><td><span class="fail">ALL MISSING</span></td><td><span class="fail">//</span></td><td><span class="fail">None</span></td></tr>
+  <tr><td class="url">/updates/* (1 page)</td><td><span class="pass">200</span></td><td>DataShed5 v3.2.1.1 Release Notes</td><td><span class="pass">Present</span></td><td><span class="fail">//</span></td><td><span class="fail">None</span></td></tr>
+  <tr><td class="url">/datashed-training</td><td><span class="fail">404</span></td><td colspan="4"><span class="fail">DEAD &mdash; Remove from sitemap</span></td></tr>
+  <tr><td class="url">/assay-management</td><td><span class="fail">404</span></td><td colspan="4"><span class="fail">DEAD &mdash; Remove from sitemap</span></td></tr>
+  <tr><td class="url">/drilling-management</td><td><span class="fail">404</span></td><td colspan="4"><span class="fail">DEAD &mdash; Remove from sitemap</span></td></tr>
+  <tr><td class="url">/logchief-training</td><td><span class="fail">404</span></td><td colspan="4"><span class="fail">DEAD &mdash; Remove from sitemap</span></td></tr>
+  <tr><td class="url">/logchief-lite-training</td><td><span class="fail">404</span></td><td colspan="4"><span class="fail">DEAD &mdash; Remove from sitemap</span></td></tr>
+</table>
+</div>
+
+<!-- ===== IMPROVEMENTS SINCE LAST AUDIT ===== -->
+<h2>Improvements Since Last Audit (Feb 2026)</h2>
+<div class="card">
+<table>
+  <tr><th>Issue</th><th>Previous Status</th><th>Current Status</th></tr>
+  <tr><td>Lorem Ipsum on /exploration</td><td><span class="fail">Present</span></td><td><span class="pass">Fixed</span></td></tr>
+  <tr><td>noindex on /mining</td><td><span class="fail">noindex</span></td><td><span class="pass">index, follow</span></td></tr>
+  <tr><td>Broken title on /training</td><td><span class="fail">Draft text visible</span></td><td><span class="pass">Fixed</span></td></tr>
+  <tr><td>Rocket Loader scripts</td><td><span class="fail">30+ rewritten</span></td><td><span class="warn">34 rewritten (unchanged)</span></td></tr>
+  <tr><td>Double-slash canonicals</td><td><span class="fail">All pages</span></td><td><span class="fail">Still all pages</span></td></tr>
+  <tr><td>HSTS max-age=0</td><td><span class="fail">Disabled</span></td><td><span class="fail">Still disabled</span></td></tr>
+  <tr><td>Missing meta descriptions</td><td><span class="fail">~24 pages</span></td><td><span class="fail">Still 24 pages</span></td></tr>
+  <tr><td>Dead sitemap URLs</td><td><span class="fail">5 pages</span></td><td><span class="fail">Same 5 pages</span></td></tr>
+</table>
+</div>
+
+<div style="text-align:center;padding:3rem 0;color:var(--muted);font-size:0.85rem;">
+  Generated by Claude SEO Auditor &mdash; 13 March 2026<br>
+  Score methodology: Technical 25% &bull; Content 25% &bull; On-Page 20% &bull; Schema 10% &bull; Performance 10% &bull; Images 5% &bull; AI Search 5%
+</div>
+
+</div>
+</body>
+</html>

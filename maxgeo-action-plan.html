@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEO Action Plan — maxgeo.com — March 2026</title>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --surface2: #334155;
+    --text: #f1f5f9; --muted: #94a3b8; --accent: #38bdf8;
+    --green: #22c55e; --yellow: #eab308; --red: #ef4444; --orange: #f97316;
+    --border: #475569;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; padding: 2rem; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 2.2rem; margin-bottom: 0.5rem; }
+  h2 { font-size: 1.4rem; margin: 2.5rem 0 1rem; color: var(--accent); border-bottom: 2px solid var(--surface2); padding-bottom: 0.5rem; }
+  .subtitle { color: var(--muted); font-size: 1rem; margin-bottom: 2rem; }
+
+  /* Score progression */
+  .progression { display: flex; align-items: center; gap: 0; margin: 2rem 0; background: var(--surface); border-radius: 16px; padding: 2rem; flex-wrap: wrap; justify-content: center; }
+  .prog-step { text-align: center; padding: 0.75rem 1.5rem; }
+  .prog-score { font-size: 2.5rem; font-weight: 800; }
+  .prog-label { font-size: 0.7rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em; }
+  .prog-arrow { font-size: 1.5rem; color: var(--surface2); padding: 0 0.5rem; }
+
+  /* Action items */
+  .action { background: var(--surface); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; border-left: 4px solid var(--surface2); }
+  .action.critical { border-left-color: var(--red); }
+  .action.high { border-left-color: var(--orange); }
+  .action.medium { border-left-color: var(--yellow); }
+  .action.low { border-left-color: var(--green); }
+  .action-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+  .action-num { background: var(--surface2); color: var(--muted); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+  .action-title { font-weight: 700; font-size: 1.05rem; }
+  .action-body { margin-left: 2.75rem; color: var(--muted); font-size: 0.9rem; }
+  .action-body strong { color: var(--text); }
+  .action-body code { background: var(--surface2); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.8rem; color: var(--accent); }
+  .action-meta { display: flex; gap: 1.5rem; margin-top: 0.75rem; margin-left: 2.75rem; font-size: 0.8rem; }
+  .action-meta span { color: var(--muted); }
+  .action-meta strong { color: var(--text); }
+  .tag { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 5px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+  .tag-critical { background: #7f1d1d; color: #fca5a5; }
+  .tag-high { background: #7c2d12; color: #fdba74; }
+  .tag-medium { background: #713f12; color: #fde047; }
+  .tag-low { background: #14532d; color: #86efac; }
+  .impact { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 5px; font-size: 0.7rem; font-weight: 700; background: rgba(56,189,248,0.15); color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>SEO Action Plan</h1>
+<p class="subtitle">maxgeo.com &mdash; 30 prioritised actions &mdash; Current score: 40/100 &mdash; Target: 90/100</p>
+
+<!-- Score Progression -->
+<div class="progression">
+  <div class="prog-step">
+    <div class="prog-score" style="color:var(--red)">40</div>
+    <div class="prog-label">Current</div>
+  </div>
+  <div class="prog-arrow">&rarr;</div>
+  <div class="prog-step">
+    <div class="prog-score" style="color:var(--orange)">58</div>
+    <div class="prog-label">After Critical</div>
+  </div>
+  <div class="prog-arrow">&rarr;</div>
+  <div class="prog-step">
+    <div class="prog-score" style="color:var(--yellow)">72</div>
+    <div class="prog-label">After High</div>
+  </div>
+  <div class="prog-arrow">&rarr;</div>
+  <div class="prog-step">
+    <div class="prog-score" style="color:var(--green)">84</div>
+    <div class="prog-label">After Medium</div>
+  </div>
+  <div class="prog-arrow">&rarr;</div>
+  <div class="prog-step">
+    <div class="prog-score" style="color:var(--green)">90</div>
+    <div class="prog-label">After Low</div>
+  </div>
+</div>
+
+<!-- ==================== CRITICAL ==================== -->
+<h2>Critical Priority &mdash; Fix Immediately <span class="tag tag-critical">+18 points</span></h2>
+
+<div class="action critical">
+  <div class="action-header">
+    <span class="action-num">1</span>
+    <span class="action-title">Fix Double-Slash Canonical URLs (All 50 Pages)</span>
+  </div>
+  <div class="action-body">
+    Every page has a canonical like <code>https://maxgeo.com//exploration</code>. This is caused by <code>metadataBase</code> in your Next.js root layout having a trailing slash.<br><br>
+    <strong>Fix:</strong> In <code>app/layout.tsx</code>, change:<br>
+    <code>metadataBase: new URL('https://maxgeo.com/')</code> &rarr; <code>metadataBase: new URL('https://maxgeo.com')</code><br><br>
+    This single character change fixes all 50 canonical URLs instantly.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+6 pts</span></strong></span>
+    <span>Effort: <strong>5 min</strong></span>
+    <span>File: <strong>app/layout.tsx</strong></span>
+  </div>
+</div>
+
+<div class="action critical">
+  <div class="action-header">
+    <span class="action-num">2</span>
+    <span class="action-title">Remove 5 Dead URLs from Sitemap</span>
+  </div>
+  <div class="action-body">
+    These sitemap URLs return 404: <code>/datashed-training</code>, <code>/assay-management</code>, <code>/drilling-management</code>, <code>/logchief-training</code>, <code>/logchief-lite-training</code>.<br><br>
+    <strong>Fix:</strong> Exclude these paths from your sitemap generation. If using a custom <code>sitemap.ts</code> route, filter them out. Also add 301 redirects:<br>
+    &bull; <code>/datashed-training</code> &rarr; <code>/training</code><br>
+    &bull; <code>/logchief-training</code> &rarr; <code>/training</code><br>
+    &bull; <code>/logchief-lite-training</code> &rarr; <code>/training</code><br>
+    &bull; <code>/assay-management</code> &rarr; <code>/exploration</code><br>
+    &bull; <code>/drilling-management</code> &rarr; <code>/exploration</code>
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+3 pts</span></strong></span>
+    <span>Effort: <strong>15 min</strong></span>
+    <span>File: <strong>sitemap.ts + next.config.js (redirects)</strong></span>
+  </div>
+</div>
+
+<div class="action critical">
+  <div class="action-header">
+    <span class="action-num">3</span>
+    <span class="action-title">Add Meta Descriptions to Homepage &amp; Core Pages</span>
+  </div>
+  <div class="action-body">
+    The <strong>homepage</strong>, <code>/exploration</code>, <code>/grade-control</code>, <code>/training</code>, and <code>/legal</code> are all missing meta descriptions. These are high-traffic entry points.<br><br>
+    <strong>Fix:</strong> Add descriptions via Sanity CMS metadata fields (or hardcode in page-level <code>generateMetadata()</code>). Aim for 120-160 characters with primary keywords. Refer to the meta content document for optimised descriptions.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+3 pts</span></strong></span>
+    <span>Effort: <strong>30 min</strong></span>
+    <span>Where: <strong>Sanity CMS or app/*/page.tsx</strong></span>
+  </div>
+</div>
+
+<div class="action critical">
+  <div class="action-header">
+    <span class="action-num">4</span>
+    <span class="action-title">Fix Hero Image loading="lazy" (LCP Killer)</span>
+  </div>
+  <div class="action-body">
+    The homepage hero image (1920x1080 JPG) uses <code>loading="lazy"</code> which delays the LCP element by 500-2000ms.<br><br>
+    <strong>Fix:</strong> Add <code>priority</code> prop to the hero's Next.js <code>&lt;Image&gt;</code> component. This automatically sets <code>loading="eager"</code> and <code>fetchpriority="high"</code>.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+3 pts</span></strong></span>
+    <span>Effort: <strong>5 min</strong></span>
+    <span>File: <strong>Hero component</strong></span>
+  </div>
+</div>
+
+<div class="action critical">
+  <div class="action-header">
+    <span class="action-num">5</span>
+    <span class="action-title">Fix HSTS max-age=0</span>
+  </div>
+  <div class="action-body">
+    <code>Strict-Transport-Security: max-age=0</code> effectively disables HSTS. Browsers will not enforce HTTPS on subsequent visits.<br><br>
+    <strong>Fix:</strong> In Cloudflare dashboard &rarr; SSL/TLS &rarr; Edge Certificates &rarr; enable "Always Use HTTPS" and set HSTS to <code>max-age=31536000; includeSubDomains; preload</code>.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+2 pts</span></strong></span>
+    <span>Effort: <strong>5 min</strong></span>
+    <span>Where: <strong>Cloudflare Dashboard</strong></span>
+  </div>
+</div>
+
+<div class="action critical">
+  <div class="action-header">
+    <span class="action-num">6</span>
+    <span class="action-title">Add 3 Software Pages to Sitemap</span>
+  </div>
+  <div class="action-body">
+    <code>/software/datashed</code>, <code>/software/logchief</code>, and <code>/software/logchief-lite</code> all return 200 but are NOT in the sitemap. These are key product pages.<br><br>
+    <strong>Fix:</strong> Add these URLs to your sitemap generation logic with high priority.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+1 pt</span></strong></span>
+    <span>Effort: <strong>10 min</strong></span>
+    <span>File: <strong>sitemap.ts</strong></span>
+  </div>
+</div>
+
+<!-- ==================== HIGH ==================== -->
+<h2>High Priority &mdash; Fix Within 1 Week <span class="tag tag-high">+14 points</span></h2>
+
+<div class="action high">
+  <div class="action-header">
+    <span class="action-num">7</span>
+    <span class="action-title">Add Organization Schema to Homepage</span>
+  </div>
+  <div class="action-body">
+    No structured data exists on the homepage. Add a comprehensive <code>Organization</code> + <code>WebSite</code> schema with company name, logo, social profiles, founding date, and sameAs links.<br><br>
+    <strong>Include:</strong> name, url, logo, description, foundingDate, numberOfEmployees, areaServed, contactPoint (4 offices), sameAs (LinkedIn, etc.)
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+3 pts</span></strong></span>
+    <span>Effort: <strong>1 hour</strong></span>
+    <span>File: <strong>app/layout.tsx or homepage component</strong></span>
+  </div>
+</div>
+
+<div class="action high">
+  <div class="action-header">
+    <span class="action-num">8</span>
+    <span class="action-title">Add Event Schema to All 18 Event Pages</span>
+  </div>
+  <div class="action-body">
+    Event pages are eligible for Google's rich results carousel but have zero Event schema. Add JSON-LD with <code>@type: Event</code>, including name, startDate, endDate, location, organizer, description, and eventAttendanceMode.<br><br>
+    <strong>Tip:</strong> Build a reusable Event schema component in your Sanity/Next.js codebase that auto-generates from CMS data.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+2 pts</span></strong></span>
+    <span>Effort: <strong>2 hours</strong></span>
+    <span>File: <strong>Event page template component</strong></span>
+  </div>
+</div>
+
+<div class="action high">
+  <div class="action-header">
+    <span class="action-num">9</span>
+    <span class="action-title">Add SoftwareApplication Schema to Product Pages</span>
+  </div>
+  <div class="action-body">
+    The 3 software pages (<code>/software/datashed</code>, <code>/software/logchief</code>, <code>/software/logchief-lite</code>) need <code>SoftwareApplication</code> schema with name, applicationCategory, operatingSystem, offers, and aggregateRating (if available).
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+1 pt</span></strong></span>
+    <span>Effort: <strong>1 hour</strong></span>
+  </div>
+</div>
+
+<div class="action high">
+  <div class="action-header">
+    <span class="action-num">10</span>
+    <span class="action-title">Add Meta Descriptions to All 18 Event Pages</span>
+  </div>
+  <div class="action-body">
+    Every event page is missing a meta description. These indexed pages show auto-generated snippets in SERPs.<br><br>
+    <strong>Fix:</strong> Add a description field to the Event content type in Sanity CMS, or generate descriptions from the event's date, location, and summary fields in <code>generateMetadata()</code>.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+2 pts</span></strong></span>
+    <span>Effort: <strong>1 hour</strong></span>
+  </div>
+</div>
+
+<div class="action high">
+  <div class="action-header">
+    <span class="action-num">11</span>
+    <span class="action-title">Fix Duplicate /book-a-demo and /contact</span>
+  </div>
+  <div class="action-body">
+    Both pages have identical title and description: "Contact Us: Mining Data Management Worldwide | Maxgeo". This creates duplicate content signals.<br><br>
+    <strong>Fix:</strong> Give /book-a-demo a unique title like "Book a Demo | See maxgeo in Action" and a unique description focused on the demo experience. Alternatively, 301 redirect /book-a-demo to /contact if they serve the same purpose.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+1 pt</span></strong></span>
+    <span>Effort: <strong>15 min</strong></span>
+  </div>
+</div>
+
+<div class="action high">
+  <div class="action-header">
+    <span class="action-num">12</span>
+    <span class="action-title">Disable Cloudflare Rocket Loader</span>
+  </div>
+  <div class="action-body">
+    Rocket Loader rewrites 34 script tags on the homepage, deferring ALL JavaScript including critical Next.js hydration code. Next.js already handles code splitting and async loading &mdash; Rocket Loader adds no benefit and can cause hydration mismatches, layout shifts, and slower TTI.<br><br>
+    <strong>Fix:</strong> Cloudflare Dashboard &rarr; Speed &rarr; Optimization &rarr; Content Optimization &rarr; Disable Rocket Loader.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+2 pts</span></strong></span>
+    <span>Effort: <strong>5 min</strong></span>
+    <span>Where: <strong>Cloudflare Dashboard</strong></span>
+  </div>
+</div>
+
+<div class="action high">
+  <div class="action-header">
+    <span class="action-num">13</span>
+    <span class="action-title">Add Author Attribution to Insight Articles</span>
+  </div>
+  <div class="action-body">
+    15 insight articles have no author name, bio, or credentials. Google's E-E-A-T guidelines favour attributed expert content.<br><br>
+    <strong>Fix:</strong> Add an Author reference type in Sanity CMS with name, role, image, and bio. Display author card on each article. Add <code>author</code> field to existing Article JSON-LD schema.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+2 pts</span></strong></span>
+    <span>Effort: <strong>3 hours</strong></span>
+  </div>
+</div>
+
+<div class="action high">
+  <div class="action-header">
+    <span class="action-num">14</span>
+    <span class="action-title">Add Missing Security Headers</span>
+  </div>
+  <div class="action-body">
+    Missing: Content-Security-Policy, X-Frame-Options, Permissions-Policy, Referrer-Policy.<br><br>
+    <strong>Fix:</strong> Add via Cloudflare Transform Rules or <code>next.config.js</code> headers config:<br>
+    &bull; <code>X-Frame-Options: SAMEORIGIN</code><br>
+    &bull; <code>Referrer-Policy: strict-origin-when-cross-origin</code><br>
+    &bull; <code>Permissions-Policy: camera=(), microphone=(), geolocation=()</code>
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+1 pt</span></strong></span>
+    <span>Effort: <strong>30 min</strong></span>
+  </div>
+</div>
+
+<!-- ==================== MEDIUM ==================== -->
+<h2>Medium Priority &mdash; Fix Within 1 Month <span class="tag tag-medium">+12 points</span></h2>
+
+<div class="action medium">
+  <div class="action-header">
+    <span class="action-num">15</span>
+    <span class="action-title">Enable WebP/AVIF Image Serving</span>
+  </div>
+  <div class="action-body">
+    All images serve as JPEG. Modern formats would reduce payload by 25-50%.<br><br>
+    <strong>Options:</strong><br>
+    &bull; Enable Cloudflare Polish with WebP conversion<br>
+    &bull; Use Sanity's image transform API: append <code>?fm=webp</code> to CDN URLs<br>
+    &bull; Configure Next.js Image with <code>formats: ['image/avif', 'image/webp']</code> in next.config.js
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+2 pts</span></strong></span>
+    <span>Effort: <strong>1 hour</strong></span>
+  </div>
+</div>
+
+<div class="action medium">
+  <div class="action-header">
+    <span class="action-num">16</span>
+    <span class="action-title">Expand Solution Page Content</span>
+  </div>
+  <div class="action-body">
+    /exploration (~350 words), /grade-control, and /mining are thin compared to competitors (typically 800-1500 words).<br><br>
+    <strong>Fix:</strong> Add sections for: use cases, benefits, technical specifications, integration details, and customer outcomes. Include internal links to related insight articles.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+2 pts</span></strong></span>
+    <span>Effort: <strong>1-2 days</strong></span>
+  </div>
+</div>
+
+<div class="action medium">
+  <div class="action-header">
+    <span class="action-num">17</span>
+    <span class="action-title">Create llms.txt for AI Search Visibility</span>
+  </div>
+  <div class="action-body">
+    Create a <code>/llms.txt</code> file that describes maxgeo's purpose, products (datashed, logchief, logchief lite), target audience, and key content areas. This helps AI crawlers understand and accurately represent your site.<br><br>
+    <strong>Include:</strong> Company overview, product descriptions, key differentiators, target industries, geographical presence.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+2 pts</span></strong></span>
+    <span>Effort: <strong>30 min</strong></span>
+  </div>
+</div>
+
+<div class="action medium">
+  <div class="action-header">
+    <span class="action-num">18</span>
+    <span class="action-title">Fix Redundant Brand Suffixes in Titles</span>
+  </div>
+  <div class="action-body">
+    Many titles end with " | maxgeo | Maxgeo" (double brand mention with inconsistent casing). The training page has triple: "maxgeo Training &amp; Certification | maxgeo | Maxgeo".<br><br>
+    <strong>Fix:</strong> Standardise to a single brand suffix: <code>| maxgeo</code>. Update the metadata template in <code>app/layout.tsx</code>.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+1 pt</span></strong></span>
+    <span>Effort: <strong>15 min</strong></span>
+  </div>
+</div>
+
+<div class="action medium">
+  <div class="action-header">
+    <span class="action-num">19</span>
+    <span class="action-title">Enrich H1 Tags on Solution Pages</span>
+  </div>
+  <div class="action-body">
+    Solution pages use single-word H1s: "Exploration", "Grade Control", "Mining". These miss keyword opportunities.<br><br>
+    <strong>Fix:</strong> Update to descriptive H1s like "Exploration Data Management Software" that match search intent.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+1 pt</span></strong></span>
+    <span>Effort: <strong>15 min</strong></span>
+  </div>
+</div>
+
+<div class="action medium">
+  <div class="action-header">
+    <span class="action-num">20</span>
+    <span class="action-title">Add FAQ Sections to Product &amp; Solution Pages</span>
+  </div>
+  <div class="action-body">
+    No FAQ content exists anywhere on the site. FAQ sections are prime citation material for AI search engines and can earn FAQ rich results in Google.<br><br>
+    <strong>Fix:</strong> Add 5-8 FAQ items per product/solution page. Include FAQPage schema markup. Source questions from support tickets, sales calls, or knowledge base.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+2 pts</span></strong></span>
+    <span>Effort: <strong>1-2 days</strong></span>
+  </div>
+</div>
+
+<div class="action medium">
+  <div class="action-header">
+    <span class="action-num">21</span>
+    <span class="action-title">Add Meta Descriptions to Software Pages</span>
+  </div>
+  <div class="action-body">
+    <code>/software/datashed</code> and <code>/software/logchief</code> are missing meta descriptions (logchief-lite has one).<br><br>
+    <strong>Fix:</strong> Add keyword-rich descriptions highlighting key features, target audience, and differentiation.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+1 pt</span></strong></span>
+    <span>Effort: <strong>15 min</strong></span>
+  </div>
+</div>
+
+<div class="action medium">
+  <div class="action-header">
+    <span class="action-num">22</span>
+    <span class="action-title">Improve Image Cache Headers</span>
+  </div>
+  <div class="action-body">
+    The <code>/_next/image</code> endpoint shows <code>cf-cache-status: EXPIRED</code> with no explicit cache-control headers for optimised images. This means images are re-processed frequently.<br><br>
+    <strong>Fix:</strong> Configure Cloudflare Cache Rules to cache <code>/_next/image*</code> for at least 1 year, or set <code>minimumCacheTTL</code> in next.config.js images config.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+1 pt</span></strong></span>
+    <span>Effort: <strong>30 min</strong></span>
+  </div>
+</div>
+
+<!-- ==================== LOW ==================== -->
+<h2>Low Priority &mdash; Backlog <span class="tag tag-low">+6 points</span></h2>
+
+<div class="action low">
+  <div class="action-header">
+    <span class="action-num">23</span>
+    <span class="action-title">Add Blog Category Taxonomy</span>
+  </div>
+  <div class="action-body">
+    The /insights page lists all 15 articles flat with no categorisation. Adding categories (QAQC, Cloud Migration, Data Management, etc.) creates topical clusters and improves internal linking.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+1 pt</span></strong></span>
+    <span>Effort: <strong>1 day</strong></span>
+  </div>
+</div>
+
+<div class="action low">
+  <div class="action-header">
+    <span class="action-num">24</span>
+    <span class="action-title">Add BreadcrumbList Schema</span>
+  </div>
+  <div class="action-body">
+    No breadcrumb schema exists on any page. Adding BreadcrumbList to insight articles, event pages, and software pages enhances SERP appearance and helps Google understand site hierarchy.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+1 pt</span></strong></span>
+    <span>Effort: <strong>1 hour</strong></span>
+  </div>
+</div>
+
+<div class="action low">
+  <div class="action-header">
+    <span class="action-num">25</span>
+    <span class="action-title">Add Case Studies / Testimonials</span>
+  </div>
+  <div class="action-body">
+    The "350+ clients" statistic is mentioned but no client logos, case studies, or testimonials are visible. Adding social proof would strengthen E-E-A-T trust signals.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+1 pt</span></strong></span>
+    <span>Effort: <strong>2-3 days</strong></span>
+  </div>
+</div>
+
+<div class="action low">
+  <div class="action-header">
+    <span class="action-num">26</span>
+    <span class="action-title">Consider hreflang Tags</span>
+  </div>
+  <div class="action-body">
+    maxgeo has offices in Australia, South Africa, UK, and Canada but no hreflang tags. If content is targeted at different regions, consider adding hreflang for <code>en-AU</code>, <code>en-ZA</code>, <code>en-GB</code>, <code>en-CA</code>. If all content is one language for all regions, a single <code>x-default</code> hreflang is fine.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+1 pt</span></strong></span>
+    <span>Effort: <strong>1 hour</strong></span>
+  </div>
+</div>
+
+<div class="action low">
+  <div class="action-header">
+    <span class="action-num">27</span>
+    <span class="action-title">Add ContactPoint Schema</span>
+  </div>
+  <div class="action-body">
+    The /contact page lists 4 office locations but has no ContactPoint or LocalBusiness schema. Add structured data for each office with address, phone, and office hours.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+0.5 pts</span></strong></span>
+    <span>Effort: <strong>30 min</strong></span>
+  </div>
+</div>
+
+<div class="action low">
+  <div class="action-header">
+    <span class="action-num">28</span>
+    <span class="action-title">Add Explicit Image Dimensions</span>
+  </div>
+  <div class="action-body">
+    Images use <code>data-nimg="fill"</code> with absolute positioning rather than explicit width/height attributes. While this works visually, explicit dimensions better prevent CLS and are easier for search engines to parse.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+0.5 pts</span></strong></span>
+    <span>Effort: <strong>2 hours</strong></span>
+  </div>
+</div>
+
+<div class="action low">
+  <div class="action-header">
+    <span class="action-num">29</span>
+    <span class="action-title">Consistent Brand Casing in Titles</span>
+  </div>
+  <div class="action-body">
+    Brand names appear inconsistently: "Maxgeo" vs "maxgeo", "DataShed5" vs "datashed5", "LogChief Lite" vs "logchief lite". Standardise to lowercase per brand guidelines: maxgeo, datashed, datashed5, logchief, logchief lite.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+0.5 pts</span></strong></span>
+    <span>Effort: <strong>30 min</strong></span>
+  </div>
+</div>
+
+<div class="action low">
+  <div class="action-header">
+    <span class="action-num">30</span>
+    <span class="action-title">Create Custom 404 Page</span>
+  </div>
+  <div class="action-body">
+    The 5 dead URLs suggest there may be external links pointing to old pages. Create a helpful custom 404 page with search functionality, popular pages, and a clear CTA to help users find what they're looking for.
+  </div>
+  <div class="action-meta">
+    <span>Impact: <strong><span class="impact">+0.5 pts</span></strong></span>
+    <span>Effort: <strong>2 hours</strong></span>
+  </div>
+</div>
+
+<!-- ===== SUMMARY ===== -->
+<h2>Implementation Timeline</h2>
+<div class="action" style="border-left-color: var(--accent);">
+  <div class="action-body" style="margin-left:0;">
+    <strong>Week 1 (Critical):</strong> Fix metadataBase slash (#1), remove dead sitemap URLs + add redirects (#2), add core meta descriptions (#3), fix hero lazy loading (#4), fix HSTS (#5), add software pages to sitemap (#6).<br>
+    <em>Expected score: 40 &rarr; 58</em><br><br>
+    <strong>Week 2 (High):</strong> Add Organization schema (#7), Event schema (#8), SoftwareApplication schema (#9), event descriptions (#10), fix book-a-demo duplicate (#11), disable Rocket Loader (#12), add author attribution (#13), security headers (#14).<br>
+    <em>Expected score: 58 &rarr; 72</em><br><br>
+    <strong>Weeks 3-4 (Medium):</strong> Enable WebP/AVIF (#15), expand solution pages (#16), create llms.txt (#17), fix brand suffixes (#18), enrich H1s (#19), add FAQs (#20), software descriptions (#21), image caching (#22).<br>
+    <em>Expected score: 72 &rarr; 84</em><br><br>
+    <strong>Backlog (Low):</strong> Blog taxonomy (#23), breadcrumbs (#24), case studies (#25), hreflang (#26), ContactPoint schema (#27), image dimensions (#28), brand casing (#29), custom 404 (#30).<br>
+    <em>Expected score: 84 &rarr; 90</em>
+  </div>
+</div>
+
+<div style="text-align:center;padding:3rem 0;color:var(--muted);font-size:0.85rem;">
+  Generated by Claude SEO Auditor &mdash; 13 March 2026<br>
+  30 actions &bull; Score progression: 40 &rarr; 58 &rarr; 72 &rarr; 84 &rarr; 90
+</div>
+
+</div>
+</body>
+</html>

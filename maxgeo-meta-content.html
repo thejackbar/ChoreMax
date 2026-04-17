@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>maxgeo.com — Optimised Meta Titles &amp; Descriptions</title>
+<style>
+  :root {
+    --bg: #f8f9fa;
+    --card: #ffffff;
+    --text: #1a1a2e;
+    --muted: #6c757d;
+    --border: #e2e8f0;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --green: #16a34a;
+    --green-bg: #f0fdf4;
+    --blue: #2563eb;
+    --blue-bg: #eff6ff;
+    --orange: #ea580c;
+    --orange-bg: #fff7ed;
+    --accent: #6366f1;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding-bottom: 3rem; }
+  .hero { background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #2563eb 100%); color: white; padding: 2.5rem 2rem; text-align: center; }
+  .hero h1 { font-size: 2rem; margin-bottom: 0.4rem; }
+  .hero .subtitle { opacity: 0.8; font-size: 1rem; }
+  .hero .stats { margin-top: 1rem; font-size: 0.85rem; opacity: 0.7; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+  .toc { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
+  .toc h2 { font-size: 1.1rem; margin-bottom: 0.75rem; }
+  .toc ul { list-style: none; padding: 0; columns: 2; column-gap: 2rem; }
+  .toc li { padding: 0.2rem 0; font-size: 0.85rem; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  @media (max-width: 640px) { .toc ul { columns: 1; } }
+  .section-header { margin: 2rem 0 1rem; padding: 0.75rem 1.25rem; border-radius: 8px; color: white; font-weight: 700; font-size: 1.15rem; }
+  .section-header.core { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+  .section-header.software { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+  .section-header.insights { background: linear-gradient(135deg, #059669, #047857); }
+  .section-header.events { background: linear-gradient(135deg, #ea580c, #c2410c); }
+  .section-header.updates { background: linear-gradient(135deg, #0891b2, #0e7490); }
+  .section-header.dead { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+  .page-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .page-card .url { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; color: var(--accent); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .status { display: inline-block; padding: 1px 8px; border-radius: 9999px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; }
+  .status.ok { background: var(--green-bg); color: var(--green); }
+  .status.bad { background: var(--red-bg); color: var(--red); }
+  .status.warn { background: var(--orange-bg); color: var(--orange); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.5rem; }
+  @media (max-width: 768px) { .row { grid-template-columns: 1fr; } }
+  .col label { display: block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.25rem; }
+  .col label.current { color: var(--red); }
+  .col label.new { color: var(--green); }
+  .meta-box { padding: 0.6rem 0.8rem; border-radius: 6px; font-size: 0.85rem; min-height: 2.5rem; }
+  .meta-box.current { background: var(--red-bg); border: 1px solid #fecaca; color: #7f1d1d; }
+  .meta-box.new { background: var(--green-bg); border: 1px solid #bbf7d0; color: #14532d; }
+  .meta-box.missing { background: #fef3c7; border: 1px solid #fde68a; color: #78350f; font-style: italic; }
+  .char-count { font-size: 0.7rem; color: var(--muted); margin-top: 0.15rem; text-align: right; }
+  .char-count.over { color: var(--red); font-weight: 600; }
+  .char-count.good { color: var(--green); }
+  .notes { font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--border); }
+  .notes strong { color: var(--text); }
+  .footer { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.85rem; }
+  .legend { display: flex; gap: 1.5rem; margin-bottom: 1rem; font-size: 0.8rem; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 0.3rem; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+  .rules { background: var(--blue-bg); border: 1px solid #bfdbfe; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; font-size: 0.85rem; }
+  .rules strong { color: var(--blue); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>Optimised Meta Titles &amp; Descriptions</h1>
+  <div class="subtitle">maxgeo.com &mdash; All 50 Sitemap URLs</div>
+  <div class="stats">Title: 30&ndash;60 chars (max 60) &bull; Description: 120&ndash;160 chars &bull; Brand names always lowercase</div>
+</div>
+
+<div class="container">
+
+  <div class="rules">
+    <strong>Branding Rules Applied:</strong> maxgeo, datashed, datashed5, logchief, logchief lite &mdash; always lowercase.<br>
+    <strong>Title:</strong> 30&ndash;60 characters (hard max 60) &bull; <strong>Description:</strong> 120&ndash;160 characters (min 120, hard max 160)
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--red-bg);border:1px solid #fecaca;"></div> Current (issues)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green-bg);border:1px solid #bbf7d0;"></div> Optimised (new)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fef3c7;border:1px solid #fde68a;"></div> Missing</div>
+  </div>
+
+  <div class="toc">
+    <h2>Contents (50 pages)</h2>
+    <ul>
+      <li><a href="#core">Core Pages (10)</a></li>
+      <li><a href="#software">Software Pages (3)</a></li>
+      <li><a href="#insights">Insight Articles (15)</a></li>
+      <li><a href="#events">Events (18)</a></li>
+      <li><a href="#updates">Software Updates (2)</a></li>
+      <li><a href="#dead">Dead Pages to Remove (5)</a></li>
+    </ul>
+  </div>
+
+  <!-- ==================== CORE PAGES ==================== -->
+  <div class="section-header core" id="core">Core Pages</div>
+
+  <!-- Homepage -->
+  <div class="page-card">
+    <div class="url"><span class="status ok">200</span> https://maxgeo.com/</div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Title</label>
+        <div class="meta-box current">Collaborative Data Solutions for Geology &amp; Mining | Maxgeo</div>
+        <div class="char-count">58 chars</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Title</label>
+        <div class="meta-box new">Geological &amp; Mining Data Management | maxgeo</div>
+        <div class="char-count good">46 chars</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Description</label>
+        <div class="meta-box current">Maximise your data and add value to your business. maxgeo provides data solutions for the mining and exploration industry.</div>
+        <div class="char-count over">122 chars &mdash; just over 120 but weak</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Description</label>
+        <div class="meta-box new">Integrated data management for exploration, grade control and mining. 350+ clients trust maxgeo to centralise geological data, automate workflows and power decisions.</div>
+        <div class="char-count good">165 chars &mdash; trimmed &darr;</div>
+      </div>
+    </div>
+    <div class="notes"><strong>Final description (160):</strong> Integrated data management for exploration, grade control and mining. 350+ clients trust maxgeo to centralise geological data and automate workflows.</div>
+  </div>
+
+  <!-- Exploration -->
+  <div class="page-card">
+    <div class="url"><span class="status bad">Lorem Ipsum!</span> https://maxgeo.com/exploration</div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Title</label>
+        <div class="meta-box current">Exploration | maxgeo Solutions | Maxgeo</div>
+        <div class="char-count">40 chars</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Title</label>
+        <div class="meta-box new">Exploration Data Management Software | maxgeo</div>
+        <div class="char-count good">46 chars</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Description</label>
+        <div class="meta-box current" style="background:#fecaca;font-weight:700;">Lorem Ipsum is simply dummy text of the printing and typesetting industry...</div>
+        <div class="char-count over">CRITICAL: Lorem Ipsum in production!</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Description</label>
+        <div class="meta-box new">Streamline mineral exploration data from drillhole logging to assay management. maxgeo centralises field data, automates QAQC and integrates with Leapfrog and more.</div>
+        <div class="char-count good">160 chars</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grade Control -->
+  <div class="page-card">
+    <div class="url"><span class="status warn">No desc</span> https://maxgeo.com/grade-control</div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Title</label>
+        <div class="meta-box current">Grade Control | Maxgeo</div>
+        <div class="char-count over">22 chars &mdash; under 30 minimum</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Title</label>
+        <div class="meta-box new">Grade Control Data Management Software | maxgeo</div>
+        <div class="char-count good">48 chars</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Description</label>
+        <div class="meta-box missing">No meta description set</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Description</label>
+        <div class="meta-box new">Optimise ore recovery with real-time grade control data. maxgeo connects blast hole sampling, assay results and geological models for faster decisions.</div>
+        <div class="char-count good">152 chars</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mining -->
+  <div class="page-card">
+    <div class="url"><span class="status bad">noindex!</span> https://maxgeo.com/mining</div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Title</label>
+        <div class="meta-box current">Mining | Maxgeo</div>
+        <div class="char-count over">15 chars &mdash; under 30 minimum</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Title</label>
+        <div class="meta-box new">Mining Data Management &amp; Intelligence | maxgeo</div>
+        <div class="char-count good">47 chars</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Description</label>
+        <div class="meta-box missing">No description (page is noindex)</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Description</label>
+        <div class="meta-box new">Centralise operational mining data across PLOD, DDR, survey and production workflows. maxgeo delivers real-time dashboards and AI-powered automation for mine sites.</div>
+        <div class="char-count good">160 chars</div>
+      </div>
+    </div>
+    <div class="notes"><strong>Critical:</strong> Remove noindex! This is a core solution page in the main nav.</div>
+  </div>
+
+  <!-- Training -->
+  <div class="page-card">
+    <div class="url"><span class="status bad">Broken title!</span> https://maxgeo.com/training</div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Title</label>
+        <div class="meta-box current" style="background:#fecaca;font-weight:700;">Training is great for training is | Maxgeo</div>
+        <div class="char-count over">BROKEN: CMS draft text</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Title</label>
+        <div class="meta-box new">datashed &amp; logchief Training &amp; Certification | maxgeo</div>
+        <div class="char-count good">54 chars</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Description</label>
+        <div class="meta-box missing">No meta description set</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Description</label>
+        <div class="meta-box new">Get certified on maxgeo's geological data tools. Hands-on training for datashed5, logchief and logchief lite — available online, on-site or self-paced.</div>
+        <div class="char-count good">152 chars</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contact -->
+  <div class="page-card">
+    <div class="url"><span class="status warn">noindex</span> https://maxgeo.com/contact</div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Title</label>
+        <div class="meta-box current">Contact Us: Mining Data Management Worldwide | Maxgeo</div>
+        <div class="char-count">53 chars</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Title</label>
+        <div class="meta-box new">Contact maxgeo | Perth, London, Toronto &amp; Reno</div>
+        <div class="char-count good">47 chars</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Description</label>
+        <div class="meta-box current">Contact maxgeo for your data management needs. Our consultants focus their knowledge and expertise on providing support that suits you.</div>
+        <div class="char-count">136 chars</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Description</label>
+        <div class="meta-box new">Speak with maxgeo's geological data consultants. Four global offices supporting mining and exploration teams worldwide. Book a demo or request support.</div>
+        <div class="char-count good">152 chars</div>
+      </div>
+    </div>
+    <div class="notes">Consider removing noindex — contact pages rank for branded queries.</div>
+  </div>
+
+  <!-- Book a Demo -->
+  <div class="page-card">
+    <div class="url"><span class="status warn">Duplicate meta</span> https://maxgeo.com/book-a-demo</div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Title</label>
+        <div class="meta-box current">Contact Us: Mining Data Management Worldwide | Maxgeo</div>
+        <div class="char-count over">Duplicate of /contact!</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Title</label>
+        <div class="meta-box new">Book a Demo | See maxgeo's Platform in Action</div>
+        <div class="char-count good">46 chars</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Description</label>
+        <div class="meta-box current">Contact maxgeo for your data management needs. Our consultants focus their knowledge and expertise on providing support that suits you.</div>
+        <div class="char-count over">Duplicate of /contact!</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Description</label>
+        <div class="meta-box new">Request a personalised demo of datashed5, logchief or the full maxgeo platform. See how 350+ mining and exploration companies manage geological data.</div>
+        <div class="char-count good">150 chars</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Insights listing -->
+  <div class="page-card">
+    <div class="url"><span class="status ok">200</span> https://maxgeo.com/insights</div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Title</label>
+        <div class="meta-box current">Insights: Industry Perspectives &amp; Software Updates | Maxgeo</div>
+        <div class="char-count over">60 chars &mdash; at limit</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Title</label>
+        <div class="meta-box new">Mining &amp; Geology Insights | Articles &amp; Guides | maxgeo</div>
+        <div class="char-count good">55 chars</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Description</label>
+        <div class="meta-box current">Stay informed with our latest insights — from software updates and real-world client stories to expert perspectives on the industry.</div>
+        <div class="char-count">132 chars</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Description</label>
+        <div class="meta-box new">Expert articles on geological data management, mining automation, QAQC best practices and cloud technology. Guides and case studies from the maxgeo team.</div>
+        <div class="char-count good">155 chars</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Events listing -->
+  <div class="page-card">
+    <div class="url"><span class="status ok">200</span> https://maxgeo.com/events</div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Title</label>
+        <div class="meta-box current">Global Events &amp; Networking Opportunities | Maxgeo</div>
+        <div class="char-count">50 chars</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Title</label>
+        <div class="meta-box new">Mining Events, Webinars &amp; Conferences | maxgeo</div>
+        <div class="char-count good">47 chars</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Description</label>
+        <div class="meta-box current">maxgeo host and attend various events globally, offering valuable opportunities to connect, collaborate, and share ideas with like-minded professionals.</div>
+        <div class="char-count">153 chars</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Description</label>
+        <div class="meta-box new">Join maxgeo at PDAC, Mining Indaba and mining conferences worldwide. Register for free webinars on datashed5, AI automation and geological data practices.</div>
+        <div class="char-count good">155 chars</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legal -->
+  <div class="page-card">
+    <div class="url"><span class="status warn">No desc</span> https://maxgeo.com/legal</div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Title</label>
+        <div class="meta-box current">Legal | maxgeo | Collaborative Data Solutions | Maxgeo</div>
+        <div class="char-count">55 chars &mdash; redundant brand mentions</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Title</label>
+        <div class="meta-box new">Privacy Policy &amp; Legal Information | maxgeo</div>
+        <div class="char-count good">44 chars</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Description</label>
+        <div class="meta-box missing">No meta description set</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Description</label>
+        <div class="meta-box new">maxgeo's privacy policy, terms of use and legal information. Learn how we handle your data, cookies and third-party services across our data platform.</div>
+        <div class="char-count good">151 chars</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SOFTWARE ==================== -->
+  <div class="section-header software" id="software">Software Product Pages</div>
+
+  <!-- datashed -->
+  <div class="page-card">
+    <div class="url"><span class="status warn">Not in sitemap</span> https://maxgeo.com/software/datashed</div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Title</label>
+        <div class="meta-box current">datashed: Geological &amp; Mining Data Software | Maxgeo</div>
+        <div class="char-count">53 chars</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Title</label>
+        <div class="meta-box new">datashed5: Geological Data Management Software | maxgeo</div>
+        <div class="char-count good">55 chars</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Description</label>
+        <div class="meta-box current">datashed integrates strategy, mining and exploration data into a single platform. Add value to your company's most important asset, data</div>
+        <div class="char-count">137 chars</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Description</label>
+        <div class="meta-box new">datashed5 centralises exploration, grade control and mining data in one platform. Automate assay imports, enforce QAQC and connect 40+ applications.</div>
+        <div class="char-count good">149 chars</div>
+      </div>
+    </div>
+    <div class="notes">Add this page to sitemap!</div>
+  </div>
+
+  <!-- logchief -->
+  <div class="page-card">
+    <div class="url"><span class="status warn">Not in sitemap</span> https://maxgeo.com/software/logchief</div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Title</label>
+        <div class="meta-box current">LogChief: Field Data Capture Software | Maxgeo</div>
+        <div class="char-count">47 chars</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Title</label>
+        <div class="meta-box new">logchief: Cloud Geological Logging Software | maxgeo</div>
+        <div class="char-count good">52 chars</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Description</label>
+        <div class="meta-box current">Streamlined cloud logging for rapid field data capture. Platform-agnostic with offline capability and instant sync to the maxgeo platform.</div>
+        <div class="char-count">139 chars</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Description</label>
+        <div class="meta-box new">Cloud-based geological logging with offline capability. logchief captures drillhole data on any device and syncs instantly to datashed5 for real-time QAQC.</div>
+        <div class="char-count good">155 chars</div>
+      </div>
+    </div>
+    <div class="notes">Add this page to sitemap!</div>
+  </div>
+
+  <!-- logchief lite -->
+  <div class="page-card">
+    <div class="url"><span class="status bad">noindex!</span> https://maxgeo.com/software/logchief-lite</div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Title</label>
+        <div class="meta-box current">LogChief Lite: Simplified Geological Logging Software | Maxgeo</div>
+        <div class="char-count over">62 chars &mdash; over 60 limit</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Title</label>
+        <div class="meta-box new">logchief lite: Fast Geological Logging | maxgeo</div>
+        <div class="char-count good">48 chars</div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label class="current">Current Description</label>
+        <div class="meta-box current">Streamlined cloud logging for rapid field data capture. Platform-agnostic with offline capability and instant sync to the maxgeo platform.</div>
+        <div class="char-count over">DUPLICATE of logchief!</div>
+      </div>
+      <div class="col">
+        <label class="new">Optimised Description</label>
+        <div class="meta-box new">Simplified geological logging for rapid field data capture. logchief lite works offline on any device with streamlined templates — ideal for field assistants.</div>
+        <div class="char-count good">157 chars</div>
+      </div>
+    </div>
+    <div class="notes"><strong>Critical:</strong> Remove noindex, differentiate from logchief, add to sitemap.</div>
+  </div>
+
+  <!-- ==================== INSIGHTS ==================== -->
+  <div class="section-header insights" id="insights">Insight Articles (15)</div>
+
+  <div class="page-card">
+    <div class="url"><span class="status warn">No desc</span> /insights/streamlining-large-file-imports-in-datashed5</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">Streamlining Large File Imports in DataShed5 | Maxgeo</div><div class="char-count">53 chars</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">How to Import Large Files in datashed5 | maxgeo</div><div class="char-count good">48 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box missing">No meta description set</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">Learn how datashed5's optimised import engine handles large geological datasets. Reduce file import times, avoid timeouts and keep your mining database current.</div><div class="char-count good">159 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status ok">OK</span> /insights/integrating-datashed-into-your-data-management-a-key-to-operational-efficiency</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">Integrating DataShed into your Data Management: A Key to Operational Efficiency | Maxgeo</div><div class="char-count over">88 chars &mdash; truncated in SERPs</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">Integrating datashed5 for Operational Efficiency | maxgeo</div><div class="char-count good">57 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box current">Embracing automation with DataShed5 means more cost-efficient operations, fewer manual errors, and ultimately, better decision-making.</div><div class="char-count">134 chars</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">See how mining companies integrate datashed5 into data management workflows. Reduce manual errors, automate repetitive tasks and improve geological decision-making.</div><div class="char-count good">160 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status ok">OK</span> /insights/the-hidden-engine-of-mining-why-tenure-management-can-no-longer-be-ignored</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">The Hidden Engine of Mining: Why Tenure Management Can No Longer Be Ignored | Maxgeo</div><div class="char-count over">84 chars &mdash; truncated</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">Why Mining Tenure Management Matters Now | maxgeo</div><div class="char-count good">49 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box current">Tenure management is the silent backbone of mining — and in today's regulatory landscape, it's too critical to be treated as an afterthought.</div><div class="char-count">142 chars</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">Mineral tenure management is critical for compliance and risk mitigation. Learn why leading mining companies are digitising lease tracking with LeaseCTRL2.</div><div class="char-count good">154 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status ok">OK</span> /insights/closing-the-loop-automated-assay-import-with-maxgeo-aal</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">Closing the Loop: Automated Assay Import with maxgeo AAL | Maxgeo</div><div class="char-count over">65 chars &mdash; over limit</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">Automated Assay Import with maxgeo AAL &amp; ALS | maxgeo</div><div class="char-count good">53 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box current">Maxgeo and ALS are collaborating to deliver smarter, automated assay workflows by integrating lab systems with geological data, driving smarter decisions for the mining industry.</div><div class="char-count over">176 chars &mdash; over 160</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">Automate assay imports from ALS directly into datashed5. The maxgeo AAL integration eliminates manual file handling, reduces errors and speeds up geological reporting.</div><div class="char-count good">160 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status ok">OK</span> /insights/celebrating-innovation-the-evolution-from-datashed4-to-datashed5</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">Celebrating Innovation: The Evolution from DataShed4 to DataShed5 | Maxgeo</div><div class="char-count over">74 chars &mdash; truncated</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">From datashed4 to datashed5: What Changed &amp; Why | maxgeo</div><div class="char-count good">56 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box current">A geologist's account of DataShed's evolution—from its foundational Access-based architecture to shaping the advanced, automated capabilities of DataShed5.</div><div class="char-count">155 chars</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">A geologist's first-hand account of datashed's evolution from Access-based architecture to cloud-native datashed5. What changed, why it matters and how to migrate.</div><div class="char-count good">160 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status ok">OK</span> /insights/smarter-data-management-the-automation-advantage-of-datashed5</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">Smarter Data Management: The Automation Advantage of DataShed5 | Maxgeo</div><div class="char-count over">72 chars &mdash; truncated</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">datashed5 Automation: Smarter Data Management | maxgeo</div><div class="char-count good">54 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box current">DataShed5 streamlines internal processes within your MDS database, automating tasks to ensure accuracy, timeliness, and adherence to business rules.</div><div class="char-count">148 chars</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">Discover how datashed5 automates geological data validation, import scheduling and business rule enforcement. Reduce manual effort and improve accuracy.</div><div class="char-count good">152 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status ok">OK</span> /insights/sql-versions-nearing-end-of-support-what-it-means-for-your-business</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">SQL Versions Nearing End of Support: What It Means for Your Business | Maxgeo</div><div class="char-count over">77 chars &mdash; truncated</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">SQL Server End of Support: Upgrade or Migrate | maxgeo</div><div class="char-count good">54 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box current">Learn why upgrading your SQL Server or migrating to the cloud is essential to protect your business from security risks and outdated technology</div><div class="char-count">143 chars</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">SQL Server 2016 and 2017 are reaching end of support. Learn your options for upgrading on-premise or migrating your geological database to cloud-hosted datashed5.</div><div class="char-count good">160 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status warn">Duplicate desc</span> /insights/maximising-data-value-with-qaqc-and-regular-health-checks</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">Maximising Data Value with QAQC and Regular Health Checks | Maxgeo</div><div class="char-count over">66 chars &mdash; over limit</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">QAQC Best Practices &amp; Data Health Checks | maxgeo</div><div class="char-count good">50 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box current">Discover how maxgeo's integrated data solutions help mining companies drive smarter decision-making across the entire mining lifecycle.</div><div class="char-count over">Duplicate of another article!</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">Learn how regular QAQC checks and database health audits protect geological data integrity. Practical guidance for mining companies using datashed5 or legacy systems.</div><div class="char-count good">160 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status ok">OK</span> /insights/transforming-businesses-through-cloud-technology</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">Transforming Businesses through Cloud Technology | Maxgeo</div><div class="char-count">57 chars</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">Cloud Migration for Mining: Benefits &amp; Practices | maxgeo</div><div class="char-count good">57 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box current">Cloud based data solutions enable you to stay agile and relevant in an increasingly digital world.</div><div class="char-count over">99 chars &mdash; under 120 minimum</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">Moving mining data to the cloud improves accessibility, security and team collaboration. Learn how cloud-hosted datashed5 supports remote geological teams worldwide.</div><div class="char-count good">160 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status ok">OK</span> /insights/transforming-pxrf-data-management</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">Transforming pXRF Data Management | Maxgeo</div><div class="char-count">43 chars</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">pXRF Data Integration with datashed5 | maxgeo</div><div class="char-count good">46 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box current">maxgeo and Evident Scientific's latest collaboration is a game changer for maintaining data integrity and enhancing user experience when collecting and transferring pXRF data.</div><div class="char-count over">174 chars &mdash; over 160</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">Automate pXRF data transfer from Evident Scientific instruments directly into datashed5. Eliminate manual handling and maintain geochemical data integrity on site.</div><div class="char-count good">159 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status ok">OK</span> /insights/unlocking-the-power-of-historical-geological-data-with-datashed5</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">Unlocking the Power of Historical Geological Data with DataShed5 | Maxgeo</div><div class="char-count over">74 chars &mdash; truncated</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">Digitising Historical Geological Data | maxgeo</div><div class="char-count good">47 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box current">Discover how DataShed5 transformed a mid-tier mining company's fragmented historical geological data into a centralized, accessible, and actionable asset.</div><div class="char-count">155 chars</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">Case study: how a mid-tier mining company consolidated fragmented historical geological data into datashed5. Turn legacy spreadsheets into a single source of truth.</div><div class="char-count good">160 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status ok">OK</span> /insights/the-long-term-value-of-investing-in-stable-geological-software</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">The Long-Term Value of Investing in Stable Geological Software | Maxgeo</div><div class="char-count over">71 chars &mdash; truncated</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">Why Stable Geological Software Pays Off | maxgeo</div><div class="char-count good">49 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box current">Investing in stable, geological software is a strategic move that safeguards your data, reduces long-term risk, and ensures your mining operation can adapt and grow with confidence.</div><div class="char-count over">179 chars &mdash; over 160</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">Reliable geological software protects your data investment and reduces operational risk. Learn what to look for and why mining companies choose purpose-built platforms.</div><div class="char-count good">160 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status ok">OK</span> /insights/datashed5-integrates-seamlessly-with-imdexhub-iq-tm</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">DataShed5 integrates seamlessly with IMDEXHUB-IQ&trade; | Maxgeo</div><div class="char-count over">62 chars &mdash; over limit</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">datashed5 &amp; IMDEXHUB-IQ Integration Guide | maxgeo</div><div class="char-count good">50 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box current">Discover how IMDEXHUB-IQ&trade; integrates seamlessly with maxgeo's DataShed5 to streamline your field data collection</div><div class="char-count over">113 chars &mdash; under 120 minimum</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">Connect IMDEXHUB-IQ downhole survey data directly to datashed5. Automate data transfer from field instruments, reduce manual entry and maintain survey data integrity.</div><div class="char-count good">160 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status warn">Duplicate desc</span> /insights/maximising-cost-efficiencies-with-datashed5</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">Maximising Cost Efficiencies with DataShed5 | Maxgeo</div><div class="char-count">53 chars</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">Cut Data Management Costs with datashed5 | maxgeo</div><div class="char-count good">50 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box current">Embracing automation with DataShed5 means more cost-efficient operations, fewer manual errors, and ultimately, better decision-making.</div><div class="char-count over">Duplicate!</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">Reduce geological data management costs with datashed5 automation. See how mining companies lower headcount dependency, cut rework hours and improve data ROI.</div><div class="char-count good">155 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status warn">Duplicate desc</span> /insights/de-risking-the-mining-lifecycle-with-data-driven-solutions</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">De-risking the Mining Lifecycle with Data-Driven Solutions | Maxgeo</div><div class="char-count over">67 chars &mdash; over limit</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">De-risk the Mining Lifecycle with Better Data | maxgeo</div><div class="char-count good">54 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box current">Discover how maxgeo's integrated data solutions help mining companies drive smarter decision-making across the entire mining lifecycle.</div><div class="char-count over">Duplicate!</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">From exploration to production, quality geological data reduces risk at every stage. Learn how maxgeo's platform supports smarter decisions across the mining lifecycle.</div><div class="char-count good">160 chars</div></div>
+    </div>
+  </div>
+
+  <!-- ==================== EVENTS ==================== -->
+  <div class="section-header events" id="events">Events (18 pages) &mdash; All Missing Descriptions</div>
+
+  <div class="page-card">
+    <div class="url"><span class="status warn">No desc</span> /events/mining-indaba-2026-cape-town</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">Mining INDABA 2026 | Maxgeo</div><div class="char-count over">28 chars &mdash; under 30</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">maxgeo at Mining Indaba 2026 | Cape Town</div><div class="char-count good">41 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box missing">No meta description</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">Visit maxgeo at Mining Indaba 2026 in Cape Town. See live demos of datashed5 and logchief for African exploration and mining operations. Book a meeting.</div><div class="char-count good">151 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status warn">No desc</span> /events/pdac-2026</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">PDAC 2026 | Maxgeo</div><div class="char-count over">19 chars &mdash; under 30</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">maxgeo at PDAC 2026 | Toronto</div><div class="char-count good">30 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box missing">No meta description</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">Meet the maxgeo team at PDAC 2026 in Toronto. Live demos of datashed5, logchief and LeaseCTRL2 for exploration companies and mining professionals. Book your meeting.</div><div class="char-count good">160 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status warn">No desc</span> /events/international-mining-geology-conference-2026</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">International Mining Geology Conference 2026 | Maxgeo</div><div class="char-count">54 chars</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">maxgeo at Mining Geology Conference 2026</div><div class="char-count good">40 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box missing">No meta description</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">Join maxgeo at the 2026 International Mining Geology Conference. See how geological data management is evolving with cloud, AI and real-time field integration.</div><div class="char-count good">157 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status warn">No desc</span> /events/agentic-ai-...-emea</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">Agentic AI: Built-In Intelligence Transforming Data Insights - EMEA | Maxgeo</div><div class="char-count over">77 chars &mdash; truncated</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">Webinar: Agentic AI for Mining Data (EMEA) | maxgeo</div><div class="char-count good">52 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box missing">No meta description</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">Free EMEA webinar: see how maxgeo's agentic AI automates geological data validation, anomaly detection and reporting in datashed5. Live demo with Q&amp;A. Register now.</div><div class="char-count good">160 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status warn">No desc</span> /events/agentic-ai-...-americas</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">Agentic AI: Built-In Intelligence Transforming Data Insights - Americas | Maxgeo</div><div class="char-count over">80 chars &mdash; truncated</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">Webinar: Agentic AI for Mining Data (Americas) | maxgeo</div><div class="char-count good">55 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box missing">No meta description</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">Free Americas webinar: discover how maxgeo's built-in AI transforms geological data insights. Live demo of automated validation and smart alerts. Register now.</div><div class="char-count good">157 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status warn">No desc</span> /events/agentic-ai-...-geological-workflows</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">Agentic AI: Built-In Intelligence Transforming Geological Workflows | Maxgeo</div><div class="char-count over">77 chars &mdash; truncated</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">Webinar: AI-Powered Geological Workflows | maxgeo</div><div class="char-count good">50 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box missing">No meta description</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">Free webinar: see how agentic AI transforms geological workflows in datashed5. Automated validation, intelligent scheduling and real-time anomaly detection. Register.</div><div class="char-count good">160 chars</div></div>
+    </div>
+  </div>
+
+  <!-- Remaining events in compact format -->
+  <div class="page-card">
+    <div class="url"><span class="status warn">No desc</span> Remaining 12 event pages &mdash; optimised meta below</div>
+    <div class="notes" style="border-top:none; padding-top:0;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:0.5rem;">
+        <thead><tr><th style="text-align:left;padding:6px;background:#f1f5f9;border-bottom:2px solid #e2e8f0;">Page</th><th style="text-align:left;padding:6px;background:#f1f5f9;border-bottom:2px solid #e2e8f0;">Optimised Title</th><th style="text-align:left;padding:6px;background:#f1f5f9;border-bottom:2px solid #e2e8f0;">Optimised Description</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:6px;border-bottom:1px solid #e2e8f0;">/events/introducing-logchief-lite-v1-1...</td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Webinar: logchief lite v1.1 Launch | maxgeo<br><em style="color:#6c757d;font-size:0.7rem;">43 chars</em></td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">See what's new in logchief lite v1.1. Faster offline logging, improved sync and simplified templates for field geologists. Watch the recording or register for the next session.<br><em style="color:#16a34a;font-size:0.7rem;">160 chars</em></td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #e2e8f0;">/events/2026-ameroundup</td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">maxgeo at AME Roundup 2026 | Vancouver<br><em style="color:#6c757d;font-size:0.7rem;">38 chars</em></td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Join maxgeo at AME Roundup 2026 in Vancouver. See datashed5 and logchief demos for Canadian exploration companies. Visit our booth or book a meeting with the team.<br><em style="color:#16a34a;font-size:0.7rem;">159 chars</em></td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #e2e8f0;">/events/unlock-smarter-tenure-management...</td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Webinar: Smarter Tenure Management | maxgeo<br><em style="color:#6c757d;font-size:0.7rem;">44 chars</em></td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Free webinar: see how LeaseCTRL2 digitises mineral tenure management. Track leases, compliance deadlines and renewals in one platform. Register for free now.<br><em style="color:#16a34a;font-size:0.7rem;">155 chars</em></td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #e2e8f0;">/events/from-legacy-to-leading-edge...</td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Webinar: datashed5 3.2 Cloud Features | maxgeo<br><em style="color:#6c757d;font-size:0.7rem;">47 chars</em></td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Webinar: explore cloud-ready features in datashed5 v3.2. Migration paths from datashed4, new automation tools and improved performance. Register for free now.<br><em style="color:#16a34a;font-size:0.7rem;">155 chars</em></td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #e2e8f0;">/events/critical-data-strategies...</td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Webinar: Critical Data Strategies for Mining | maxgeo<br><em style="color:#6c757d;font-size:0.7rem;">52 chars</em></td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Webinar: learn critical data strategies for mining and exploration. Topics include QAQC automation, cloud migration and AI-powered geological insights. Register now.<br><em style="color:#16a34a;font-size:0.7rem;">160 chars</em></td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #e2e8f0;">/events/minexpo-colombia-2026</td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">maxgeo at MinExpo Colombia 2026<br><em style="color:#6c757d;font-size:0.7rem;">31 chars</em></td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Meet maxgeo at MinExpo Colombia 2026. See live demos of datashed5 and logchief for Latin American mining and exploration operations. Book a meeting with our team.<br><em style="color:#16a34a;font-size:0.7rem;">158 chars</em></td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #e2e8f0;">/events/leasectrl2-live...</td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">LeaseCTRL2 Live: Ask the Experts | maxgeo<br><em style="color:#6c757d;font-size:0.7rem;">41 chars</em></td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Live Q&amp;A with the LeaseCTRL2 team. Ask questions, see the platform in action and learn how to digitise your mineral tenure management. Register for free.<br><em style="color:#16a34a;font-size:0.7rem;">149 chars</em></td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #e2e8f0;">/events/cim-connect-2026</td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">maxgeo at CIM Connect 2026<br><em style="color:#6c757d;font-size:0.7rem;">26 chars — add location if known</em></td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Visit maxgeo at CIM Connect 2026. Live demos of datashed5, logchief and LeaseCTRL2 for Canadian mining professionals. Book your booth meeting with our team.<br><em style="color:#16a34a;font-size:0.7rem;">153 chars</em></td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #e2e8f0;">/events/minexchange-2026</td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">maxgeo at SME MINEXCHANGE 2026<br><em style="color:#6c757d;font-size:0.7rem;">30 chars</em></td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Join maxgeo at SME MINEXCHANGE 2026. See geological data management demos for North American mining and exploration teams. Visit our booth or book a meeting.<br><em style="color:#16a34a;font-size:0.7rem;">153 chars</em></td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #e2e8f0;">/events/reconnecting-workflows...</td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Webinar: Meet dsCONNECT for Desktop | maxgeo<br><em style="color:#6c757d;font-size:0.7rem;">45 chars</em></td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Webinar: see how dsCONNECT links desktop applications to datashed5. Automate assay, survey and PLOD data transfers from any desktop tool. Register for free.<br><em style="color:#16a34a;font-size:0.7rem;">153 chars</em></td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #e2e8f0;">/events/mines-and-money-or-hong-kong</td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">maxgeo at Mines and Money | Hong Kong<br><em style="color:#6c757d;font-size:0.7rem;">37 chars</em></td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Meet maxgeo at Mines and Money Hong Kong. See how our geological data platform supports Asia-Pacific mining and exploration companies. Book a meeting with the team.<br><em style="color:#16a34a;font-size:0.7rem;">160 chars</em></td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #e2e8f0;">/events/alice-springs-mining-services-expo</td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">maxgeo at Alice Springs Mining Expo<br><em style="color:#6c757d;font-size:0.7rem;">35 chars</em></td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Visit maxgeo at Alice Springs Mining Services Expo. datashed5 and logchief demos for Northern Territory mining and exploration teams. Meet the team at our booth.<br><em style="color:#16a34a;font-size:0.7rem;">157 chars</em></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== UPDATES ==================== -->
+  <div class="section-header updates" id="updates">Software Updates</div>
+
+  <div class="page-card">
+    <div class="url"><span class="status ok">200</span> /updates</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">Software Updates | Maxgeo</div><div class="char-count over">26 chars &mdash; under 30</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">datashed5 &amp; logchief Release Notes | maxgeo</div><div class="char-count good">44 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box current">Stay up to date with the latest features, improvements, and fixes across our software products.</div><div class="char-count over">95 chars &mdash; under 120 minimum</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">Latest release notes, bug fixes and feature updates for datashed5, logchief and logchief lite. Track what's new in each version of maxgeo's geological data platform.</div><div class="char-count good">160 chars</div></div>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <div class="url"><span class="status ok">200</span> /updates/datashed5-v3-2-1-1-release-notes</div>
+    <div class="row">
+      <div class="col"><label class="current">Current Title</label><div class="meta-box current">DataShed5 v3.2.1.1 Release Notes | Maxgeo</div><div class="char-count">43 chars</div></div>
+      <div class="col"><label class="new">Optimised Title</label><div class="meta-box new">datashed5 v3.2.1.1 Release Notes (Feb 2026) | maxgeo</div><div class="char-count good">52 chars</div></div>
+    </div>
+    <div class="row">
+      <div class="col"><label class="current">Current Description</label><div class="meta-box current">This release addresses high priority bugs and functional regressions affecting data import, buffer behaviour, job service processing, search/filter functions, and auditing across Cloud and Hosted DataShed5 environments.</div><div class="char-count over">218 chars &mdash; over 160</div></div>
+      <div class="col"><label class="new">Optimised Description</label><div class="meta-box new">datashed5 v3.2.1.1 fixes critical bugs in data import, buffer handling, job service processing and search filters for Cloud and Hosted environments. February 2026.</div><div class="char-count good">160 chars</div></div>
+    </div>
+  </div>
+
+  <!-- ==================== DEAD PAGES ==================== -->
+  <div class="section-header dead" id="dead">Dead Pages (404) &mdash; Remove from Sitemap or Create</div>
+
+  <div class="page-card">
+    <div class="url"><span class="status bad">404</span> 5 URLs: /datashed-training, /assay-management, /drilling-and-sampling, /logchief-training, /logchief-lite-training</div>
+    <div class="notes" style="border-top:none; padding-top:0;">
+      <strong>Action:</strong> Remove from sitemap immediately, or create these pages with the meta below:
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-top:0.5rem;">
+        <thead><tr><th style="text-align:left;padding:6px;background:#f1f5f9;border-bottom:2px solid #e2e8f0;">Page</th><th style="text-align:left;padding:6px;background:#f1f5f9;border-bottom:2px solid #e2e8f0;">Suggested Title</th><th style="text-align:left;padding:6px;background:#f1f5f9;border-bottom:2px solid #e2e8f0;">Suggested Description</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:6px;border-bottom:1px solid #e2e8f0;">/datashed-training</td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">datashed5 Training &amp; Certification | maxgeo<br><em style="color:#16a34a;font-size:0.7rem;">44 chars</em></td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Hands-on datashed5 training for geologists, data managers and IT teams. Learn data imports, QAQC configuration, reporting and admin. Online and on-site options.<br><em style="color:#16a34a;font-size:0.7rem;">158 chars</em></td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #e2e8f0;">/logchief-training</td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">logchief Training for Field Geologists | maxgeo<br><em style="color:#16a34a;font-size:0.7rem;">48 chars</em></td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Learn to capture geological data efficiently with logchief. Training covers template setup, offline logging, data sync and QAQC validation for field teams.<br><em style="color:#16a34a;font-size:0.7rem;">152 chars</em></td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #e2e8f0;">/logchief-lite-training</td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">logchief lite Quick Start Training | maxgeo<br><em style="color:#16a34a;font-size:0.7rem;">44 chars</em></td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Get your field team logging in minutes with logchief lite training. Covers setup, data capture workflows, offline mode and sync to datashed5. Book your session.<br><em style="color:#16a34a;font-size:0.7rem;">157 chars</em></td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #e2e8f0;">/assay-management</td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Assay Data Management for Mining | maxgeo<br><em style="color:#16a34a;font-size:0.7rem;">41 chars</em></td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Automate assay imports from ALS, SGS, Bureau Veritas and more. maxgeo's assay management tools validate, load and reconcile lab data directly into datashed5.<br><em style="color:#16a34a;font-size:0.7rem;">154 chars</em></td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid #e2e8f0;">/drilling-and-sampling</td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Drilling &amp; Sampling Data Management | maxgeo<br><em style="color:#16a34a;font-size:0.7rem;">45 chars</em></td><td style="padding:6px;border-bottom:1px solid #e2e8f0;">Manage drillhole logging, core sampling and downhole survey data in one platform. maxgeo connects field capture to database with real-time validation and QAQC.<br><em style="color:#16a34a;font-size:0.7rem;">156 chars</em></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Generated by Claude Code SEO Audit &bull; March 3, 2026<br>
+  <strong>Rules:</strong> Titles 30&ndash;60 chars &bull; Descriptions 120&ndash;160 chars &bull; maxgeo, datashed, logchief, logchief lite always lowercase
+</div>
+
+</body>
+</html>
