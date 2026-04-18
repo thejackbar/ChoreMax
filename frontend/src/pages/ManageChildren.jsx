@@ -26,6 +26,8 @@ export default function ManageChildren() {
   const [birthday, setBirthday] = useState('')
   const [tokenIcon, setTokenIcon] = useState('star')
   const [color, setColor] = useState('#6366f1')
+  const [role, setRole] = useState('child')
+  const [gender, setGender] = useState('')
   const [error, setError] = useState(null)
 
   // Token adjustment state
@@ -69,6 +71,8 @@ export default function ManageChildren() {
     setBirthday('')
     setTokenIcon('star')
     setColor('#6366f1')
+    setRole('child')
+    setGender('')
     setShowForm(true)
     setError(null)
     resetAdjustment()
@@ -81,6 +85,8 @@ export default function ManageChildren() {
     setBirthday(child.birthday || '')
     setTokenIcon(child.token_icon || 'star')
     setColor(child.color || '#6366f1')
+    setRole(child.role || 'child')
+    setGender(child.gender || '')
     setShowForm(true)
     setError(null)
     resetAdjustment()
@@ -102,6 +108,8 @@ export default function ManageChildren() {
         birthday: birthday || null,
         token_icon: tokenIcon,
         color,
+        role,
+        gender: gender || null,
       }
       if (editing) {
         await api.children.update(editing.id, payload, pin)
@@ -116,7 +124,7 @@ export default function ManageChildren() {
   }
 
   const handleDelete = async (child) => {
-    if (!confirm(`Remove ${child.name}? This will delete all their chore history and token balance.`)) return
+    if (!confirm(`Remove ${child.name}? This will delete all their chore history and token balance.`)) return  // eslint-disable-line no-restricted-globals
     try {
       await api.children.delete(child.id, pin)
       await fetchChildren()
@@ -157,13 +165,13 @@ export default function ManageChildren() {
   return (
     <div>
       <div className="flex-between mb-lg">
-        <h1>Manage Children</h1>
-        <button className="btn btn-primary" onClick={openAdd}>+ Add Child</button>
+        <h1>Manage People</h1>
+        <button className="btn btn-primary" onClick={openAdd}>+ Add Person</button>
       </div>
 
       {showForm && (
         <div className="card mb-lg">
-          <h3 className="mb-md">{editing ? 'Edit Child' : 'Add Child'}</h3>
+          <h3 className="mb-md">{editing ? 'Edit Person' : 'Add Person'}</h3>
           {error && <div className="msg-error">{error}</div>}
           <form onSubmit={handleSave}>
             <div className="field">
@@ -172,9 +180,24 @@ export default function ManageChildren() {
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="Child's name"
+                placeholder="Name"
                 required
               />
+            </div>
+            <div className="field">
+              <label>Role</label>
+              <select value={role} onChange={e => setRole(e.target.value)}>
+                <option value="child">Child</option>
+                <option value="parent">Parent</option>
+              </select>
+            </div>
+            <div className="field">
+              <label>Gender</label>
+              <select value={gender} onChange={e => setGender(e.target.value)}>
+                <option value="">Not specified</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
             </div>
             <div className="field">
               <label>Birthday</label>
@@ -289,9 +312,9 @@ export default function ManageChildren() {
       {children.length === 0 && !showForm ? (
         <EmptyState
           icon="&#x1F476;"
-          title="No children yet"
-          message="Add your first child to get started"
-          action={<button className="btn btn-primary" onClick={openAdd}>+ Add Child</button>}
+          title="No people yet"
+          message="Add your first family member to get started"
+          action={<button className="btn btn-primary" onClick={openAdd}>+ Add Person</button>}
         />
       ) : (
         children.map(child => {
@@ -301,7 +324,15 @@ export default function ManageChildren() {
               <div className="manage-item-info">
                 <span className="item-emoji">{getAvatarEmoji(child.avatar_value)}</span>
                 <div>
-                  <div className="item-title">{child.name}</div>
+                  <div className="item-title">
+                    {child.name}
+                    {child.role === 'parent' && (
+                      <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', background: 'var(--primary)', color: '#fff', borderRadius: '4px', padding: '0.1rem 0.4rem', verticalAlign: 'middle' }}>Parent</span>
+                    )}
+                    {child.gender && (
+                      <span style={{ marginLeft: '0.35rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>{child.gender === 'male' ? '♂' : '♀'}</span>
+                    )}
+                  </div>
                   <div className="item-sub">
                     {age !== null && `Age ${age}`}
                     {child.birthday && ` \u2022 ${new Date(child.birthday + 'T00:00:00').toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}`}

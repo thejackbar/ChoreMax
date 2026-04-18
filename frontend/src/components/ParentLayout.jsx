@@ -41,9 +41,9 @@ export default function ParentLayout() {
           <span className="sidebar-icon">&#x2705;</span>
           <span className="sidebar-label">Chores</span>
         </NavLink>
-        <NavLink to="/parent/children" className={linkClass} title="Children">
-          <span className="sidebar-icon">&#x1F9D2;</span>
-          <span className="sidebar-label">Children</span>
+        <NavLink to="/parent/children" className={linkClass} title="People">
+          <span className="sidebar-icon">&#x1F9D1;</span>
+          <span className="sidebar-label">People</span>
         </NavLink>
         <NavLink to="/parent/meals" className={linkClass} title="Meals">
           <span className="sidebar-icon">&#x1F37D;&#xFE0F;</span>

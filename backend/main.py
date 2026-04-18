@@ -34,6 +34,17 @@ async def lifespan(app: FastAPI):
         from sqlalchemy import text
         async with engine.begin() as conn:
             await conn.execute(text(
+                "ALTER TABLE children ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'child'"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE children ADD COLUMN IF NOT EXISTS gender TEXT"
+            ))
+    except Exception:
+        pass
+    try:
+        from sqlalchemy import text
+        async with engine.begin() as conn:
+            await conn.execute(text(
                 "CREATE TABLE IF NOT EXISTS waitlist_entries ("
                 "id UUID PRIMARY KEY, "
                 "name TEXT NOT NULL, "

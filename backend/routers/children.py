@@ -46,6 +46,10 @@ async def create_child(
         avatar_value=data.avatar_value,
         display_order=max_order + 1,
         birthday=data.birthday,
+        token_icon=data.token_icon,
+        color=data.color,
+        role=data.role,
+        gender=data.gender,
     )
     db.add(child)
     await db.flush()

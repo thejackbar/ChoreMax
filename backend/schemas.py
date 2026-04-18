@@ -59,6 +59,8 @@ class ChildCreate(BaseModel):
     birthday: date | None = None
     token_icon: TOKEN_ICONS = "star"
     color: str = "#6366f1"
+    role: Literal["child", "parent"] = "child"
+    gender: Literal["male", "female"] | None = None
 
 
 class ChildUpdate(BaseModel):
@@ -69,6 +71,8 @@ class ChildUpdate(BaseModel):
     birthday: date | None = None
     token_icon: TOKEN_ICONS | None = None
     color: str | None = None
+    role: Literal["child", "parent"] | None = None
+    gender: Literal["male", "female"] | None = None
 
 
 class ChildResponse(OrmBase):
@@ -80,6 +84,8 @@ class ChildResponse(OrmBase):
     birthday: date | None = None
     token_icon: str = "star"
     color: str = "#6366f1"
+    role: str = "child"
+    gender: str | None = None
     created_at: datetime
 
 

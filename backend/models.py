@@ -53,6 +53,8 @@ class Child(Base):
     birthday: Mapped[datetime | None] = mapped_column(Date, nullable=True)
     token_icon: Mapped[str] = mapped_column(Text, nullable=False, server_default="star")
     color: Mapped[str] = mapped_column(Text, nullable=False, server_default="#6366f1")
+    role: Mapped[str] = mapped_column(Text, nullable=False, server_default="child")
+    gender: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
