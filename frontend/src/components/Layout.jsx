@@ -60,7 +60,7 @@ export default function Layout() {
   const weather = useWeather()
 
   const isChildView = location.pathname.startsWith('/child/')
-  const isHome = location.pathname === '/' || location.pathname === '/family'
+  const isHome = location.pathname === '/'
   const isCalendar = location.pathname === '/calendar'
   const isMeals = location.pathname.startsWith('/meals')
   const handleBack = () => {
@@ -117,7 +117,11 @@ export default function Layout() {
 
         {/* Main nav */}
         <div className="sidebar-section">
-          <NavLink to="/family" className={navLinkClass} onClick={closeSidebar} title="Family">
+          <NavLink to="/" end className={navLinkClass} onClick={closeSidebar} title="Home">
+            <span className="sidebar-icon">&#x1F3E0;</span>
+            <span className="sidebar-label">Home</span>
+          </NavLink>
+          <NavLink to="/family" className={navLinkClass} onClick={closeSidebar} title="Family Chores">
             <span className="sidebar-icon">&#x1F46A;</span>
             <span className="sidebar-label">Family</span>
           </NavLink>
@@ -132,17 +136,13 @@ export default function Layout() {
         {/* Lists section */}
         <div className="sidebar-section">
           {!collapsed && <div className="sidebar-section-label">Lists</div>}
-          <NavLink to="/lists/todos" className={navLinkClass} onClick={closeSidebar} title="To-Do">
+          <NavLink to="/lists/todos" className={navLinkClass} onClick={closeSidebar} title="Lists">
             <span className="sidebar-icon">&#x1F4CB;</span>
-            <span className="sidebar-label">To-Do</span>
+            <span className="sidebar-label">Lists</span>
           </NavLink>
           <NavLink to="/lists/shopping" className={navLinkClass} onClick={closeSidebar} title="Shopping">
             <span className="sidebar-icon">&#x1F6D2;</span>
             <span className="sidebar-label">Shopping</span>
-          </NavLink>
-          <NavLink to="/lists/wishlist" className={navLinkClass} onClick={closeSidebar} title="Wishlists">
-            <span className="sidebar-icon">&#x1F381;</span>
-            <span className="sidebar-label">Wishlists</span>
           </NavLink>
         </div>
 

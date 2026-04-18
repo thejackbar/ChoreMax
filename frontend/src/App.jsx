@@ -21,6 +21,7 @@ import AccountSettings from './pages/AccountSettings'
 import ManageMeals from './pages/ManageMeals'
 import ManageGoals from './pages/ManageGoals'
 import FamilyDailyView from './pages/FamilyDailyView'
+import FamilyMembers from './pages/FamilyMembers'
 import MealPlan from './pages/MealPlan'
 import ShoppingList from './pages/ShoppingList'
 import TodoList from './pages/TodoList'
@@ -179,7 +180,7 @@ export default function App() {
 
             {/* Kid-facing (no PIN) */}
             <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-              <Route path="/" element={<DefaultHomeRedirect />} />
+              <Route path="/" element={<FamilyMembers />} />
               <Route path="/family" element={<FamilyDailyView />} />
               <Route path="/child/:childId" element={<MemberHub />} />
               <Route path="/child/:childId/daily" element={<ChildDailyChores />} />

@@ -3,7 +3,7 @@ import { useChild } from '../context/ChildContext'
 import { useAuth } from '../context/AuthContext'
 import { getAvatarEmoji } from '../data/avatars'
 import { formatTokens } from '../data/tokenIcons'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { api } from '../api/client'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -22,6 +22,7 @@ export default function MemberHub() {
   const [weekDays, setWeekDays] = useState([])
 
   const child = children.find(c => c.id === childId) || activeChild
+  const weekScrollRef = useRef(null)
 
   useEffect(() => {
     if (!childId) return
@@ -29,6 +30,16 @@ export default function MemberHub() {
     // Fetch this week's calendar for the hub preview
     api.calendar.week().then(data => setWeekDays(data.days || [])).catch(() => {})
   }, [childId])
+
+  // Scroll the week strip so today is at the left edge
+  useEffect(() => {
+    if (!weekScrollRef.current || weekDays.length === 0) return
+    const todayIndex = weekDays.findIndex(d => d.date === todayStr)
+    if (todayIndex <= 0) return
+    const container = weekScrollRef.current
+    const dayWidth = container.scrollWidth / weekDays.length
+    container.scrollLeft = dayWidth * todayIndex
+  }, [weekDays])
 
   useEffect(() => {
     if (child && (!activeChild || activeChild.id !== child.id)) {
@@ -102,7 +113,7 @@ export default function MemberHub() {
       {weekDays.length > 0 && (
         <div className="hub-week">
           <h3 className="hub-week-title">This Week</h3>
-          <div className="hub-week-grid">
+          <div className="hub-week-grid" ref={weekScrollRef}>
             {weekDays.map((day, i) => {
               const isToday = day.date === todayStr
               const isPast = day.date < todayStr

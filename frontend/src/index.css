@@ -1853,9 +1853,24 @@ a { color: var(--primary); text-decoration: none; }
   margin-bottom: 0.75rem;
 }
 .hub-week-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+  /* Hide scrollbar */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hub-week-grid::-webkit-scrollbar { display: none; }
+.hub-week-day {
+  /* Fixed width so each day is readable and the strip scrolls */
+  flex: 0 0 calc((100vw - 3rem) / 3.5);
+  min-width: 80px;
+  max-width: 110px;
+  scroll-snap-align: start;
 }
 .hub-week-day {
   background: var(--glass-bg);
@@ -2174,6 +2189,8 @@ a { color: var(--primary); text-decoration: none; }
 /* Datetime header */
 .sidebar-datetime {
   padding: 1rem 1rem 0.75rem;
+  /* On mobile the sidebar is fixed from top:0, so respect the notch */
+  padding-top: calc(1rem + env(safe-area-inset-top, 0px));
   text-align: center;
 }
 .sidebar-time {
@@ -2349,6 +2366,73 @@ a { color: var(--primary); text-decoration: none; }
 [data-theme="midnight"] .parent-sidebar-link:hover {
   background: rgba(255, 255, 255, 0.06);
   color: var(--primary);
+}
+
+/* ===================================================================
+   Family Members Home Screen
+   =================================================================== */
+.family-members-page {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+.family-members-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.family-members-title {
+  font-family: var(--font-heading);
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
+  color: var(--text);
+}
+.family-members-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.family-member-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+.family-member-card:hover, .family-member-card:active {
+  background: var(--glass-bg-strong);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+.family-member-avatar {
+  font-size: 3.5rem;
+  line-height: 1;
+}
+.family-member-name {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.family-member-chores {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+.family-member-balance {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+.family-members-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 /* ===================================================================
@@ -2811,12 +2895,24 @@ a { color: var(--primary); text-decoration: none; }
     z-index: 999;
     transform: translateX(-100%);
     transition: transform 0.3s ease;
-    width: 280px;
+    /* 40% of screen width, max 260px — keeps it compact and tappable */
+    width: min(260px, 40vw);
     box-shadow: var(--shadow-lg);
   }
   .app-sidebar.open { transform: translateX(0); }
   .sidebar-overlay { display: block; pointer-events: none; }
   .sidebar-overlay.open { opacity: 1; pointer-events: auto; }
+  /* Larger touch targets and font on mobile sidebar */
+  .app-sidebar .sidebar-link {
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+  }
+  .app-sidebar .sidebar-icon { font-size: 1.15rem; }
+  .app-sidebar .sidebar-section-label { font-size: 0.65rem; }
+  /* Safe area at bottom so settings isn't cut off by home indicator */
+  .app-sidebar .sidebar-section:last-child {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
   .mobile-topbar {
     display: flex;
     align-items: center;
