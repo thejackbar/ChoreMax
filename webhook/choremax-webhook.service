@@ -1,0 +1,15 @@
+[Unit]
+Description=ChoreMax Deploy Webhook Server
+After=network.target docker.service
+
+[Service]
+ExecStart=/usr/bin/python3 /srv/docker/choremax/webhook/server.py
+Environment=DEPLOY_TOKEN=REPLACE_WITH_YOUR_TOKEN
+Restart=always
+RestartSec=5
+User=jack
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

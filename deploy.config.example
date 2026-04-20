@@ -1,0 +1,3 @@
+# Copy this file to deploy.config and fill in your values.
+# deploy.config is gitignored — never commit it.
+DEPLOY_TOKEN=your_secret_token_here

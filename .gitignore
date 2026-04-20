@@ -13,6 +13,10 @@ dist/
 
 # Environment (never commit secrets)
 .env
+deploy.config
+
+# App Store Connect private keys
+*.p8
 
 # SSL certs
 nginx/ssl/*.pem

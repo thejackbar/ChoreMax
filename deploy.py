@@ -4,8 +4,8 @@ ChoreMax Deploy Script
 ─────────────────────────────────────────────────────────────────────────────
 Runs three steps in sequence:
   1. Git commit (if there are changes) + push to GitHub
-  2. SSH into server → git pull + restart nginx and backend containers
-  3. App Store Connect API → trigger Xcode Cloud build → TestFlight
+  2. HTTPS webhook → server runs git pull + restarts Docker containers
+  3. App Store Connect API → triggers Xcode Cloud build → TestFlight
 ─────────────────────────────────────────────────────────────────────────────
 """
 
@@ -18,15 +18,29 @@ import urllib.error
 import urllib.request
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
-REPO_DIR     = os.path.expanduser("~/Downloads/ChoreMax")
-SSH_TARGET   = "jack@bltbox.com"
-SERVER_DIR   = "/srv/docker/choremax"
+REPO_DIR      = os.path.expanduser("~/Downloads/ChoreMax")
+DEPLOY_WEBHOOK = "https://deploy.choremax.bltbox.com/deploy"
 
-ASC_KEY_ID   = "QNW5H7HA98"
+ASC_KEY_ID    = "QNW5H7HA98"
 ASC_ISSUER_ID = "69a6de8d-eec6-47e3-e053-5b8c7c11a4d1"
-ASC_KEY_FILE = os.path.expanduser("~/Downloads/ChoreMax/AuthKey_QNW5H7HA98.p8")
-APP_ID       = "6762284433"
+ASC_KEY_FILE  = os.path.join(REPO_DIR, "AuthKey_QNW5H7HA98.p8")
+APP_ID        = "6762284433"
 # ─────────────────────────────────────────────────────────────────────────────
+
+
+def load_deploy_token():
+    """Read DEPLOY_TOKEN from deploy.config (gitignored local file)."""
+    config_path = os.path.join(REPO_DIR, "deploy.config")
+    if not os.path.exists(config_path):
+        print("❌  Missing deploy.config — copy deploy.config.example and fill in your token")
+        sys.exit(1)
+    with open(config_path) as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith("DEPLOY_TOKEN="):
+                return line.split("=", 1)[1].strip()
+    print("❌  DEPLOY_TOKEN not found in deploy.config")
+    sys.exit(1)
 
 
 def log(msg, emoji="▶"):
@@ -99,17 +113,14 @@ def asc_post(path, body, token):
 
 
 def trigger_xcode_build(token):
-    # Find the Xcode Cloud product linked to this app
     resp = asc_get(f"/v1/apps/{APP_ID}/ciProduct", token)
     product_id = resp["data"]["id"]
 
-    # List all workflows
     resp = asc_get(f"/v1/ciProducts/{product_id}/workflows", token)
     workflows = resp["data"]
     if not workflows:
         raise RuntimeError("No Xcode Cloud workflows found for this app")
 
-    # Prefer a workflow named main / archive / release, otherwise take the first
     workflow = workflows[0]
     for w in workflows:
         name = w["attributes"].get("name", "").lower()
@@ -159,15 +170,25 @@ log("Pushing to GitHub...", "📤")
 run(["git", "push", "origin", "main"])
 log("GitHub up to date", "✅")
 
-# ── STEP 2 — Server deploy ────────────────────────────────────────────────────
-log("Connecting to server...", "🖥️ ")
-ssh_cmd = (
-    f"cd {SERVER_DIR} && "
-    "git pull origin main && "
-    "docker compose up -d --build nginx backend"
-)
-run(["ssh", SSH_TARGET, ssh_cmd])
-log("Web app deployed", "✅")
+# ── STEP 2 — Webhook deploy ───────────────────────────────────────────────────
+log("Triggering server deploy...", "🖥️ ")
+deploy_token = load_deploy_token()
+try:
+    req = urllib.request.Request(
+        DEPLOY_WEBHOOK,
+        data=b"{}",
+        headers={
+            "Content-Type": "application/json",
+            "X-Deploy-Token": deploy_token,
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=15) as r:
+        resp = json.loads(r.read())
+    log(f"Server deploying ({resp.get('status', 'ok')}) — takes ~30s in background", "✅")
+except Exception as e:
+    print(f"\n⚠️   Server webhook failed: {e}")
+    print("   Check https://cockpit.bltbox.com for status or deploy manually.")
 
 # ── STEP 3 — Xcode Cloud build ────────────────────────────────────────────────
 log("Triggering iOS build...", "📱")
