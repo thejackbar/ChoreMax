@@ -61,12 +61,14 @@ export const Reminders = {
     if (dueDate) args.dueDate = dueDate
     return nativePlugin.createReminder(args)
   },
-  updateReminder: async ({ id, title, notes, completed } = {}) => {
+  updateReminder: async ({ id, title, notes, completed, dueDate, priority } = {}) => {
     if (!isRemindersSupported()) return { ok: false }
     const args = { id }
-    if (title !== undefined) args.title = title
-    if (notes !== undefined) args.notes = notes
+    if (title     !== undefined) args.title     = title
+    if (notes     !== undefined) args.notes     = notes
     if (completed !== undefined) args.completed = completed
+    if (dueDate   !== undefined) args.dueDate   = dueDate
+    if (priority  !== undefined) args.priority  = priority
     return nativePlugin.updateReminder(args)
   },
   completeReminder: async ({ id, completed = true } = {}) => {

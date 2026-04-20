@@ -18,6 +18,7 @@ import ParentDashboard from './pages/ParentDashboard'
 import ManageChores from './pages/ManageChores'
 import ManageChildren from './pages/ManageChildren'
 import AccountSettings from './pages/AccountSettings'
+import RemindersSettings from './pages/RemindersSettings'
 import ManageMeals from './pages/ManageMeals'
 import ManageGoals from './pages/ManageGoals'
 import FamilyDailyView from './pages/FamilyDailyView'
@@ -204,6 +205,7 @@ export default function App() {
               <Route path="/parent/goals" element={<ManageGoals />} />
               <Route path="/parent/calendar" element={<ManageCalendar />} />
               <Route path="/parent/settings" element={<AccountSettings />} />
+              <Route path="/parent/reminders" element={<RemindersSettings />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

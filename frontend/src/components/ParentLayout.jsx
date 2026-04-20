@@ -57,6 +57,10 @@ export default function ParentLayout() {
           <span className="sidebar-icon">&#x1F4C5;</span>
           <span className="sidebar-label">Calendar</span>
         </NavLink>
+        <NavLink to="/parent/reminders" className={linkClass} title="Lists &amp; Reminders">
+          <span className="sidebar-icon">&#x1F514;</span>
+          <span className="sidebar-label">Reminders</span>
+        </NavLink>
         <NavLink to="/parent/settings" className={linkClass} title="Settings">
           <span className="sidebar-icon">&#x2699;&#xFE0F;</span>
           <span className="sidebar-label">Settings</span>

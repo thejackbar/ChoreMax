@@ -230,8 +230,15 @@ public class RemindersPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         if let title = call.getString("title") { reminder.title = title }
         if let notes = call.getString("notes") { reminder.notes = notes }
-        if let completed = call.getBool("completed") {
-            reminder.isCompleted = completed
+        if let completed = call.getBool("completed") { reminder.isCompleted = completed }
+        if let priority = call.getInt("priority") { reminder.priority = priority }
+        if let dueDateStr = call.getString("dueDate") {
+            if dueDateStr.isEmpty {
+                reminder.dueDateComponents = nil
+            } else if let date = ISO8601DateFormatter().date(from: dueDateStr) {
+                reminder.dueDateComponents = Calendar.current.dateComponents(
+                    [.year, .month, .day, .hour, .minute], from: date)
+            }
         }
         do {
             try store.save(reminder, commit: true)
