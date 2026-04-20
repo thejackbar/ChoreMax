@@ -3,6 +3,45 @@ import { api } from '../api/client'
 import { Reminders, isRemindersSupported } from '../native/reminders'
 import { getRemindersSettings } from '../native/remindersSettings'
 
+// Inline "Add item" row shown above the first category card when Reminders sync is on
+function AddItemRow({ onAdd, listTitle }) {
+  const [text, setText] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    const trimmed = text.trim()
+    if (!trimmed) return
+    setSaving(true)
+    try {
+      await onAdd(trimmed)
+      setText('')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="shopping-add-row">
+      <input
+        type="text"
+        value={text}
+        onChange={e => setText(e.target.value)}
+        placeholder={`Add item${listTitle ? ` to ${listTitle}` : ''}…`}
+        className="shopping-add-input"
+        disabled={saving}
+      />
+      <button
+        type="submit"
+        className="btn btn-primary btn-sm"
+        disabled={saving || !text.trim()}
+      >
+        {saving ? '…' : '+ Add'}
+      </button>
+    </form>
+  )
+}
+
 function toLocalDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
@@ -62,10 +101,13 @@ export default function ShoppingList() {
   const [collapsed, setCollapsed] = useState({})
   const [pendingRemoval, setPendingRemoval] = useState({}) // key -> timeout id
   const [extraItems, setExtraItems] = useState([]) // items pulled from Apple Reminders
+  const [syncStatus, setSyncStatus] = useState(null) // 'syncing' | 'ok' | 'error'
   const removalTimers = useRef({})
   // Map of itemKey -> Reminder id (so we can update/delete the matching reminder)
   const reminderIdMap = useRef({})
   const pin = sessionStorage.getItem('parentPin')
+  // Cached list title for the "Add item" placeholder
+  const [remindersListTitle, setRemindersListTitle] = useState('')
 
   // Check once per mount whether Apple Reminders sync is turned on + configured.
   const remindersSyncActive = () => {
@@ -93,8 +135,17 @@ export default function ShoppingList() {
       // If Reminders sync is active, pull extra items that were added natively
       // and push any ingredients that aren't yet in the Reminders list.
       if (remindersSyncActive()) {
+        setSyncStatus('syncing')
         try {
           const { shoppingListId } = getRemindersSettings()
+
+          // Resolve the list title (for the add-item placeholder) once
+          try {
+            const { lists } = await Reminders.getLists()
+            const found = (lists || []).find(l => l.id === shoppingListId)
+            if (found) setRemindersListTitle(found.title)
+          } catch {}
+
           const { reminders } = await Reminders.getReminders({
             listIds: [shoppingListId],
             includeCompleted: false,
@@ -147,10 +198,13 @@ export default function ShoppingList() {
               } catch {}
             }
           }
+          setSyncStatus('ok')
         } catch (e) {
           console.warn('Reminders sync failed:', e)
+          setSyncStatus('error')
         }
       } else {
+        setSyncStatus(null)
         setExtraItems([])
       }
     } catch (e) {
@@ -161,6 +215,43 @@ export default function ShoppingList() {
   }, [weekStart])
 
   useEffect(() => { fetchList() }, [fetchList])
+
+  // Re-sync when the user comes back from the native Reminders app
+  useEffect(() => {
+    if (!isRemindersSupported()) return
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && remindersSyncActive()) fetchList()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [fetchList])
+
+  // ── Manual "Add item" (creates a Reminder + appends as extra item) ──────────
+  const handleAddItem = async (text) => {
+    if (!remindersSyncActive()) return
+    const { shoppingListId } = getRemindersSettings()
+    const capitalized = text.charAt(0).toUpperCase() + text.slice(1)
+    try {
+      const created = await Reminders.createReminder({
+        title: capitalized,
+        listId: shoppingListId,
+      })
+      const newItem = {
+        ingredient_name: text,
+        ingredient_unit: '',
+        ingredient_category: 'other',
+        total_quantity: '',
+        checked: false,
+        _remindersOnly: true,
+      }
+      const key = `${text.toLowerCase()}::`
+      reminderIdMap.current[key] = created.id
+      setExtraItems(prev => [...prev, newItem])
+    } catch (e) {
+      console.error('Failed to add item to Reminders:', e)
+      alert('Could not add item to Reminders. Please try again.')
+    }
+  }
 
   const itemKey = (item) => `${item.ingredient_name}::${item.ingredient_unit}`
 
@@ -267,13 +358,33 @@ export default function ShoppingList() {
       <div className="flex-between mb-lg" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
         <div>
           <h1>Shopping List</h1>
-          {totalItems > 0 && (
-            <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-              {checkedItems}/{totalItems} items checked
-            </p>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+            {totalItems > 0 && (
+              <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+                {checkedItems}/{totalItems} items checked
+              </p>
+            )}
+            {syncStatus === 'syncing' && (
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>⏳ Syncing Reminders…</span>
+            )}
+            {syncStatus === 'ok' && (
+              <span style={{ fontSize: '0.75rem', color: 'var(--success, #22c55e)' }}>🍎 Reminders synced</span>
+            )}
+            {syncStatus === 'error' && (
+              <span style={{ fontSize: '0.75rem', color: 'var(--danger)' }}>⚠️ Reminders sync failed</span>
+            )}
+          </div>
         </div>
         <div className="flex gap-sm" style={{ alignItems: 'center' }}>
+          {remindersSyncActive() && (
+            <button
+              className="btn btn-sm btn-outline"
+              onClick={fetchList}
+              title="Sync with Apple Reminders"
+            >
+              {syncStatus === 'syncing' ? '⏳' : '🔄'} Sync
+            </button>
+          )}
           <button className="btn btn-sm btn-outline" onClick={() => setWeekStart(addWeeks(weekStart, -1))}>&larr;</button>
           <button
             className={`btn btn-sm ${isToday ? 'btn-primary' : 'btn-outline'}`}
@@ -285,18 +396,31 @@ export default function ShoppingList() {
       </div>
 
       {totalItems === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>&#x1F6D2;</div>
-          <h3>No items yet</h3>
-          <p style={{ color: 'var(--text-secondary)' }}>
-            Plan meals for this week to generate your shopping list
-          </p>
+        <div>
+          {remindersSyncActive() && (
+            <div className="mb-md">
+              <AddItemRow onAdd={handleAddItem} listTitle={remindersListTitle} />
+            </div>
+          )}
+          <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>&#x1F6D2;</div>
+            <h3>No items yet</h3>
+            <p style={{ color: 'var(--text-secondary)' }}>
+              Plan meals for this week to generate your shopping list
+              {remindersSyncActive() ? ', or add items above.' : '.'}
+            </p>
+          </div>
         </div>
       ) : (
         <>
-          <div className="mb-md">
+          <div className="flex-between mb-md" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+            {remindersSyncActive() ? (
+              <AddItemRow onAdd={handleAddItem} listTitle={remindersListTitle} />
+            ) : (
+              <div />
+            )}
             <button className="btn btn-sm btn-danger" onClick={handleRemoveAll}>
-              Remove All Items
+              Remove All
             </button>
           </div>
 
