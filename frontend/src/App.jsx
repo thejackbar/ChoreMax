@@ -47,11 +47,13 @@ function DefaultHomeRedirect() {
   const pref = user?.default_home_page || 'family'
   if (pref === 'calendar') return <Navigate to="/calendar" replace />
   if (pref === 'meals') return <Navigate to="/meals/plan" replace />
+  if (pref === 'chores') return <Navigate to="/family" replace />
   if (pref.startsWith('child:')) {
     const id = pref.slice('child:'.length)
     return <Navigate to={`/child/${id}`} replace />
   }
-  return <FamilyDailyView />
+  // Default ('family' or anything else) → Family Members home screen
+  return <FamilyMembers />
 }
 
 function PublicRoute({ children }) {
@@ -180,7 +182,7 @@ export default function App() {
 
             {/* Kid-facing (no PIN) */}
             <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-              <Route path="/" element={<FamilyMembers />} />
+              <Route path="/" element={<DefaultHomeRedirect />} />
               <Route path="/family" element={<FamilyDailyView />} />
               <Route path="/child/:childId" element={<MemberHub />} />
               <Route path="/child/:childId/daily" element={<ChildDailyChores />} />

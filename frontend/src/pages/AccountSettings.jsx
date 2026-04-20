@@ -302,11 +302,12 @@ export default function AccountSettings() {
           <div className="field">
             <label>When you open ChoreMax, start on</label>
             <select value={defaultHomePage} onChange={e => setDefaultHomePage(e.target.value)}>
-              <option value="family">Family View</option>
+              <option value="family">Family Members (Home)</option>
+              <option value="chores">Family Chores</option>
               <option value="calendar">Calendar</option>
               <option value="meals">Meal Plan</option>
               {children.map(c => (
-                <option key={c.id} value={`child:${c.id}`}>{c.name}</option>
+                <option key={c.id} value={`child:${c.id}`}>{c.name}&apos;s Hub</option>
               ))}
             </select>
           </div>

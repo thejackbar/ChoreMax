@@ -213,10 +213,13 @@ export default function FamilyDailyView() {
 
           return (
             <div key={member.child_id} className={`family-column ${allDone ? 'family-column--done' : ''}`}>
-              <button className="family-column-header" onClick={() => goToChild(member)}>
+              <div className="family-column-header" onClick={() => goToChild(member)} style={{ cursor: 'pointer' }}>
                 <span className="family-avatar">{getAvatarEmoji(member.avatar_value)}</span>
                 <span className="family-name">{member.child_name}</span>
                 <span className="family-balance">{formatTokens(member.token_balance, member.token_icon)}</span>
+              </div>
+              <button className="family-hub-btn" onClick={() => goToChild(member)}>
+                View {member.child_name}&apos;s Hub →
               </button>
 
               <div className="family-progress">
