@@ -46,6 +46,8 @@ services:
     restart: unless-stopped
     expose:
       - "80"
+    extra_hosts:
+      - "host-gateway:host-gateway"
     volumes:
       - ./nginx/nginx-internal.conf:/etc/nginx/nginx.conf:ro
       - uploads_data:/uploads:ro

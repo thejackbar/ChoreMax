@@ -19,7 +19,7 @@ import urllib.request
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 REPO_DIR      = os.path.expanduser("~/Downloads/ChoreMax")
-DEPLOY_WEBHOOK = "https://deploy.choremax.bltbox.com/deploy"
+DEPLOY_WEBHOOK = "https://choremax.bltbox.com/deploy"
 
 ASC_KEY_ID    = "QNW5H7HA98"
 ASC_ISSUER_ID = "69a6de8d-eec6-47e3-e053-5b8c7c11a4d1"
