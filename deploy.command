@@ -10,7 +10,7 @@ python3 deploy.py
 echo ""
 echo "▶  Building frontend and syncing to Xcode..."
 cd frontend
-npm run build && npx cap sync ios
+npm run build && npm run cap:sync
 cd ..
 
 # Step 3: Open Xcode with the iOS project

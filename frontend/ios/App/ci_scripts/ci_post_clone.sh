@@ -22,8 +22,9 @@ npm ci
 echo "--- npm run build ---"
 npm run build
 
-# 3. Sync web assets + native config into the Xcode project
-echo "--- cap sync ios ---"
-npx cap sync ios --no-open
+# 3. Sync web assets + native config into the Xcode project, then patch
+#    capacitor.config.json to re-add packageClassList (cap sync strips it)
+echo "--- cap sync + patch ---"
+npm run cap:sync
 
 echo "=== Post-clone complete ==="

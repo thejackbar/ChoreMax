@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cap:sync": "cap sync ios && node scripts/patch-capacitor-config.js"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.0",
