@@ -7,10 +7,15 @@ import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 
 export default function FamilyMembers() {
-  const { children } = useChild()
+  const { children, fetchChildren } = useChild()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [summaries, setSummaries] = useState({})
+
+  // Ensure children are loaded (needed on iOS fresh load)
+  useEffect(() => {
+    if (children.length === 0) fetchChildren()
+  }, [])
 
   // Load a quick summary (balance + chore progress) for each person
   useEffect(() => {
