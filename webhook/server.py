@@ -48,5 +48,5 @@ if __name__ == "__main__":
     if not DEPLOY_TOKEN:
         print("ERROR: DEPLOY_TOKEN environment variable is not set")
         exit(1)
-    print(f"ChoreMax webhook server listening on localhost:9876")
-    HTTPServer(("127.0.0.1", 9876), DeployHandler).serve_forever()
+    print(f"ChoreMax webhook server listening on 0.0.0.0:9876")
+    HTTPServer(("0.0.0.0", 9876), DeployHandler).serve_forever()
