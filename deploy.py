@@ -1,0 +1,194 @@
+#!/usr/bin/env python3
+"""
+ChoreMax Deploy Script
+─────────────────────────────────────────────────────────────────────────────
+Runs three steps in sequence:
+  1. Git commit (if there are changes) + push to GitHub
+  2. SSH into server → git pull + restart nginx and backend containers
+  3. App Store Connect API → trigger Xcode Cloud build → TestFlight
+─────────────────────────────────────────────────────────────────────────────
+"""
+
+import json
+import os
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
+
+# ── CONFIG ────────────────────────────────────────────────────────────────────
+REPO_DIR     = os.path.expanduser("~/Downloads/ChoreMax")
+SSH_TARGET   = "jack@bltbox.com"
+SERVER_DIR   = "/srv/docker/choremax"
+
+ASC_KEY_ID   = "QNW5H7HA98"
+ASC_ISSUER_ID = "69a6de8d-eec6-47e3-e053-5b8c7c11a4d1"
+ASC_KEY_FILE = os.path.expanduser("~/Downloads/ChoreMax/AuthKey_QNW5H7HA98.p8")
+APP_ID       = "6762284433"
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def log(msg, emoji="▶"):
+    print(f"\n{emoji}  {msg}", flush=True)
+
+
+def run(cmd, cwd=None):
+    result = subprocess.run(cmd, cwd=cwd, text=True)
+    if result.returncode != 0:
+        print(f"\n❌  Command failed: {' '.join(str(c) for c in cmd)}")
+        sys.exit(1)
+    return result
+
+
+def ensure_pyjwt():
+    try:
+        import jwt  # noqa: F401
+        from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey  # noqa: F401
+    except ImportError:
+        log("Installing PyJWT + cryptography (one-time setup)...", "📦")
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", "PyJWT", "cryptography", "-q"],
+            check=True,
+        )
+
+
+def make_asc_token():
+    ensure_pyjwt()
+    import jwt
+
+    with open(ASC_KEY_FILE, "r") as f:
+        private_key = f.read()
+
+    now = int(time.time())
+    payload = {
+        "iss": ASC_ISSUER_ID,
+        "iat": now,
+        "exp": now + 1200,
+        "aud": "appstoreconnect-v1",
+    }
+    token = jwt.encode(
+        payload,
+        private_key,
+        algorithm="ES256",
+        headers={"kid": ASC_KEY_ID},
+    )
+    return token
+
+
+def asc_get(path, token):
+    url = f"https://api.appstoreconnect.apple.com{path}"
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+    with urllib.request.urlopen(req) as r:
+        return json.loads(r.read())
+
+
+def asc_post(path, body, token):
+    url = f"https://api.appstoreconnect.apple.com{path}"
+    data = json.dumps(body).encode()
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+    )
+    with urllib.request.urlopen(req) as r:
+        return json.loads(r.read())
+
+
+def trigger_xcode_build(token):
+    # Find the Xcode Cloud product linked to this app
+    resp = asc_get(f"/v1/apps/{APP_ID}/ciProduct", token)
+    product_id = resp["data"]["id"]
+
+    # List all workflows
+    resp = asc_get(f"/v1/ciProducts/{product_id}/workflows", token)
+    workflows = resp["data"]
+    if not workflows:
+        raise RuntimeError("No Xcode Cloud workflows found for this app")
+
+    # Prefer a workflow named main / archive / release, otherwise take the first
+    workflow = workflows[0]
+    for w in workflows:
+        name = w["attributes"].get("name", "").lower()
+        if any(kw in name for kw in ("archive", "main", "release", "deploy")):
+            workflow = w
+            break
+
+    workflow_id   = workflow["id"]
+    workflow_name = workflow["attributes"]["name"]
+    log(f'Triggering workflow: "{workflow_name}"', "🔨")
+
+    body = {
+        "data": {
+            "type": "ciBuildRuns",
+            "relationships": {
+                "workflow": {
+                    "data": {"type": "ciWorkflows", "id": workflow_id}
+                }
+            },
+        }
+    }
+    result   = asc_post("/v1/ciBuildRuns", body, token)
+    build_id = result["data"]["id"]
+    return build_id
+
+
+# ── STEP 1 — Git commit + push ────────────────────────────────────────────────
+print("\n" + "═" * 52)
+print("  🚀  ChoreMax Deploy")
+print("═" * 52)
+
+log("Checking for uncommitted changes...", "📂")
+os.chdir(REPO_DIR)
+
+status = subprocess.run(
+    ["git", "status", "--porcelain"], capture_output=True, text=True
+)
+if status.stdout.strip():
+    timestamp = time.strftime("%d %b %Y %H:%M")
+    run(["git", "add", "-A"])
+    run(["git", "commit", "-m", f"Deploy {timestamp}"])
+    log("Changes committed", "✅")
+else:
+    log("No local changes — pushing existing commits", "ℹ️ ")
+
+log("Pushing to GitHub...", "📤")
+run(["git", "push", "origin", "main"])
+log("GitHub up to date", "✅")
+
+# ── STEP 2 — Server deploy ────────────────────────────────────────────────────
+log("Connecting to server...", "🖥️ ")
+ssh_cmd = (
+    f"cd {SERVER_DIR} && "
+    "git pull origin main && "
+    "docker compose up -d --build nginx backend"
+)
+run(["ssh", SSH_TARGET, ssh_cmd])
+log("Web app deployed", "✅")
+
+# ── STEP 3 — Xcode Cloud build ────────────────────────────────────────────────
+log("Triggering iOS build...", "📱")
+try:
+    token    = make_asc_token()
+    build_id = trigger_xcode_build(token)
+    log(f"iOS build queued  (ID: {build_id})", "✅")
+    print(
+        f"\n   Track it in Xcode → Report Navigator → Cloud\n"
+        f"   or: https://appstoreconnect.apple.com/teams/"
+        f"{ASC_ISSUER_ID}/apps/{APP_ID}/ci"
+    )
+except urllib.error.HTTPError as e:
+    body = e.read().decode()
+    print(f"\n⚠️   Xcode Cloud trigger failed (HTTP {e.code}): {body}")
+    print("   Start the build manually in Xcode or App Store Connect.")
+except Exception as e:
+    print(f"\n⚠️   Xcode Cloud trigger failed: {e}")
+    print("   Start the build manually in Xcode or App Store Connect.")
+
+# ── Done ──────────────────────────────────────────────────────────────────────
+print("\n" + "═" * 52)
+print("  ✅  Deploy complete!")
+print("═" * 52 + "\n")
