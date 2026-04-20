@@ -16,7 +16,7 @@ cd ..
 # Step 3: Open Xcode with the iOS project
 echo ""
 echo "▶  Opening Xcode..."
-open frontend/ios/App/App.xcworkspace
+open frontend/ios/App/App.xcodeproj
 
 echo ""
 echo "Press any key to close this window..."
