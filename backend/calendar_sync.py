@@ -411,7 +411,11 @@ async def sync_ical_connection(conn: CalendarConnection, db: AsyncSession, timez
     window_start = (now - timedelta(days=30)).date()
     window_end = (now + timedelta(days=90)).date()
 
-    events = []
+    # Dedupe by external_id. iCal feeds routinely contain multiple VEVENTs
+    # sharing the same UID — a master recurring event plus RECURRENCE-ID
+    # overrides (e.g. "cancelled this week"). Without RECURRENCE-ID in the
+    # key, the bulk insert would violate (connection_id, external_id) unique.
+    events_by_id: dict[str, dict] = {}
     for component in cal.walk():
         if component.name != "VEVENT":
             continue
@@ -420,6 +424,14 @@ async def sync_ical_connection(conn: CalendarConnection, db: AsyncSession, timez
             uid = str(component.get("uid", ""))
             if not uid:
                 continue
+
+            recurrence_id = component.get("recurrence-id")
+            if recurrence_id is not None:
+                rid_val = recurrence_id.dt
+                rid_str = rid_val.isoformat() if hasattr(rid_val, "isoformat") else str(rid_val)
+                external_id = f"{uid}::{rid_str}"
+            else:
+                external_id = uid
 
             dtstart = component.get("dtstart")
             dtend = component.get("dtend")
@@ -459,8 +471,8 @@ async def sync_ical_connection(conn: CalendarConnection, db: AsyncSession, timez
             if s_date > window_end or e_date < window_start:
                 continue
 
-            events.append({
-                "uid": uid,
+            events_by_id[external_id] = {
+                "uid": external_id,
                 "title": str(component.get("summary", "(No title)")),
                 "description": str(component.get("description", "")) or None,
                 "start_date": s_date,
@@ -469,12 +481,12 @@ async def sync_ical_connection(conn: CalendarConnection, db: AsyncSession, timez
                 "end_time": e_time,
                 "is_all_day": is_all_day,
                 "location": str(component.get("location", "")) or None,
-            })
+            }
         except Exception:
             continue  # Skip unparseable events
 
     # Delete events outside window, upsert new ones
-    await _upsert_ical_events(conn.id, events, db)
+    await _upsert_ical_events(conn.id, list(events_by_id.values()), db)
     conn.last_synced_at = datetime.now(ZoneInfo("UTC"))
     await db.flush()
 

@@ -581,8 +581,12 @@ async def _build_calendar_days(
         stale_threshold = datetime.now(ZoneInfo("UTC")) - timedelta(minutes=15)
         for conn in connections:
             if not conn.last_synced_at or conn.last_synced_at < stale_threshold:
+                # Wrap each sync in a SAVEPOINT so one bad feed (e.g. iCal
+                # feed with duplicate UIDs causing a unique-violation) can't
+                # abort the outer request transaction and blank the page.
                 try:
-                    await sync_connection(conn, db, current_user.timezone)
+                    async with db.begin_nested():
+                        await sync_connection(conn, db, current_user.timezone)
                 except Exception:
                     pass
 
