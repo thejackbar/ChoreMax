@@ -136,62 +136,24 @@ def asc_patch(path, body, token):
 
 def ensure_external_distribution(workflow_id, token):
     """
-    Make sure the workflow's ARCHIVE action and any post-actions target
-    external (TestFlight + App Store) distribution, not internal-only.
-    Apple permanently flags internal-only uploads, blocking external groups.
+    DIAGNOSTIC MODE — dump only.
 
-    Patches multiple known fields because Apple's CiAction schema has shifted
-    between Xcode versions: `destination`, `buildDistributionAudience`, and
-    a separate `postActions` array can each gate distribution.
+    The first attempt assumed the ARCHIVE action's `destination` controlled
+    TestFlight distribution. Apple's API rejected that with a clear hint:
+    `destination` is the build-target platform (ANY_IOS_DEVICE etc.), not
+    the TestFlight audience. The actual control lives in a separate
+    `postActions` array on the workflow whose schema we don't have yet.
+
+    This function now only fetches and prints the workflow's full attributes
+    so we can see the real `postActions` schema, then returns without
+    patching. Once we identify the right field we'll re-enable PATCH.
     """
     resp = asc_get(f"/v1/ciWorkflows/{workflow_id}", token)
     attrs = resp["data"]["attributes"]
 
-    log("Workflow attributes (diagnostic dump):", "🔍")
-    print(json.dumps(attrs, indent=2)[:4000], flush=True)
-
-    actions = attrs.get("actions") or []
-    post_actions = attrs.get("postActions") or []
-
-    changed = False
-    for action in actions:
-        if action.get("actionType") != "ARCHIVE":
-            continue
-        if action.get("destination") not in (None, ARCHIVE_DEST_EXTERNAL_OK):
-            action["destination"] = ARCHIVE_DEST_EXTERNAL_OK
-            changed = True
-        # Newer schema: explicit audience field
-        if "buildDistributionAudience" in action and \
-                action["buildDistributionAudience"] != "APP_STORE_ELIGIBLE":
-            action["buildDistributionAudience"] = "APP_STORE_ELIGIBLE"
-            changed = True
-
-    for pa in post_actions:
-        if pa.get("type") == "TEST_FLIGHT_INTERNAL_TESTING":
-            pa["type"] = ARCHIVE_DEST_EXTERNAL_OK
-            changed = True
-
-    if not changed:
-        log("Workflow already configured for external distribution.", "✅")
-        return False
-
-    log("Patching workflow → external (TestFlight + App Store)…", "🛠️ ")
-    patch_attrs = {}
-    if actions:
-        patch_attrs["actions"] = actions
-    if post_actions:
-        patch_attrs["postActions"] = post_actions
-    patch_body = {
-        "data": {
-            "type": "ciWorkflows",
-            "id": workflow_id,
-            "attributes": patch_attrs,
-        }
-    }
-    result = asc_patch(f"/v1/ciWorkflows/{workflow_id}", patch_body, token)
-    log("PATCH response (diagnostic):", "🔍")
-    print(json.dumps(result.get("data", {}).get("attributes", {}), indent=2)[:2000], flush=True)
-    return True
+    log("Workflow attributes (full JSON — paste this back):", "🔍")
+    print(json.dumps(attrs, indent=2), flush=True)
+    return False
 
 
 def trigger_xcode_build(token):
