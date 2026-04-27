@@ -25,6 +25,12 @@ ASC_KEY_ID    = "QNW5H7HA98"
 ASC_ISSUER_ID = "69a6de8d-eec6-47e3-e053-5b8c7c11a4d1"
 ASC_KEY_FILE  = os.path.join(REPO_DIR, "AuthKey_QNW5H7HA98.p8")
 APP_ID        = "6762284433"
+
+# Xcode Cloud archive destinations (App Store Connect API).
+# INTERNAL marks builds as internal-only at upload, blocking external groups.
+# AND_APP_STORE makes builds eligible for both internal AND external testing.
+ARCHIVE_DEST_INTERNAL_ONLY = "TEST_FLIGHT_INTERNAL_TESTING"
+ARCHIVE_DEST_EXTERNAL_OK   = "TEST_FLIGHT_AND_APP_STORE"
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -112,6 +118,56 @@ def asc_post(path, body, token):
         return json.loads(r.read())
 
 
+def asc_patch(path, body, token):
+    url = f"https://api.appstoreconnect.apple.com{path}"
+    data = json.dumps(body).encode()
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        method="PATCH",
+    )
+    with urllib.request.urlopen(req) as r:
+        return json.loads(r.read())
+
+
+def ensure_external_distribution(workflow_id, token):
+    """
+    Make sure the workflow's ARCHIVE action targets TEST_FLIGHT_AND_APP_STORE,
+    not TEST_FLIGHT_INTERNAL_TESTING. Apple permanently flags builds uploaded
+    via the internal-only destination as internal, which blocks them from ever
+    being added to external TestFlight groups.
+    """
+    resp = asc_get(f"/v1/ciWorkflows/{workflow_id}", token)
+    attrs = resp["data"]["attributes"]
+    actions = attrs.get("actions") or []
+
+    changed = False
+    for action in actions:
+        if action.get("actionType") != "ARCHIVE":
+            continue
+        if action.get("destination") != ARCHIVE_DEST_EXTERNAL_OK:
+            action["destination"] = ARCHIVE_DEST_EXTERNAL_OK
+            changed = True
+
+    if not changed:
+        return False
+
+    log("Updating workflow archive destination → TEST_FLIGHT_AND_APP_STORE", "🛠️ ")
+    patch_body = {
+        "data": {
+            "type": "ciWorkflows",
+            "id": workflow_id,
+            "attributes": {"actions": actions},
+        }
+    }
+    asc_patch(f"/v1/ciWorkflows/{workflow_id}", patch_body, token)
+    return True
+
+
 def trigger_xcode_build(token):
     resp = asc_get(f"/v1/apps/{APP_ID}/ciProduct", token)
     product_id = resp["data"]["id"]
@@ -131,6 +187,8 @@ def trigger_xcode_build(token):
     workflow_id   = workflow["id"]
     workflow_name = workflow["attributes"]["name"]
     log(f'Triggering workflow: "{workflow_name}"', "🔨")
+
+    ensure_external_distribution(workflow_id, token)
 
     body = {
         "data": {
