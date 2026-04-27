@@ -137,15 +137,24 @@ def asc_patch(path, body, token):
 
 def ensure_external_distribution(workflow_id, token):
     """
-    Flip the ARCHIVE action's buildDistributionAudience from INTERNAL_ONLY
-    to APP_STORE_ELIGIBLE so uploaded builds are usable by external testers
-    and Apple kicks off Beta App Review automatically.
+    Flip the ARCHIVE action's buildDistributionAudience to APP_STORE_ELIGIBLE
+    so uploaded builds are usable by external testers and Beta App Review
+    runs automatically. Apple's GET response hides null fields, so we also
+    request `deploymentConfig` explicitly via fields[ciWorkflows] to see it.
 
     Idempotent — does nothing if already configured correctly.
     """
-    resp = asc_get(f"/v1/ciWorkflows/{workflow_id}", token)
-    actions = resp["data"]["attributes"].get("actions") or []
+    fields = "actions,name,deploymentConfig,postActions,buildDistributionAudience"
+    resp = asc_get(
+        f"/v1/ciWorkflows/{workflow_id}?fields[ciWorkflows]={fields}",
+        token,
+    )
+    attrs = resp["data"]["attributes"]
 
+    log("Workflow attributes (with extra fields):", "🔍")
+    print(json.dumps(attrs, indent=2), flush=True)
+
+    actions = attrs.get("actions") or []
     changed = False
     for action in actions:
         if action.get("actionType") != "ARCHIVE":
@@ -158,15 +167,34 @@ def ensure_external_distribution(workflow_id, token):
         return False
 
     log("Switching workflow audience → APP_STORE_ELIGIBLE", "🛠️ ")
+    # Send deploymentConfig: null so Apple regenerates it for the new audience.
+    # The previous internal-only deploymentConfig references an action that no
+    # longer matches once we change the audience, causing HTTP 409.
     patch_body = {
         "data": {
             "type": "ciWorkflows",
             "id": workflow_id,
-            "attributes": {"actions": actions},
+            "attributes": {
+                "actions": actions,
+                "deploymentConfig": None,
+            },
         }
     }
-    asc_patch(f"/v1/ciWorkflows/{workflow_id}", patch_body, token)
-    return True
+    try:
+        asc_patch(f"/v1/ciWorkflows/{workflow_id}", patch_body, token)
+        return True
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        log(f"PATCH failed (HTTP {e.code}):", "⚠️ ")
+        print(body, flush=True)
+        log(
+            "Falling back: configure the workflow's archive audience manually "
+            "in Xcode (Report Navigator → Cloud → right-click 'Default' → "
+            "Edit Workflow → set audience to 'App Store Connect / TestFlight'). "
+            "Continuing to trigger the build anyway.",
+            "ℹ️ ",
+        )
+        return False
 
 
 def trigger_xcode_build(token):
