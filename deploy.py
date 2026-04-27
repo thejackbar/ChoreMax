@@ -30,8 +30,7 @@ APP_ID        = "6762284433"
 # INTERNAL_ONLY: Apple permanently flags the upload as internal, blocking
 # external groups. APP_STORE_ELIGIBLE makes builds usable for both internal
 # and external testing groups (and submits to Beta App Review automatically).
-ARCHIVE_AUDIENCE_INTERNAL_ONLY = "INTERNAL_ONLY"
-ARCHIVE_AUDIENCE_EXTERNAL_OK   = "APP_STORE_ELIGIBLE"
+ARCHIVE_AUDIENCE_EXTERNAL_OK = "APP_STORE_ELIGIBLE"
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -119,82 +118,39 @@ def asc_post(path, body, token):
         return json.loads(r.read())
 
 
-def asc_patch(path, body, token):
-    url = f"https://api.appstoreconnect.apple.com{path}"
-    data = json.dumps(body).encode()
-    req = urllib.request.Request(
-        url,
-        data=data,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
-        method="PATCH",
-    )
-    with urllib.request.urlopen(req) as r:
-        return json.loads(r.read())
-
-
 def ensure_external_distribution(workflow_id, token):
     """
-    Flip the ARCHIVE action's buildDistributionAudience to APP_STORE_ELIGIBLE
-    so uploaded builds are usable by external testers and Beta App Review
-    runs automatically. Apple's GET response hides null fields, so we also
-    request `deploymentConfig` explicitly via fields[ciWorkflows] to see it.
+    Verify the workflow's ARCHIVE audience is APP_STORE_ELIGIBLE. If not,
+    warn — but don't try to PATCH it. Apple's API exposes the audience as
+    a readable field but rejects updates because the workflow's internal
+    `deploymentConfig` state can only be regenerated atomically by the
+    Xcode UI. Setting only the audience leaves the workflow inconsistent
+    and Apple returns HTTP 409.
 
-    Idempotent — does nothing if already configured correctly.
+    To fix: Xcode → Report Navigator (⌘9) → Cloud → right-click 'Default'
+    → Edit Workflow → Archive action → change audience to
+    "TestFlight and App Store" → Save.
     """
-    fields = "actions,name,deploymentConfig,postActions,buildDistributionAudience"
-    resp = asc_get(
-        f"/v1/ciWorkflows/{workflow_id}?fields[ciWorkflows]={fields}",
-        token,
-    )
-    attrs = resp["data"]["attributes"]
+    resp = asc_get(f"/v1/ciWorkflows/{workflow_id}", token)
+    actions = resp["data"]["attributes"].get("actions") or []
 
-    log("Workflow attributes (with extra fields):", "🔍")
-    print(json.dumps(attrs, indent=2), flush=True)
-
-    actions = attrs.get("actions") or []
-    changed = False
     for action in actions:
         if action.get("actionType") != "ARCHIVE":
             continue
-        if action.get("buildDistributionAudience") != ARCHIVE_AUDIENCE_EXTERNAL_OK:
-            action["buildDistributionAudience"] = ARCHIVE_AUDIENCE_EXTERNAL_OK
-            changed = True
-
-    if not changed:
-        return False
-
-    log("Switching workflow audience → APP_STORE_ELIGIBLE", "🛠️ ")
-    # Send deploymentConfig: null so Apple regenerates it for the new audience.
-    # The previous internal-only deploymentConfig references an action that no
-    # longer matches once we change the audience, causing HTTP 409.
-    patch_body = {
-        "data": {
-            "type": "ciWorkflows",
-            "id": workflow_id,
-            "attributes": {
-                "actions": actions,
-                "deploymentConfig": None,
-            },
-        }
-    }
-    try:
-        asc_patch(f"/v1/ciWorkflows/{workflow_id}", patch_body, token)
-        return True
-    except urllib.error.HTTPError as e:
-        body = e.read().decode()
-        log(f"PATCH failed (HTTP {e.code}):", "⚠️ ")
-        print(body, flush=True)
+        audience = action.get("buildDistributionAudience")
+        if audience == ARCHIVE_AUDIENCE_EXTERNAL_OK:
+            return True
         log(
-            "Falling back: configure the workflow's archive audience manually "
-            "in Xcode (Report Navigator → Cloud → right-click 'Default' → "
-            "Edit Workflow → set audience to 'App Store Connect / TestFlight'). "
-            "Continuing to trigger the build anyway.",
-            "ℹ️ ",
+            f"Workflow audience is {audience!r} — builds will upload as "
+            "internal-only and CANNOT be added to external TestFlight groups. "
+            "Fix once in Xcode: Report Navigator (⌘9) → Cloud → right-click "
+            "'Default' → Edit Workflow → Archive action → set audience to "
+            "'TestFlight and App Store' → Save.",
+            "⚠️ ",
         )
         return False
+
+    return False
 
 
 def trigger_xcode_build(token):
