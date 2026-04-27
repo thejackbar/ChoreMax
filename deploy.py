@@ -26,11 +26,12 @@ ASC_ISSUER_ID = "69a6de8d-eec6-47e3-e053-5b8c7c11a4d1"
 ASC_KEY_FILE  = os.path.join(REPO_DIR, "AuthKey_QNW5H7HA98.p8")
 APP_ID        = "6762284433"
 
-# Xcode Cloud archive destinations (App Store Connect API).
-# INTERNAL marks builds as internal-only at upload, blocking external groups.
-# AND_APP_STORE makes builds eligible for both internal AND external testing.
-ARCHIVE_DEST_INTERNAL_ONLY = "TEST_FLIGHT_INTERNAL_TESTING"
-ARCHIVE_DEST_EXTERNAL_OK   = "TEST_FLIGHT_AND_APP_STORE"
+# CiArchiveAction.buildDistributionAudience — controls TestFlight audience.
+# INTERNAL_ONLY: Apple permanently flags the upload as internal, blocking
+# external groups. APP_STORE_ELIGIBLE makes builds usable for both internal
+# and external testing groups (and submits to Beta App Review automatically).
+ARCHIVE_AUDIENCE_INTERNAL_ONLY = "INTERNAL_ONLY"
+ARCHIVE_AUDIENCE_EXTERNAL_OK   = "APP_STORE_ELIGIBLE"
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -136,24 +137,36 @@ def asc_patch(path, body, token):
 
 def ensure_external_distribution(workflow_id, token):
     """
-    DIAGNOSTIC MODE — dump only.
+    Flip the ARCHIVE action's buildDistributionAudience from INTERNAL_ONLY
+    to APP_STORE_ELIGIBLE so uploaded builds are usable by external testers
+    and Apple kicks off Beta App Review automatically.
 
-    The first attempt assumed the ARCHIVE action's `destination` controlled
-    TestFlight distribution. Apple's API rejected that with a clear hint:
-    `destination` is the build-target platform (ANY_IOS_DEVICE etc.), not
-    the TestFlight audience. The actual control lives in a separate
-    `postActions` array on the workflow whose schema we don't have yet.
-
-    This function now only fetches and prints the workflow's full attributes
-    so we can see the real `postActions` schema, then returns without
-    patching. Once we identify the right field we'll re-enable PATCH.
+    Idempotent — does nothing if already configured correctly.
     """
     resp = asc_get(f"/v1/ciWorkflows/{workflow_id}", token)
-    attrs = resp["data"]["attributes"]
+    actions = resp["data"]["attributes"].get("actions") or []
 
-    log("Workflow attributes (full JSON — paste this back):", "🔍")
-    print(json.dumps(attrs, indent=2), flush=True)
-    return False
+    changed = False
+    for action in actions:
+        if action.get("actionType") != "ARCHIVE":
+            continue
+        if action.get("buildDistributionAudience") != ARCHIVE_AUDIENCE_EXTERNAL_OK:
+            action["buildDistributionAudience"] = ARCHIVE_AUDIENCE_EXTERNAL_OK
+            changed = True
+
+    if not changed:
+        return False
+
+    log("Switching workflow audience → APP_STORE_ELIGIBLE", "🛠️ ")
+    patch_body = {
+        "data": {
+            "type": "ciWorkflows",
+            "id": workflow_id,
+            "attributes": {"actions": actions},
+        }
+    }
+    asc_patch(f"/v1/ciWorkflows/{workflow_id}", patch_body, token)
+    return True
 
 
 def trigger_xcode_build(token):
